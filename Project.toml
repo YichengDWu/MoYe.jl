@@ -3,6 +3,10 @@ uuid = "57a5148a-7bb8-46c0-adfc-97cbfb31d94c"
 authors = ["MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors"]
 version = "1.0.0-DEV"
 
+[deps]
+Static = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [compat]
 julia = "1.8"
 
