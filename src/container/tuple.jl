@@ -1,3 +1,4 @@
+#=
 abstract type EBO{N, T, IsEmpty} end
 
 struct EmptyEBO{N,T} <: EBO{N, T, true}
@@ -30,3 +31,6 @@ TupleBase = NTuple{N, EBO} where N
 function make_index_sequence(N, M...)
     iszero(N) ? M : make_index_sequence(N-1, N-1, M...)
 end
+=#
+
+istuple = Base.Fix2(isa, Tuple)

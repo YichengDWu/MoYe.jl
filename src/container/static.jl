@@ -20,3 +20,4 @@ Static.dynamic(::StaticUInt{N}) where {N} = N
 
 =#
 Base.isnothing(@nospecialize x::Static.StaticNumber) = false
+Base.cld(x::StaticInt, y::StaticInt) = div(x, y, RoundUp)
