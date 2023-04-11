@@ -1,6 +1,5 @@
-using CuTe
-using Test
+using CuTe, Test
 
-@testset "CuTe.jl" begin
-    # Write your tests here.
+@testset "IntTuple" begin
+    include("int_tuple.jl")
 end

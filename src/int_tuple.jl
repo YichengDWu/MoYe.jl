@@ -11,13 +11,13 @@ end
 
 # shape
 
-@inline depth(@nospecialize x::Int) = static(0)
+@inline depth(@nospecialize x::Int) = 0
 function depth(@nospecialize x::IntTuple)
-    return max(map(depth, x)...) + static(1)
+    return max(map(depth, x)...) + 1
 end
 
 
-Base.prod(@nospecialize x::IntTuple) = Static.reduce_tup(*, flatten(x))
+Base.prod(@nospecialize x::IntTuple) = reduce(*, flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each2, x)
@@ -27,15 +27,15 @@ Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, make_in
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
 
-Base.sum(@nospecialize x::IntTuple) = Static.reduce_tup(+, flatten(x))
+Base.sum(@nospecialize x::IntTuple) = reduce(+, flatten(x))
 
-inner_product(x::IntSequence, y::IntSequence) = Static.reduce_tup(+, map(*, x, y))
-inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = Static.reduce_tup(+, map(inner_product, x, y))
+inner_product(x::IntSequence, y::IntSequence) = reduce(+, map(*, x, y))
+inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = reduce(+, map(inner_product, x, y))
 
 Base.cld(x::IntSequence, y::IntSequence) = map(cld, x, y)
 function Base.cld(x::IntTuple, y::IntTuple)
     @assert rank(x) >= rank(y)
-    y = append(y, static(1), rank(x))
+    y = append(y, 1, rank(x))
     return map(cld, x, y)
 end
 
@@ -90,25 +90,42 @@ end
 # comparison
 # Base.:(<)(x::Int, y::Tuple) = x < prod(y) # maybe we need this for non congruent shapes
 #lex_less = <
-#lex_le = <=
-#lex_ge = >=
+#lex_leq = <=
+#lex_geq = >=
 
 
-
-elem_less_impl(x::Int, y::Int) = x < y
-elem_less_impl(::Tuple{}, ::Tuple{}) = true
-elem_less_impl(::Tuple{}, ::Tuple) = true #  TupleA is exhausted
-elem_less_impl(::Tuple, ::Tuple{}) = false # TupleA is not exhausted, TupleB is exhausted
-elem_less_impl(x::Tuple{Int}, y::Tuple{Int}) = x[1] < y[1]
-
-function elem_less_impl(t1::NTuple{N,Int}, t2::NTuple{M,Int}) where {N,M}
+colex_less(::Tuple{}, ::Tuple{}) = true
+colex_less(::Tuple{}, ::Tuple) = false
+colex_less(::Tuple, ::Tuple{}) = true
+function colex_less(t1::Tuple, t2::Tuple)
     a, b = t1[1], t2[1]
-    if !((a == b) || elem_less_impl(a, b))
-        return false
+    if a ≠ b
+        return a < b
     end
-    return elem_less_impl(Base.tail(t1), Base.tail(t2))
+    return Base.front(t1) < Base.front(t2)
 end
 
+elem_less(x::Int, y::Int) = x < y
+elem_less(::Tuple{}, ::Tuple{}) = true
+elem_less(::Tuple{}, ::Tuple) = true #  TupleA is exhausted
+elem_less(::Tuple, ::Tuple{}) = false # TupleA is not exhausted, TupleB is exhausted
+
+function elem_less(t1::Tuple, t2::Tuple)
+    a, b = t1[1], t2[1]
+    if length(t1) == length(t2) == 1
+        return a < b
+    end
+
+    if !((a == b) || elem_less(a, b))
+        return false
+    end
+
+    return elem_less(Base.tail(t1), Base.tail(t2))
+end
+
+elem_leq(x, y) = !elem_less(y, x)
+elem_gtr(x, y) = elem_less(y, x)
+elem_geq(x, y) = !elem_geq(x, y)
 # increment
 
 # iterator
