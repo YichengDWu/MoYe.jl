@@ -6,11 +6,11 @@ back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
 @inline back(x) = x
 
 # take Takes the elements in the range [B,E] of the tuple
-function take(@nospecialize(t::Tuple), B, E)
-    return getindex(t, B: E)
-end
+#function take(@nospecialize(t::Tuple), B, E)
+#    return getindex(t, B:E)
+#end
 
-unwrap(@nospecialize(t::Tuple)) = nfields(t) == 1 ? unwrap(first(t)) : t
+unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 @inline unwrap(x) = x
 
 # recursive flatten

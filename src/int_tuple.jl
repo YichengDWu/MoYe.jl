@@ -136,10 +136,9 @@ function increment(coord::Coord, shape::Shape) where {Coord, Shape}
         return increment(c, s)
     end
 
-    if back(c) != back(s)
-        return (increment(c, s)..., Base.tail(coord)...)
+    if c != s
+        return (increment(c, s), Base.tail(coord)...)
     end
-    @show Base.tail(coord), Base.tail(shape)
-    return (replace_back(c, 1), increment(Base.tail(coord), Base.tail(shape))...)
+    return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
  end
 # iterator
