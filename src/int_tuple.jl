@@ -141,4 +141,38 @@ function increment(coord::Coord, shape::Shape) where {Coord, Shape}
     end
     return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
  end
-# iterator
+
+ # iterator
+
+struct ForwardCoordUnitRange{B, E} <:AbstractUnitRange{Int}
+    start::B
+    stop::E
+
+    function ForwardCoordUnitRange(start::IntTuple, stop::IntTuple)
+        new{typeof(start), typeof(stop)}(start, stop)
+    end
+end
+
+const ForwardCoordOneTo{T} = ForwardCoordUnitRange{T, T}
+function ForwardCoordOneTo(shape::IntTuple)
+    start = repeat_like(shape, 1)
+    ForwardCoordUnitRange(start, shape)
+end
+
+Base.oneto(shape::IntTuple) = ForwardCoordOneTo(shape)
+Base.first(x::ForwardCoordOneTo) = getfield(x, :start)
+Base.last(x::ForwardCoordOneTo) = getfield(x, :stop)
+Base.length(x::ForwardCoordOneTo) = length(getfield(x, :stop))
+
+function Base.iterate(x::ForwardCoordOneTo)
+    start = getfield(x, :start)
+    return (start, start)
+end
+function Base.iterate(x::ForwardCoordOneTo, state)
+    stop = getfield(x, :stop)
+    if state == stop
+        return nothing
+    end
+    new_state = increment(state, stop)
+    return (new_state, new_state)
+end
