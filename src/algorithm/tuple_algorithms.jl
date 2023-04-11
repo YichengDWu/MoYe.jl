@@ -7,7 +7,7 @@ back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
 
 # take Takes the elements in the range [B,E] of the tuple
 function take(@nospecialize(t::Tuple), B, E)
-    return getindex(t, make_int_range(B, E))
+    return getindex(t, B: E)
 end
 
 unwrap(@nospecialize(t::Tuple)) = nfields(t) == 1 ? unwrap(first(t)) : t
@@ -19,15 +19,15 @@ flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))..
 @inline flatten(x) = x
 
 function insert(@nospecialize(t::Tuple), x, N)
-    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N, length(t)))...)
+    return (getindex(t, Base.OneTo(N-one(N)))..., x, getindex(t, N:length(t))...)
 end
 
 function remove(@nospecialize(t::Tuple), N)
-    return (getindex(t, make_int_sequence(N-one(N)))..., getindex(t, make_int_range(N+one(N), length(t)))...)
+    return (getindex(t, Base.OneTo(N-one(N)))..., getindex(t, UnitRange(N+one(N), length(t)))...)
 end
 
 function Base.replace(@nospecialize(t::Tuple), x, N)
-    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N+one(N), length(t)))...)
+    return (getindex(t, Base.OneTo(N-one(N)))..., x, getindex(t, UnitRange(N+one(N), length(t)))...)
 end
 
 @inline function replace_front(@nospecialize(t::Tuple), v)
@@ -50,7 +50,7 @@ end
 
 # Group the elements [B,E] of a T into a single element
 function group(@nospecialize(t::Tuple), b, e)
-    return (getindex(t, make_int_sequence(b-one(b)))..., getindex(t, make_int_range(b, e)), getindex(t, make_int_range(e+one(e), length(t)))...)
+    return (getindex(t, Base.OneTo(b-one(b)))..., getindex(t, UnitRange(b, e)), getindex(t, UnitRange(e+one(e), length(t)))...)
 end
 
 # append x to extend t to rank N

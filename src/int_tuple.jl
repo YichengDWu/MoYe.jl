@@ -22,7 +22,7 @@ Base.prod(@nospecialize x::IntTuple) = reduce(*, flatten(x))
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each2, x)
 
-Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, make_int_range(b, e)))
+Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, b:e))
 
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
@@ -139,6 +139,7 @@ function increment(coord::Coord, shape::Shape) where {Coord, Shape}
     if back(c) != back(s)
         return (increment(c, s)..., Base.tail(coord)...)
     end
+    @show Base.tail(coord), Base.tail(shape)
     return (replace_back(c, 1), increment(Base.tail(coord), Base.tail(shape))...)
  end
 # iterator
