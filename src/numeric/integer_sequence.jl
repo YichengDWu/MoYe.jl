@@ -5,4 +5,4 @@
 
 const IntSequence{N} = NTuple{N, Int}
 
-Base.@propagate_inbounds Base.getindex(x::Tuple, I::IntSequence{N}) where {N} = broadcast(Base.Fix1(getindex, x), I)
+Base.@propagate_inbounds Base.getindex(x::Tuple, I::IntSequence{N}) where {N} = map(Base.Fix1(getindex, x), I)
