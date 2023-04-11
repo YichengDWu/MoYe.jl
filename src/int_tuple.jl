@@ -5,6 +5,10 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::
     return getindex(getindex(x, I1), I2, Is...)
 end
 
+# fmap where integers are leaves
+emap(f::Function, t::IntTuple) = map(Base.Fix1(emap, f), t)
+emap(f::Function, x::Int) = f(x)
+
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::Int) = 1
 @inline rank(@nospecialize(x::IntTuple), I::Int...) = rank(getindex(x, I...))
@@ -123,11 +127,9 @@ function elem_less(t1::Tuple, t2::Tuple)
     return elem_less(Base.tail(t1), Base.tail(t2))
 end
 
-
 elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
-
 
 increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
 function increment(coord::Coord, shape::Shape) where {Coord, Shape}
