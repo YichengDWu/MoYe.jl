@@ -1,108 +1,73 @@
-#=
-apply(f::Function, @nospecialize(t), @nospecialize(I::Tuple)) = f(getindex(t, I)...)
-apply(f::Function, @nospecialize(t)) = f(t...)
-
-# (g, f, t1, t2) = g(f(t_1_1, t_2_1), f(t_1_2, t_2,_2),...)
-function tapply(g::Function, f::Function, @nospecialize(I::IntSequence), @nospecialize(t::Tuple...))
-    return g(map(f, map(Base.Fix2(getindex, I), t)...)...)
-end
-
-@inline transform_apply(g::Function, f::Function, t::Tuple...) = g(map(f, t...)...)
-
-# Iterators.foreach
-
-@inline transform(f::Function, @nospecialize(t::Tuple...)) = tuple(map(f, t...)...)
-
-transform_leaf(f::Function, t) = fmap(f, t)
-=#
-#=
-function Base.findfirst(f::Function, @nospecialize(t::IntSequence), @nospecialize(I::IntSequence))
-    return (@inline; f(t[first(I)])) ? first(I) : findfirst(f, t, Base.tail(I))
-end
-@inline function Base.findfirst(::Function, @nospecialize(t::IntSequence), ::Tuple{})
-    return nothing
-end
-# It would overwrite Base.findfirst(f, t::Tuple) if we don't use IntSequence
-Base.findfirst(f::Function, @nospecialize(t::IntSequence)) = findfirst(f, t, tuple_seq(t))
-Base.findfirst(@nospecialize(x::StaticInt), @nospecialize(t::IntSequence)) = findfirst(==(x), t)
-=#
-
-# maybe we don't need the following functions
-#Base.in(@nospecialize(x::StaticInt), @nospecialize(t::Tuple)) = static(!isnothing(findfirst(==(x), t)))
-#Base.any(f::Function, @nospecialize(t::IntSequence)) = static(!isnothing(findfirst(f, t)))
-#Base.all(f::Function, @nospecialize(t::IntSequence)) = static(isnothing(findfirst(!f, t)))
-#  Iterators.filter
-
 # we don't overload Base.front, it finds the first non-tuple element
 front(@nospecialize(t::Tuple)) = front(first(t))
-@inline front(@nospecialize(x)) = x
+@inline front(x) = x
 
-back(@nospecialize(t::Tuple)) = back(getindex(t, tuple_size(t)))
-@inline back(@nospecialize(x)) = x
+back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
+@inline back(x) = x
 
 # take Takes the elements in the range [B,E] of the tuple
-function take(@nospecialize(t::Tuple), B::StaticInt, E::StaticInt)
+function take(@nospecialize(t::Tuple), B, E)
     return getindex(t, make_int_range(B, E))
 end
 
 unwrap(@nospecialize(t::Tuple)) = nfields(t) == 1 ? unwrap(first(t)) : t
-@inline unwrap(@nospecialize(x)) = x
+@inline unwrap(x) = x
 
 # recursive flatten
 @inline flatten(::Tuple{}) = ()
 flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))...)
-@inline flatten(@nospecialize(x)) = x
+@inline flatten(x) = x
 
-function insert(@nospecialize(t::Tuple), @nospecialize(x), N)
-    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N, tuple_size(t)))...)
+function insert(@nospecialize(t::Tuple), x, N)
+    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N, length(t)))...)
 end
 
-function remove(@nospecialize(t::Tuple), N::StaticInt)
-    return (getindex(t, make_int_sequence(N-one(N)))..., getindex(t, make_int_range(N+one(N), tuple_size(t)))...)
+function remove(@nospecialize(t::Tuple), N)
+    return (getindex(t, make_int_sequence(N-one(N)))..., getindex(t, make_int_range(N+one(N), length(t)))...)
 end
 
-function Base.replace(@nospecialize(t::Tuple), @nospecialize(x), N::StaticInt)
-    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N+one(N), tuple_size(t)))...)
+function Base.replace(@nospecialize(t::Tuple), x, N)
+    return (getindex(t, make_int_sequence(N-one(N)))..., x, getindex(t, make_int_range(N+one(N), length(t)))...)
 end
 
-@inline function replace_front(@nospecialize(t::Tuple), @nospecialize(v::StaticInt))
+@inline function replace_front(@nospecialize(t::Tuple), v)
     return (v, Base.tail(t)...)
 end
 
-@inline function replace_back(@nospecialize(t::Tuple), @nospecialize(v::StaticInt))
+@inline function replace_back(@nospecialize(t::Tuple), v)
     return (Base.front(t)..., v)
 end
 
-@inline function Base.repeat(@nospecialize(x::StaticInt), @nospecialize(n::StaticInt))
+@inline function Base.repeat(x, n)
     return ntuple(i -> x, n)
 end
 
-@inline repeat_like(@nospecialize(t::StaticInt), @nospecialize(x::StaticInt)) = x
-function repeat_like(@nospecialize(t::Tuple), @nospecialize(x::StaticInt))
+@inline repeat_like(t, x) = x
+function repeat_like(@nospecialize(t::Tuple), x)
     map(Base.Fix2(repeat_like, x), t)
 end
 
 # Group the elements [B,E] of a T into a single element
-function group(@nospecialize(t::Tuple), b::StaticInt, e::StaticInt)
-    return (getindex(t, make_int_sequence(b-one(b)))..., getindex(t, make_int_range(b, e)), getindex(t, make_int_range(e+one(e), tuple_size(t)))...)
+function group(@nospecialize(t::Tuple), b, e)
+    return (getindex(t, make_int_sequence(b-one(b)))..., getindex(t, make_int_range(b, e)), getindex(t, make_int_range(e+one(e), length(t)))...)
 end
 
 # append x to extend t to rank N
-function append(@nospecialize(t::Tuple), @nospecialize(x), @nospecialize(I::StaticInt))
-    return (t..., ntuple(_ -> x, tuple_size(t)-I)...)
+function append(@nospecialize(t::Tuple), x, I)
+    return (t..., ntuple(_ -> x, I-length(t))...)
 end
-function append(@nospecialize(t::Tuple), @nospecialize(x))
+function append(@nospecialize(t::Tuple), x)
     return (t..., x)
 end
 
-function prepend(@nospecialize(t::Tuple), @nospecialize(x), @nospecialize(I::StaticInt))
-    return (ntuple(_ -> x, tuple_size(t)-I)..., t...)
+function prepend(@nospecialize(t::Tuple), x, I)
+    return (ntuple(_ -> x, I-length(t))..., t...)
 end
-function prepend(@nospecialize(t::Tuple), @nospecialize(x))
+function prepend(@nospecialize(t::Tuple), x)
     return (x, t...)
 end
 
-iscan(f::Function, @nospecialize(x::Tuple), @nospecialize(init = Base._InitialValue())) = (Iterators.accumulate(f, x; init=init)...,)
+iscan(f::Function, @nospecialize(x::Tuple), init = Base._InitialValue()) = (Iterators.accumulate(f, x; init=init)...,)
 
 # escan
 
