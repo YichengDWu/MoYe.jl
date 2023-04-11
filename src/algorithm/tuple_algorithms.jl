@@ -34,6 +34,7 @@ end
     return (v, Base.tail(t)...)
 end
 
+@inline replace_back(t, v) = v
 @inline function replace_back(@nospecialize(t::Tuple), v)
     return (Base.front(t)..., v)
 end

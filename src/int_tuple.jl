@@ -127,6 +127,18 @@ end
 elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
-# increment
 
+
+increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
+function increment(coord::Coord, shape::Shape) where {Coord, Shape}
+    c, s = first(coord), first(shape)
+    if length(coord) == length(shape) == 1
+        return increment(c, s)
+    end
+
+    if back(c) != back(s)
+        return (increment(c, s)..., Base.tail(coord)...)
+    end
+    return (replace_back(c, 1), increment(Base.tail(coord), Base.tail(shape))...)
+ end
 # iterator

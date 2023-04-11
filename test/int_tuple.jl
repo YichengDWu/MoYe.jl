@@ -33,9 +33,14 @@ end
     @test colex_less((2, (1,2,3)), (1, (2,2,3))) == true
 
     @test colex_less(((1,2), (3,4)), ((5,6), (7,8))) == true
-    @test colex_less(((1,2), (3,4)), ((1,2), (7,8))) == true
-    @test colex_less(((1,2), (3,4)), ((1,2), (1,8))) == false
-    @test colex_less(((1,2), (3,4)), ((3,4), (3,4))) == false
-    @test colex_less(((1,2), (3,4)), ((3,4), (3,4,1))) == true
-    @test colex_less(((1,2), (3,4)), ((3,4), (3,4),1)) == true
+    @test colex_less(((1,2), (3,4)), ((2,3), (3,4))) == true
+    @test colex_less(((1,2), (3,4)), ((1,3), (3,4))) == true
+    @test colex_less(((5,4), (3,4)), ((3,4), (3,4))) == false
+    @test colex_less(((1,2), (3,4)), ((1,1,2), (3,4))) == true
+end
+
+@testset "Increment" begin
+    @test increment((1,1), (3,4)) = (2,1)
+    @test increment((3,1), (3,4)) = (1,2)
+    @test increment((3,4), (3,4)) = (1,1)
 end
