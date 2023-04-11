@@ -93,16 +93,16 @@ end
 #lex_leq = <=
 #lex_geq = >=
 
-
-colex_less(::Tuple{}, ::Tuple{}) = true
-colex_less(::Tuple{}, ::Tuple) = false
-colex_less(::Tuple, ::Tuple{}) = true
+colex_less(x::Int, y::Int) = x < y
+colex_less(::Tuple{}, ::Tuple{}) = false
+colex_less(::Tuple{}, ::Tuple) = true
+colex_less(::Tuple, ::Tuple{}) = false
 function colex_less(t1::Tuple, t2::Tuple)
-    a, b = t1[1], t2[1]
+    a, b = last(t1), last(t2)
     if a ≠ b
-        return a < b
+        return colex_less(a, b)
     end
-    return Base.front(t1) < Base.front(t2)
+    return colex_less(Base.front(t1), Base.front(t2))
 end
 
 elem_less(x::Int, y::Int) = x < y
@@ -111,7 +111,7 @@ elem_less(::Tuple{}, ::Tuple) = true #  TupleA is exhausted
 elem_less(::Tuple, ::Tuple{}) = false # TupleA is not exhausted, TupleB is exhausted
 
 function elem_less(t1::Tuple, t2::Tuple)
-    a, b = t1[1], t2[1]
+    a, b = first(t1), first(t2)
     if length(t1) == length(t2) == 1
         return a < b
     end
@@ -122,6 +122,7 @@ function elem_less(t1::Tuple, t2::Tuple)
 
     return elem_less(Base.tail(t1), Base.tail(t2))
 end
+
 
 elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
