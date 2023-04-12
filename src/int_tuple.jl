@@ -1,11 +1,15 @@
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
+const IntSequence{N} = NTuple{N, Int}
+
+Base.@propagate_inbounds Base.getindex(x::Tuple, I::IntSequence{N}) where {N} = map(Base.Fix1(getindex, x), I)
+
 const IntTuple = Tuple{Vararg{Union{Int, IntSequence, Tuple}}}
 
 Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int, I2::Int, Is::Int...)
     return getindex(getindex(x, I1), I2, Is...)
 end
 
-# fmap where integers are leaves
+# fmap where leaves are integers
 emap(f::Function, t::IntTuple) = map(Base.Fix1(emap, f), t)
 emap(f::Function, x::Int) = f(x)
 
