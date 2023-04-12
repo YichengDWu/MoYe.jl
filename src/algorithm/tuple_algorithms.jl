@@ -85,5 +85,5 @@ end
 end
 
 @inline function Base.transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
-    return (zip(t1, t2, ts...)...,)
+    return tuple(zip(t1, t2, ts...)...)
 end

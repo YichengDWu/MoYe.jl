@@ -52,12 +52,12 @@ const CompactMajor = Union{CompactColMajor, CompactRowMajor}
 
 compact_major(shape::Int, current::Int, major::CompactMajor) = ifelse(isone(shape), zero(shape), current)
 function compact_major(shape::IntTuple, current::Int, major::CompactColMajor)
-    ((compact_major(shape[i], current * prod(shape[1:i-1]), major) for i in 1:length(shape))...,)
+    tuple((compact_major(shape[i], current * prod(shape[1:i-1]), major) for i in 1:length(shape))...)
 end
 
 function compact_major(shape::IntTuple, current::IntTuple, major::CompactMajor)
     length(shape) == length(current) || throw(DimensionMismatch("shape and current must have the same rank"))
-    ((compact_major(s, c, major) for (s,c) in zip(shape, current))...,)
+    tuple((compact_major(s, c, major) for (s,c) in zip(shape, current))...)
 end
 
 compact_col_major(shape, current) = compact_major(shape, current, CompactColMajor())
@@ -69,10 +69,10 @@ function index_to_coord(index::Int, shape::Int, stride::Int)
 end
 function index_to_coord(index::Int, shape::Tuple, stride::Tuple)
     length(shape) == length(stride) || throw(DimensionMismatch("shape, and stride must have the same rank"))
-    return ((index_to_coord(index, s, d) for (s,d) in zip(shape, stride))...,)
+    return tuple((index_to_coord(index, s, d) for (s,d) in zip(shape, stride))...)
 end
 function index_to_coord(index:Int, shape::Tuple, stride::Int)
-    ((index_to_coord(index, s, d) for (s,d) in zip(shape, compact_col_major(shape,stride)))...,)
+    tuple((index_to_coord(index, s, d) for (s,d) in zip(shape, compact_col_major(shape,stride)))...)
 end
 function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
     length(index) == length(shape) == length(stride) || throw(DimensionMismatch("index, shape, and stride must have the same rank"))
