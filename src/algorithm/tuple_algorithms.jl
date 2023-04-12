@@ -68,8 +68,6 @@ function prepend(@nospecialize(t::Tuple), x)
     return (x, t...)
 end
 
-iscan(f::Function, @nospecialize(x::Tuple), init = Base._InitialValue()) = (Iterators.accumulate(f, x; init=init)...,)
-
 # escan
 
 @inline function Base.transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
