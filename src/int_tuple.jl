@@ -24,8 +24,8 @@ function depth(@nospecialize x::IntTuple)
     return max(map(depth, x)...) + 1
 end
 
-
-Base.prod(@nospecialize x::IntTuple) = prod(flatten(x))
+# safely extend prod
+Base.prod(@nospecialize x::Tuple{Vararg{Tuple}}) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each2, x)
@@ -35,7 +35,7 @@ Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, b:e))
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
 
-Base.sum(@nospecialize x::IntTuple) = sum(flatten(x))
+Base.sum(@nospecialize x::Tuple{Vararg{Tuple}}) = sum(flatten(x))
 
 inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
 inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = sum(map(inner_product, x, y))
