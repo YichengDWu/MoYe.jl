@@ -6,5 +6,5 @@ include("stride.jl")
 
 export flatten
 export colex_less, elem_less, increment
-export coord_to_index
+export coord_to_index, index_to_coord
 end
