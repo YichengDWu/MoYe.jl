@@ -25,7 +25,7 @@ function depth(@nospecialize x::IntTuple)
 end
 
 
-Base.prod(@nospecialize x::IntTuple) = reduce(*, flatten(x))
+Base.prod(@nospecialize x::IntTuple) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each2, x)
@@ -35,10 +35,10 @@ Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, b:e))
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
 
-Base.sum(@nospecialize x::IntTuple) = reduce(+, flatten(x))
+Base.sum(@nospecialize x::IntTuple) = sum(flatten(x))
 
-inner_product(x::IntSequence, y::IntSequence) = reduce(+, map(*, x, y))
-inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = reduce(+, map(inner_product, x, y))
+inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
+inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = sum(map(inner_product, x, y))
 
 Base.cld(x::IntSequence, y::IntSequence) = map(cld, x, y)
 function Base.cld(x::IntTuple, y::IntTuple)
