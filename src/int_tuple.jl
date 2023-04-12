@@ -20,7 +20,7 @@ emap(f::Function, x::Int) = f(x)
 # shape
 
 @inline depth(@nospecialize x::Int) = 0
-function depth(@nospecialize x::IntTuple)
+function depth(x::IntTuple)
     return max(map(depth, x)...) + 1
 end
 
@@ -28,9 +28,7 @@ end
 Base.prod(@nospecialize x::Tuple{Vararg{Tuple}}) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
-prod_each(@nospecialize x::IntTuple) = map(prod_each2, x)
-
-Base.prod(@nospecialize(x::IntTuple), b::Int, e::Int) = prod(getindex(x, b:e))
+prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
