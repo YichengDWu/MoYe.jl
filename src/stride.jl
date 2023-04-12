@@ -43,8 +43,8 @@ function coord_to_index(coord, shape)
 end
 
 abstract type AbstractMajor end
-abstract type AbstractColMajor<:Major end
-abstract type AbstractRowMajor<:Major end
+abstract type AbstractColMajor<:AbstractMajor end
+abstract type AbstractRowMajor<:AbstractMajor end
 
 struct CompactColMajor <: AbstractColMajor end
 struct CompactRowMajor <: AbstractRowMajor end
@@ -55,12 +55,17 @@ function compact_major(shape::IntTuple, current::Int, major::CompactColMajor)
     tuple((compact_major(shape[i], current * prod(shape[1:i-1]), major) for i in 1:length(shape))...)
 end
 
+function compact_major(shape::IntTuple, current::Int, major::CompactRowMajor)
+    tuple((compact_major(shape[i], current * prod(shape[i+1:end-1]), major) for i in 1:length(shape))...)
+end
+
 function compact_major(shape::IntTuple, current::IntTuple, major::CompactMajor)
     length(shape) == length(current) || throw(DimensionMismatch("shape and current must have the same rank"))
     tuple((compact_major(s, c, major) for (s,c) in zip(shape, current))...)
 end
 
 compact_col_major(shape, current) = compact_major(shape, current, CompactColMajor())
+compact_row_major(shape, current) = compact_major(shape, current, CompactRowMajor())
 
 ### index_to_coord
 function index_to_coord(index::Int, shape::Int, stride::Int)
@@ -71,10 +76,52 @@ function index_to_coord(index::Int, shape::Tuple, stride::Tuple)
     length(shape) == length(stride) || throw(DimensionMismatch("shape, and stride must have the same rank"))
     return tuple((index_to_coord(index, s, d) for (s,d) in zip(shape, stride))...)
 end
-function index_to_coord(index:Int, shape::Tuple, stride::Int)
+function index_to_coord(index::Int, shape::Tuple, stride::Int)
     tuple((index_to_coord(index, s, d) for (s,d) in zip(shape, compact_col_major(shape,stride)))...)
 end
 function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
     length(index) == length(shape) == length(stride) || throw(DimensionMismatch("index, shape, and stride must have the same rank"))
     map(index_to_coord, index, shape, stride)
+end
+
+# default stride, compact + column major
+
+function index_to_coord(index::Int, shape::Int)
+    @inline
+    return index
+end
+function index_to_coord(index::Int, shape::Tuple)
+    return index_to_coord(index, shape, compact_col_major(shape, 1))
+end
+function index_to_coord(index::Tuple, shape::Tuple)
+    length(index) == length(shape) || throw(DimensionMismatch("index and shape must have the same rank"))
+    return map(index_to_coord, index, shape)
+end
+
+"""
+
+Transoform a coordinate in one shape to a coordinate in another shape.
+"""
+function coord_to_coord(coord::Tuple, src_shape::Tuple, dst_shape::Tuple)
+    length(coord) == length(src_shape) == length(dst_shape) || throw(DimensionMismatch("coord, shape1, and shape2 must have the same rank"))
+    return map(coord_to_coord, coord, src_shape, dst_shape)
+end
+function coord_to_coord(coord, src_shape, dst_shape)
+    index_to_coord(coord_to_index(coord, src_shape), dst_shape)
+end
+
+function compact_order(shape::Tuple, order::Tuple, org_shape, org_order)
+    tuple((compact_order(s, o, org_shape, org_order) for (s,o) in zip(shape, order))...)
+end
+function compact_order(shape, order::Int, org_shape::Tuple, org_order::IntSequence)
+    org_order = map(Base.Fix2(-, order), org_order)
+    d = prod(map((s,o) -> ifelse(signbit(o), prod(s), 1), org_shape, org_order))
+    return compact_col_major(shape, d)
+end
+function compact_order(shape, order)
+    iscongruent(shape, order) || throw(DimensionMismatch("shape and order are not congruent"))
+    compact_order(shape, order, flatten(shape), flatten(order))
+end
+function compact_order(shape, major::CompactMajor)
+    compact_major(shape, 1, major)
 end
