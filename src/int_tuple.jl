@@ -58,7 +58,7 @@ function elem_scale(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     return map(elem_scale, x, y)
 end
 
-function iscongruent(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+function iscongruent(x, y)
     return repeat_like(x, 0) === repeat_like(y, 0)
 end
 
