@@ -68,7 +68,21 @@ function prepend(@nospecialize(t::Tuple), x)
     return (x, t...)
 end
 
-# escan
+@generated function escan(f::Function, x::NTuple{N,T}, init::T) where {N, T}
+    q = Expr(:block, Expr(:meta, :inline, :propagate_inbounds))
+    if N == 1
+        push!(q.args, :init)
+        return q
+    end
+
+    syms = ntuple(i -> Symbol(:i_, i), N)
+    push!(q.args, Expr(:(=), syms[1], :init))
+    for n in 1:N-1
+        push!(q.args, Expr(:(=), syms[n+1], Expr(:call, :f, syms[n], Expr(:ref, :x, n))))
+    end
+    push!(q.args, Expr(:return, Expr(:tuple, syms...)))
+    return q
+end
 
 @inline function Base.transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
     return (zip(t1, t2, ts...)...,)
