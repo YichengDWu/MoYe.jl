@@ -36,11 +36,12 @@ end
 @inline function replace_front(@nospecialize(t::Tuple), v)
     return (v, Base.tail(t)...)
 end
+@inline replace_front(t, v) = v
 
-@inline replace_back(t, v) = v
 @inline function replace_back(@nospecialize(t::Tuple), v)
     return (Base.front(t)..., v)
 end
+@inline replace_back(t, v) = v
 
 @inline function Base.repeat(x, n)
     return ntuple(i -> x, n)

@@ -9,6 +9,10 @@ end
 shape(l::Layout) = getfield(l, :shape)
 stride(l::Layout) = getfield(l, :stride)
 
+function Base.show(io::IO, l::Layout)
+    return print(io, shape(l), ":", stride(l))
+end
+
 function (l::Layout)(coord::Tuple)
     if Colon() ∈ coord
         return slice(l, coord)
@@ -22,12 +26,6 @@ function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
 end
 
-
-
-# Compose
-
-
-# Tile
 
 function get_hier_coord(l::Layout, index::Int)
     index_to_coord(index, l.shape, l.stride)
@@ -59,6 +57,7 @@ end
 function make_layout(shape, ::CompactRowMajor)
     make_layout(shape, compact_row_major(shape))
 end
+
 
 function make_ordered_layout(shape, order) # The arguments may be static, which is not handled
     make_layout(shape, compact_order(shape, order))
@@ -100,7 +99,10 @@ function depth(layout::Layout)
     return depth(shape(layout))
 end
 
-## cosize
+## cosize, negative stride is not supported
+function cosize(layout::Layout)
+    layout(size(layout))
+end
 
 function coord_to_index(coord, layout::Layout)
     return coord_to_index(coord, shape(layout), stride(layout))
@@ -139,13 +141,57 @@ function group(layout::Layout, B::Int, E::Int)
 end
 
 # transform_layout
+function transform_layout(f::Function, t1::Tuple, t2::Tuple)
+    R1 = rank(t1)
+    R2 = rank(t2)
+    R = (R1 < R2) ? R1 : R2
+    make_layout(map(f, t1[1:R], t2[1:R])..., t1[R+1:end]..., t2[R+1:end]...)
+end
+
+
 #coalesce
+function bw_coalesce(I::Int, old_shape, old_stride, new_shape, new_stride)
+    if I == 0
+        if new_shape == 1
+            return Layout(1, 0)
+        else
+            return Layout(new_shape, new_stride)
+        end
+    elseif old_shape[I] == 1
+        return bw_coalesce(I-1, old_shape, old_stride, new_shape, new_stride)
+    elseif new_shape == 1
+        return bw_coalesce(I-1, old_shape, old_stride, old_shape[I], old_stride[I])
+    elseif old_shape[I] * old_stride[I] == new_stride[1]
+        return bw_coalesce(I-1, old_shape, old_stride,
+                           replace_front(new_shape, old_shape[I] * new_shape[1]),
+                           replace_front(new_stride, old_stride[I]))
+    else
+        return bw_coalesce(I-1, old_shape, old_stride,
+                           prepend(new_shape, old_shape[I]),
+                            prepend(new_stride, old_stride[I]))
+    end
+end
+
+function Base.coalesce(layout::Layout)
+    flat_shape = flatten(shape(layout))
+    flat_stride = flatten(stride(layout))
+    bw_coalesce(rank(flat_shape)-1, flat_shape, flat_stride, last(flat_shape), last(flat_stride))
+end
+
+
 #filter
 
-#function composition(lhs::Layout, rhs_shape, rhs_stride)
+function composition(lhs::Layout, rhs_shape::IntTuple, rhs_stride::IntTuple)
+    return let lhs = lhs
+        make_layout(map((s,d) -> composition(lhs, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
+    end                                                                             # we assume rank(lhs) == rank(rhs)
+end
+
+
+
 
 function composition(lhs::Layout, rhs::Layout)
-    composition(lhs, rhs.shape, rhs.stride)
+    return composition(lhs, shape(rhs), stride(rhs))
 end
 
 function composition(lhs::Layout, rhs::IntTuple)
@@ -153,8 +199,28 @@ function composition(lhs::Layout, rhs::IntTuple)
     #transform_layout(lhs, rhs, #)
 end
 function composition(lhs::Layout, rhs::Colon)
-    lhs
+    return lhs
 end
 function composition(lhs::Layout, rhs)
-    composition(lhs, make_layout(rhs))
+    return composition(lhs, make_layout(rhs))
+end
+
+
+
+
+# Compose
+
+function compose(l1::Layout, l2::Layout)
+    return composition(l1, l2)
+end
+function compose(l1::Layout, l2::Layout, l3::Layout...)
+    return composition(l1, (l2, l3...))
+end
+
+
+function withshape(l::Layout, shape::Union{Int, IntTuple})
+    return composition(l, make_layout(shape))
+end
+function withshape(l::Layout, s1, s2, s3...)
+    return composition(l, make_layout((s1, s2, s3...)))
 end
