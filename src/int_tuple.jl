@@ -3,7 +3,7 @@ const IntSequence{N} = NTuple{N, Int}
 
 Base.@propagate_inbounds Base.getindex(x::Tuple, I::IntSequence{N}) where {N} = map(Base.Fix1(getindex, x), I)
 
-const IntTuple = Tuple{Vararg{Union{Int, Tuple}}}
+const IntTuple{N} = Tuple{Vararg{Union{Int, Tuple}, N}}
 
 Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int, I2::Int, Is::Int...)
     return getindex(getindex(x, I1), I2, Is...)
@@ -25,8 +25,7 @@ function depth(x::IntTuple)
 end
 
 # safely extend prod
-Base.prod(@nospecialize x::IntSequence) = prod(x)
-Base.prod(@nospecialize x::IntTuple) = prod(flatten(x))
+Base.prod(@nospecialize x::Tuple{Vararg{Tuple}}) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
@@ -34,8 +33,7 @@ prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 Base.size(@nospecialize x::IntTuple) = prod(x)
 Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
 
-Base.sum(@nospecialize x::IntSequence) = sum(x)
-Base.sum(@nospecialize x::IntTuple) = sum(flatten(x))
+Base.sum(@nospecialize x::Tuple{Vararg{Tuple}}) = sum(flatten(x))
 
 inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
 inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = sum(map(inner_product, x, y))
@@ -112,9 +110,8 @@ end
 
 # make_int_tuple_from
 
-function to_array(::Type{T}, @nospecialize(x::IntTuple)) where T
+function to_array(::Type{T}, x::IntTuple{N}) where {T, N}
     x = flatten(x)
-    N = length(x)
     result = Array{T}(undef, N)
     ntuple(N) do i
         @inbounds result[i] = x[i]
@@ -164,7 +161,7 @@ elem_geq(x, y) = !elem_geq(x, y)
 
 
 increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
-function increment(coord::Coord, shape::Shape) where {Coord, Shape}
+function increment(coord, shape)
     c, s = first(coord), first(shape)
     if length(coord) == length(shape) == 1
         return increment(c, s)

@@ -195,7 +195,7 @@ function composition(lhs::Layout, rhs::Layout)
 end
 
 function composition(lhs::Layout, rhs::IntTuple)
-    length(lhs.shape) == length(rhs) || throw(DimensionMismatch("shape of lhs and rhs must have the same rank"))
+    length(shape(lhs)) == length(rhs) || throw(DimensionMismatch("shape of lhs and rhs must have the same rank"))
     #transform_layout(lhs, rhs, #)
 end
 function composition(lhs::Layout, rhs::Colon)
