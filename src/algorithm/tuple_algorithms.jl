@@ -57,8 +57,8 @@ function group(@nospecialize(t::Tuple), b, e)
 end
 
 # append x to extend t to rank N
-function append(@nospecialize(t::Tuple), x, I)
-    return (t..., ntuple(_ -> x, I-length(t))...)
+function append(@nospecialize(t::Tuple), x, N)
+    return (t..., ntuple(_ -> x, N-length(t))...)
 end
 function append(@nospecialize(t::Tuple), x)
     return (t..., x)

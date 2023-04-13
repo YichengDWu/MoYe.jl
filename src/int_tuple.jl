@@ -68,7 +68,7 @@ end
 #    return Static.reduce_tup(&, map(iscompatiable, A, B))
 #end
 
-# Replace the elements of Tuple B that are paired with an Int<0> with an Int<1>
+# Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::Int, x) = iszero(a) ? 1 : x
 filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = map(filter_zeros, x, y)
 filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
