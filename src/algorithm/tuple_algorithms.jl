@@ -18,6 +18,9 @@ unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))...)
 @inline flatten(x) = x
 
+tuple_cat(x) = x
+tuple_cat(x, y, z...) = (x..., tuple_cat(y, z...)...)
+
 function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N-one(N)))..., x, getindex(t, N:length(t))...)
 end

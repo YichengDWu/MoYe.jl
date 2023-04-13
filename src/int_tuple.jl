@@ -73,14 +73,32 @@ end
 filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = map(filter_zeros, x, y)
 filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
 
+
+function slice(A::Tuple, index::Tuple)
+    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+    return tuple_cat(map(slice, A, index)...)
+end
 function slice(A, index::Colon)
+    @inline
     return A
 end
-
-function slice(A::IntTuple, index::IntTuple)
-    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+function slice(A, index::Int)
+    @inline
+    return ()
 end
 
+function dice(A::Tuple, index::Tuple)
+    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+    return tuple_cat(map(dice, A, index)...)
+end
+function dice(A, index::Colon)
+    @inline
+    return ()
+end
+function dice(A, index::Int)
+    @inline
+    return A
+end
 
 function make_int_tuple(N::Int, t, n::Int, init::Int)
     ntuple(N) do i
