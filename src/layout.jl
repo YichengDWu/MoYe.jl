@@ -2,7 +2,8 @@ struct Layout{N, Shape, Stride}
     shape::Shape
     stride::Stride
 
-    Layout(shape::IntTuple, stride::IntTuple) = new{rank(shape), typeof(shape), typeof(stride)}(shape, stride)
+    # in fact shape and stride should be congruent
+    Layout(shape::IntTuple{N}, stride::IntTuple{N}) where {N} = new{rank(shape), typeof(shape), typeof(stride)}(shape, stride)
     Layout(shape::Int, stride::Int) = new{1, typeof(shape), typeof(stride)}(shape, stride)
 end
 
@@ -49,7 +50,7 @@ function make_layout(shape::Union{Int, IntTuple})
     Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
-    make_layout(shape.(layouts), stride.(layouts))
+    make_layout(shape.(layouts), stride.(layouts)) # concatenation
 end
 function make_layout(shape, ::CompactColMajor)
     make_layout(shape, compact_col_major(shape))
@@ -148,25 +149,21 @@ function transform_layout(f::Function, t1::Tuple, t2::Tuple)
     make_layout(map(f, t1[1:R], t2[1:R])..., t1[R+1:end]..., t2[R+1:end]...)
 end
 
-
-#coalesce
-function bw_coalesce(I::Int, old_shape, old_stride, new_shape, new_stride)
-    if I == 0
-        if new_shape == 1
-            return Layout(1, 0)
-        else
-            return Layout(new_shape, new_stride)
-        end
-    elseif old_shape[I] == 1
-        return bw_coalesce(I-1, old_shape, old_stride, new_shape, new_stride)
+function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape, new_stride)
+    new_shape == 1 && return Layout(1, 0)
+    return Layout(new_shape, new_stride)
+end
+function bw_coalesce(::Val{I}, old_shape, old_stride, new_shape, new_stride) where I
+    if old_shape[I] == 1
+        return bw_coalesce(Val(I-1), old_shape, old_stride, new_shape, new_stride)
     elseif new_shape == 1
-        return bw_coalesce(I-1, old_shape, old_stride, old_shape[I], old_stride[I])
+        return bw_coalesce(Val(I-1), old_shape, old_stride, old_shape[I], old_stride[I])
     elseif old_shape[I] * old_stride[I] == new_stride[1]
-        return bw_coalesce(I-1, old_shape, old_stride,
+        return bw_coalesce(Val(I-1), old_shape, old_stride,
                            replace_front(new_shape, old_shape[I] * new_shape[1]),
                            replace_front(new_stride, old_stride[I]))
     else
-        return bw_coalesce(I-1, old_shape, old_stride,
+        return bw_coalesce(Val(I-1), old_shape, old_stride,
                            prepend(new_shape, old_shape[I]),
                             prepend(new_stride, old_stride[I]))
     end
@@ -175,19 +172,21 @@ end
 function Base.coalesce(layout::Layout)
     flat_shape = flatten(shape(layout))
     flat_stride = flatten(stride(layout))
-    bw_coalesce(rank(flat_shape)-1, flat_shape, flat_stride, last(flat_shape), last(flat_stride))
+    bw_coalesce(Val(rank(flat_shape)-1), flat_shape, flat_stride, last(flat_shape), last(flat_stride))
 end
 
 
 #filter
 
-function composition(lhs::Layout, rhs_shape::IntTuple, rhs_stride::IntTuple)
+function composition(lhs::Layout, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where N
     return let lhs = lhs
         make_layout(map((s,d) -> composition(lhs, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
     end                                                                             # we assume rank(lhs) == rank(rhs)
 end
 
+function c
 
+end
 
 
 function composition(lhs::Layout, rhs::Layout)
