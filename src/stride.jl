@@ -50,6 +50,9 @@ struct CompactColMajor <: AbstractColMajor end
 struct CompactRowMajor <: AbstractRowMajor end
 const CompactMajor = Union{CompactColMajor, CompactRowMajor}
 
+const GenColMajor = CompactColMajor()
+const GenRowMajor = CompactRowMajor()
+
 compact_major(shape::Int, current::Int, major::CompactMajor) = ifelse(isone(shape), zero(shape), current)
 function compact_major(shape::IntTuple, current::Int, major::CompactColMajor)
     tuple((compact_major(shape[i], current * prod(shape[1:i-1]), major) for i in 1:length(shape))...)
@@ -64,8 +67,8 @@ function compact_major(shape::IntTuple, current::IntTuple, major::CompactMajor)
     tuple((compact_major(s, c, major) for (s,c) in zip(shape, current))...)
 end
 
-compact_col_major(shape, current) = compact_major(shape, current, CompactColMajor())
-compact_row_major(shape, current) = compact_major(shape, current, CompactRowMajor())
+compact_col_major(shape, current=1) = compact_major(shape, current, CompactColMajor())
+compact_row_major(shape, current=1) = compact_major(shape, current, CompactRowMajor())
 
 ### index_to_coord
 function index_to_coord(index::Int, shape::Int, stride::Int)
