@@ -12,6 +12,7 @@ stride(l::Layout) = getfield(l, :stride)
 function (l::Layout)(coord::Tuple)
     if Colon() ∈ coord
         return slice(l, coord)
+    end
     return coord_to_index(coord, l.shape, l.stride)
 end
 function (l::Layout)(index::Int)
@@ -46,8 +47,8 @@ end
 function make_layout(shape::Int, stride::Int)
     Layout(shape, stride)
 end
-function make_layout(shape::IntTuple, stride::Int)
-    Layout(shape, compact_col_major(shape, stride))
+function make_layout(shape::Union{Int, IntTuple})
+    Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
     make_layout(shape.(layouts), stride.(layouts))
@@ -80,6 +81,11 @@ end
 
 function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
+end
+
+# avoid overloading Base.size(Int)
+function Base.size(layout::Layout{N, Int}) where N
+    return shape(layout)
 end
 
 function Base.size(layout::Layout)
@@ -116,11 +122,11 @@ function filter_zeros(layout::Layout)
     return make_layout(filter_zeros(stride(layout), shape(layout)), stride(layout))
 end
 
-function append(layout::Layout, x::Layout = make_layout(1, 0), N::Int)
+function append(layout::Layout, x::Layout, N::Int)
     return make_layout(append(shape(layout), shape(x), N), append(stride(layout), stride(x), N))
 end
 
-function prepend(layout::Layout, x::Layout = make_layout(1, 0), N::Int)
+function prepend(layout::Layout, x::Layout, N::Int)
     return make_layout(prepend(shape(layout), shape(x), N), prepend(stride(layout), stride(x), N))
 end
 
@@ -136,7 +142,7 @@ end
 #coalesce
 #filter
 
-function composition(lhs::Layout, rhs_shape, rhs_stride)
+#function composition(lhs::Layout, rhs_shape, rhs_stride)
 
 function composition(lhs::Layout, rhs::Layout)
     composition(lhs, rhs.shape, rhs.stride)
