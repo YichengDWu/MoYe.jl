@@ -73,6 +73,15 @@ end
 filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = map(filter_zeros, x, y)
 filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
 
+function slice(A, index::Colon)
+    return A
+end
+
+function slice(A::IntTuple, index::IntTuple)
+    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+end
+
+
 function make_int_tuple(N::Int, t, n::Int, init::Int)
     ntuple(N) do i
         i ≤ n ? t[i] : init
@@ -133,6 +142,7 @@ elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
 
+
 increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
 function increment(coord::Coord, shape::Shape) where {Coord, Shape}
     c, s = first(coord), first(shape)
@@ -145,6 +155,7 @@ function increment(coord::Coord, shape::Shape) where {Coord, Shape}
     end
     return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
  end
+
 
  # iterator
 
