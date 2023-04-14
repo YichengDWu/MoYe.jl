@@ -29,4 +29,9 @@ end
         @test shape(result) == ((2,3),8)
         @test stride(result) == ((1,16),2)
     end
+    @testset "Raked product" begin
+        result = raked_product(tile, matrix_of_tiles)
+        @test shape(result) == ((3, 2), (4, 2))
+        @test stride(result) == ((16, 1), (4, 2))
+    end
 end
