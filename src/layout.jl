@@ -14,14 +14,12 @@ function Base.show(io::IO, l::Layout)
     return print(io, shape(l), ":", stride(l))
 end
 
-function (l::Layout)(coord::Tuple)
+# map a logical coordinate to a linear index
+function (l::Layout)(coord)
     if Colon() ∈ coord
         return slice(l, coord)
     end
     return coord_to_index(coord, l.shape, l.stride)
-end
-function (l::Layout)(index::Int)
-    return index_to_coord(index, l.shape, l.stride)
 end
 function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
@@ -71,6 +69,10 @@ end
 # make_fragment_like
 # make_identity_layout
 
+# map 1D index to a hier coordinate
+function Base.getindex(l::Layout, index::Int)
+    return index_to_coord(index, shape(l), stride(l))
+end
 function Base.getindex(layout::Layout, Is...)
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
 end
