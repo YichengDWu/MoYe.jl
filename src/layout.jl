@@ -146,7 +146,7 @@ function group(layout::Layout, B::Int, E::Int)
 end
 
 # transform_layout
-function transform_layout(f::Function, t1::Tuple, t2::Tuple)
+function transform_layout(f::Function, t1, t2)
     R1 = rank(t1)
     R2 = rank(t2)
     R = (R1 < R2) ? R1 : R2
@@ -269,7 +269,6 @@ function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
 
-# complement
 function complement(l::Layout, cosize_hi::Int)
     flat_layout = filter(l)
 
@@ -326,6 +325,19 @@ end
 # tiled_divide
 
 # logical_product
+function logical_product(layout::Layout, tile::Layout)
+    return make_layout(layout,
+                       composition(complement(layout, size(layout) * cosize(layout)), tile))
+end
+function logical_product(layout::Layout, tile::Colon)
+    return layout
+end
+function logical_product(layout::Layout, tile::Int)
+    return logical_product(layout, make_layout(tile))
+end
+function logical_product(layout::Layout, tile::IntTuple)
+    return transform_layout(logical_product, layout, tile)
+end
 
 # zipped_product
 
