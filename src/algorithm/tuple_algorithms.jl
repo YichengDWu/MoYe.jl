@@ -67,12 +67,18 @@ end
 function append(@nospecialize(t::Tuple), x)
     return (t..., x)
 end
+function append(t::Int, x::Int)
+    (t, x)
+end
 
 function prepend(@nospecialize(t::Tuple), x, I)
     return (ntuple(_ -> x, I - length(t))..., t...)
 end
 function prepend(@nospecialize(t::Tuple), x)
     return (x, t...)
+end
+function prepend(t::Int, x::Int)
+    (x, t)
 end
 
 @generated function escan(f::Function, x::NTuple{N, T}, init::T) where {N, T}
@@ -91,6 +97,6 @@ end
     return q
 end
 
-@inline function _transpose(t1::Tuple, t2::Tuple, ts::Tuple...)
+@inline function _transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
     return tuple(zip(t1, t2, ts...)...)
 end

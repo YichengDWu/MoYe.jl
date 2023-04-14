@@ -27,6 +27,8 @@ function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
 end
 
+
+# map 1D index to a hier coordinate
 function get_hier_coord(l::Layout, index::Int)
     return index_to_coord(index, l.shape, l.stride)
 end
@@ -69,12 +71,44 @@ end
 # make_fragment_like
 # make_identity_layout
 
-# map 1D index to a hier coordinate
-function Base.getindex(l::Layout, index::Int)
-    return index_to_coord(index, shape(l), stride(l))
-end
-function Base.getindex(layout::Layout, Is...)
+function Base.getindex(layout::Layout, Is::Int...)
+    @inline
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
+end
+function Base.getindex(@nospecialize(t::Layout), r::AbstractUnitRange)
+    @inline
+    return ntuple(i -> t[i + first(r) - 1], length(r))
+end
+
+# Layout as iterator
+function Base.firstindex(l::Layout)
+    return 1
+end
+function Base.lastindex(l::Layout)
+    return rank(l)
+end
+
+function Base.first(l::Layout)
+   return l[1]
+end
+
+function Base.last(l::Layout{N}) where {N}
+    return l[N]
+end
+
+function Base.length(l::Layout{N}) where {N}
+    return N
+end
+
+function Base.iterate(l::Layout)
+    return l[1], 1
+end
+function Base.iterate(x::Layout{N}, state) where {N}
+    if state == N
+        return nothing
+    end
+    new_state = state + 1
+    return (x[new_state], new_state)
 end
 
 function take(layout::Layout, B::Int, E::Int)
@@ -122,18 +156,23 @@ function dice(coord, layout::Layout)
     return make_layout(dice(coord, shape(layout)), dice(coord, stride(layout)))
 end
 
-function filter_zeros(layout::Layout)
-    return make_layout(filter_zeros(stride(layout), shape(layout)), stride(layout))
-end
 
 function append(layout::Layout, x::Layout, N::Int)
     return make_layout(append(shape(layout), shape(x), N),
                        append(stride(layout), stride(x), N))
 end
 
+function append(layout::Layout, N::Int)
+    return append(layout, make_layout(1, 0), N)
+end
+
 function prepend(layout::Layout, x::Layout, N::Int)
     return make_layout(prepend(shape(layout), shape(x), N),
                        prepend(stride(layout), stride(x), N))
+end
+
+function prepend(layout::Layout, N::Int)
+    return prepend(layout, make_layout(1, 0), N)
 end
 
 function replace(layout::Layout, x::Layout, N::Int)
@@ -178,6 +217,13 @@ function Base.coalesce(layout::Layout)
     flat_stride = flatten(stride(layout))
     return bw_coalesce(Val(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
                        last(flat_stride))
+end
+function Base.coalesce(layout::Layout, trg_profile::IntTuple)
+    @assert rank(trg_profile) <= rank(layout)
+    return transform_layout(coalesce, layout, trg_profile)
+end
+function Base.coalesce(layout::Layout, trg_profile)
+    return coalesce(layout)
 end
 
 function filter_zeros(l::Layout)
@@ -316,6 +362,11 @@ end
 
 # zip
 
+function Base.zip(layoutA::Layout, layoutB::Layout)
+    return make_layout(_transpose(shape(layoutA), shape(layoutB)),
+                       _transpose(stride(layoutA), stride(layoutB)))
+end
+
 # tiled_zip
 
 # Logical divide
@@ -324,7 +375,6 @@ end
 
 # tiled_divide
 
-# logical_product
 function logical_product(layout::Layout, tile::Layout)
     return make_layout(layout,
                        composition(complement(layout, size(layout) * cosize(layout)), tile))
@@ -343,6 +393,14 @@ end
 
 # tiled_product
 # blocked_product
+function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
+    R = max(N, M)
+    padded_block = append(block, R)
+    padded_layout = append(layout, R)
+    result = logical_product(padded_block, padded_layout)
+    return coalesce(zip(result[1], result[2]), repeat(1, R))
+end
+
 # raked_produc
 
 # tile_to_shape

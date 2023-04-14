@@ -18,8 +18,8 @@ end
 
 @testset "Product" begin
     @testset "Logical product" begin
-        tile = make_layout((2,2), (1,2))
-        matrix_of_tiles = make_layout((3,4), (4,1))
+        tile = make_layout((2, 2), (1, 2))
+        matrix_of_tiles = make_layout((3, 4), (4, 1))
         result = logical_product(tile, matrix_of_tiles)
         @test shape(result) == ((2, 2), (3, 4))
         @test stride(result) == ((1, 2), (16, 4))
