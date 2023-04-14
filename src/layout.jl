@@ -19,7 +19,7 @@ function (l::Layout)(coord)
     if Colon() ∈ coord
         return slice(l, coord)
     end
-    return coord_to_index(coord, l.shape, l.stride)
+    return coord_to_index(coord, shape(l), stride(l))
 end
 function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))

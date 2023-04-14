@@ -45,6 +45,25 @@ julia> print_layout(layout_2x4)
     +---+---+---+---+
 ```
 
+### Coordinate space
+
+The coordinate space of a Layout is determined by its Shape. This coordinate space can be viewed in three distinct ways:
+
+1. H-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape.
+2. 1-D coordinate space: This can be visualized as the flattening of the coordinate space into a one-dimensional space.
+3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (axis) of the Shape is flattened into a one-dimensional space.
+
+```julia
+julia> layout_2x4(2, (1,2)) # H-D coordinate
+7
+
+julia> layout_2x4(2,3) # R-D coordinate
+7
+
+julia> layout_2x4(6) # 1-D coordinate
+7
+```
+
 ### Flatten
 ```julia
 julia> layout = make_layout(((4,3), 1), ((3, 1), 0))
