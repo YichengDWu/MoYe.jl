@@ -87,6 +87,9 @@ julia> print(coalesce(layout))
 ```julia
 julia> make_layout(20,2) ∘ make_layout((4,5),(1,4))
 (4, 5):(2, 8)
+
+julia> make_layout(20,2) ∘ make_layout((4,5),(5,1))
+(4, 5):(10, 2)
 ```
 
 ### Complement
