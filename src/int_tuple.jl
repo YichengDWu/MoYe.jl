@@ -46,6 +46,25 @@ function Base.cld(x::IntTuple, y::IntTuple)
 end
 
 #shape_div
+function shape_div(a::Int, b::Int)
+    return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
+end
+function shape_div(a::Int, b::IntTuple)
+    shape_div(a, prod(b))
+end
+function shape_div(a::IntTuple, b::Int)
+    result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])), shape_div(init[1], ai)), a; init = ((), b))
+    return result
+end
+function shape_div(a::IntTuple, b::IntTuple)
+    length(a) == length(b) || throw(DimensionMismatch("Tuple A and B must have the same rank"))
+    return map(shape_div, a, b)
+end
+
+
+
+
+
 
 @inline function elem_scale(x::Int, y)
     return x * prod(y)

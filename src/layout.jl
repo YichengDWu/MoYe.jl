@@ -178,24 +178,47 @@ end
 
 #filter
 
+# Base case a:b ∘ c:d = c:(b*d)
+function composition(lhs::Layout{1, Int, Int}, rhs_shape::Int, rhs_stride::Int)
+    return Layout(rhs_shape, rhs_stride * stride(lhs))
+end
+
+# distributivity with concatenation
 function composition(lhs::Layout, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where N
     return let lhs = lhs
         make_layout(map((s,d) -> composition(lhs, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
     end                                                                             # we assume rank(lhs) == rank(rhs)
 end
 
-function c
 
+function composition(lhs::Layout, rhs_shape::Int, rhs_stride::Int)
+    flat_shape = flatten(shape(lhs))
+    flat_stride = flatten(stride(lhs))
+    if iszero(rhs_stride)
+        return Layout(rhs_shape, rhs_stride)
+    elseif isone(rhs_shape)
+        result_shape_0 = flat_shape[1:end-1]
+        result_shape_1, rest_shape = foldl((init, si)->(append(init[1], min(abs(si), init[2])), shape_div(init[1], abs(si))), result_shape_0; init = ((), rhs_shape))
+        return bw_coalesce(Val(rank(flat_shape)-1), result_shape_1, flat_stride, rest_shape, last(flat_stride))
+    else
+        result_shape_0 = flat_shape[1:end-1]
+        result_stride_0 = flat_stride[1:end-1]
+
+        result_shape_1, rest_stride = foldl((init, di) -> (append(init[1], shape_div(di, init[1])), shape_div(init[1], di)), result_shape_0; init = ((), rhs_stride))
+
+        result_stride_1 = elem_scale(result_stride_0, shape_div(result_shape_0, result_shape_1))
+
+        result_shape_2, rest_shape = foldl((init, si) -> (append(init[1], min(abs(si), init[2])), shape_div(init[1], abs(si))), result_shape_1; init = ((), rhs_shape))
+        return bw_coalesce(Val(rank(flat_shape)-1), result_shape_2, result_stride_1, rest_shape, rest_stride * last(flat_stride))
+    end
 end
-
 
 function composition(lhs::Layout, rhs::Layout)
     return composition(lhs, shape(rhs), stride(rhs))
 end
-
-function composition(lhs::Layout, rhs::IntTuple)
-    length(shape(lhs)) == length(rhs) || throw(DimensionMismatch("shape of lhs and rhs must have the same rank"))
-    #transform_layout(lhs, rhs, #)
+function composition(lhs::Layout, rhs::Tuple{Vararg{Layout}})
+    @assert rank(rhs) <= length(lhs)
+    return make_layout(Iterators.map(composition, lhs, rhs)...)
 end
 function composition(lhs::Layout, rhs::Colon)
     return lhs
@@ -204,11 +227,6 @@ function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
 end
 
-
-
-
-# Compose
-
 function compose(l1::Layout, l2::Layout)
     return composition(l1, l2)
 end
@@ -216,6 +234,12 @@ function compose(l1::Layout, l2::Layout, l3::Layout...)
     return composition(l1, (l2, l3...))
 end
 
+function Base.:(∘)(l1::Layout, l2::Layout)
+    return compose(l1, l2)
+end
+function Base.:(∘)(l1::Layout, l2::Layout, l3::Layout...)
+    return compose(l1, l2, l3...)
+end
 
 function withshape(l::Layout, shape::Union{Int, IntTuple})
     return composition(l, make_layout(shape))
@@ -223,3 +247,38 @@ end
 function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
+
+
+# complement
+# inverse_seq
+
+# right_inverse
+# left_inverse
+# max_common_vector
+
+# zip
+
+# tiled_zip
+
+
+# Logical divide
+
+# zipped_divide
+
+# tiled_divide
+
+# logical_product
+
+# zipped_product
+
+# tiled_product
+# blocked_product
+# raked_produc
+
+# tile_to_shape
+
+# upcast
+
+# downcast
+
+# recast

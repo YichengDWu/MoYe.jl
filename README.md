@@ -4,3 +4,13 @@
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://YichengDWu.github.io/CuTe.jl/dev/)
 [![Build Status](https://github.com/YichengDWu/CuTe.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/YichengDWu/CuTe.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/YichengDWu/CuTe.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/YichengDWu/CuTe.jl)
+
+Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cute/00_quickstart.md) for tutorials.
+
+## Layout
+### Constructing a `Layout`
+
+```julia
+layout_2x4 = make_layout((2,(2,2)),(4,(1,2)))
+print(rank(layout_2x4), depth(layout_2x4), size(layout_2x4), cosize(layout_2x4))
+```
