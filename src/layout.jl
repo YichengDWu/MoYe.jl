@@ -17,16 +17,18 @@ function Base.show(io::IO, l::Layout)
 end
 
 # map a logical coordinate to a linear index
-function (l::Layout)(coord)
-    if Colon() ∈ coord
-        return slice(l, coord)
-    end
+function (l::Layout)(coord::Int)
     return coord_to_index(coord, shape(l), stride(l))
+end
+function (l::Layout)(coord::IntTuple)
+    return coord_to_index(coord, shape(l), stride(l))
+end
+function (l::Layout)(coord) # coord is fixed with colon
+    return slice(l, coord)
 end
 function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
 end
-
 
 # map 1D index to a hier coordinate
 function get_hier_coord(l::Layout, index::Int)
