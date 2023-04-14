@@ -362,9 +362,8 @@ end
 # left_inverse
 # max_common_vector
 
-# zip
-
-function Base.zip(layoutA::Layout, layoutB::Layout)
+# this is equivalent to make_layout(map(make_layout, l1, l2)...)
+function _transpose(layoutA::Layout, layoutB::Layout)
     return make_layout(_transpose(shape(layoutA), shape(layoutB)),
                        _transpose(stride(layoutA), stride(layoutB)))
 end
@@ -399,7 +398,7 @@ function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    return coalesce(zip(result[1], result[2]), repeat(1, R))
+    return coalesce(_transpose(result[1], result[2]), repeat(1, R))
 end
 
 function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
@@ -407,7 +406,7 @@ function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    return coalesce(zip(result[2], result[1]), repeat(1, R))
+    return coalesce(_transpose(result[2], result[1]), repeat(1, R))
 end
 
 
