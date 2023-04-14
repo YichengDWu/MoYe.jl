@@ -186,8 +186,8 @@ end
 
 # transform_layout
 function transform_layout(f::Function, t1, t2)
-    R1 = rank(t1)
-    R2 = rank(t2)
+    R1 = length(t1)
+    R2 = length(t2)
     R = (R1 < R2) ? R1 : R2
     return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
 end
@@ -218,7 +218,7 @@ function Base.coalesce(layout::Layout)
     return bw_coalesce(Val(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
                        last(flat_stride))
 end
-function Base.coalesce(layout::Layout, trg_profile::IntTuple)
+function Base.coalesce(layout::Layout, trg_profile::IntTuple) # respect the target profile
     @assert rank(trg_profile) <= rank(layout)
     return transform_layout(coalesce, layout, trg_profile)
 end
@@ -251,11 +251,14 @@ function composition(lhs::Layout, rhs_shape::Int, rhs_stride::Int)
     flat_stride = flatten(stride(lhs))
     if iszero(rhs_stride)
         return Layout(rhs_shape, rhs_stride)
+    elseif flat_shape isa Integer
+        result_stride = flat_stride * rhs_stride
+        return Layout(rhs_shape, result_stride)
     elseif isone(rhs_shape)
         result_shape_0 = flat_shape[1:(end - 1)]
         result_shape_1, rest_shape = foldl((init, si) -> (append(init[1],
                                                                  min(abs(si), init[2])),
-                                                          shape_div(init[1], abs(si))),
+                                                          shape_div(init[2], abs(si))),
                                            result_shape_0; init=((), rhs_shape))
         return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_1, flat_stride,
                            rest_shape, last(flat_stride))
@@ -264,8 +267,8 @@ function composition(lhs::Layout, rhs_shape::Int, rhs_stride::Int)
         result_stride_0 = flat_stride[1:(end - 1)]
 
         result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
-                                                                  shape_div(di, init[1])),
-                                                           shape_div(init[1], di)),
+                                                                  shape_div(di, init[2])),
+                                                           shape_div(init[2], di)),
                                             result_shape_0; init=((), rhs_stride))
 
         result_stride_1 = elem_scale(result_stride_0,
@@ -273,7 +276,7 @@ function composition(lhs::Layout, rhs_shape::Int, rhs_stride::Int)
 
         result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
                                                                  min(abs(si), init[2])),
-                                                          shape_div(init[1], abs(si))),
+                                                          shape_div(init[2], abs(si))),
                                            result_shape_1; init=((), rhs_shape))
         return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_2, result_stride_1,
                            rest_shape, rest_stride * last(flat_stride))
@@ -318,7 +321,7 @@ end
 function complement(l::Layout, cosize_hi::Int)
     flat_layout = filter(l)
 
-    if iszero(stride(flat_layout))
+    if stride(flat_layout) == 0
         return make_layout(cosize_hi)
     end
 
@@ -329,18 +332,17 @@ function complement(l::Layout, cosize_hi::Int)
         function f(init, i)
             curr_stride = minimum(init[2])
             curr_idx = findfirst(==(curr_stride), init[2])
-            print(".........")
             if isnothing(curr_idx)
                 curr_idx = length(init[2])
             end
             curr_shape = init[1][curr_idx]
 
             return (remove(init[1], curr_idx), remove(init[2], curr_idx),
-                    append(init[3], curr_stride ÷ init[3][i]),
+                    append(init[3], curr_stride ÷ init[4][i]),
                     append(init[4], curr_shape * curr_stride))
         end
 
-        result = foldl(f, tuple(1:(R - 1)...); init=result)
+        result = foldl(f, ntuple(identity, R-1); init=result)
     end
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
@@ -416,3 +418,17 @@ end
 # downcast
 
 # recast
+
+function logical_divide(layout::Layout, tile::Layout)
+    return composition(layout, make_layout(tile, complement(tile, size(layout))))
+end
+function logical_divide(layout::Layout, tile::Tuple)
+    length(tile) <= rank(layout) || throw(DimensionMismatch("too many modes in tile"))
+    return transform_layout(logical_divide, layout, tile)
+end
+function logical_divide(layout::Layout, tile::Colon)
+    return layout
+end
+function logical_divide(layout::Layout, tile::Int)
+    return logical_divide(layout, make_layout(tile))
+end

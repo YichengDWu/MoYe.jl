@@ -35,3 +35,16 @@ end
         @test stride(result) == ((16, 1), (4, 2))
     end
 end
+
+@testset "Division" begin
+    @test logical_divide(Layout(16,3), Layout(4,1)) == Layout((4,4), (3,12))
+    @test logical_divide(Layout(16,3), Layout(4,4)) == Layout((4,4), (12,3))
+    @test logical_divide(Layout(16,3), Layout(4,2)) == Layout((4,(2,2)), (6,(3,24)))
+    @test logical_divide(Layout(16,3), Layout((2,2), (4,1))) == Layout(tuple((2,2), (2,2)), tuple((12,3), (6,24)))
+
+    tile = make_layout((2, 2), (1, 2))
+    matrix_of_tiles = make_layout((3, 4), (4, 1))
+    raked_prod = raked_product(tile, matrix_of_tiles)
+    tile2 = (Layout(2,3), Layout(2,4))
+    @test logical_divide(raked_prod, tile2) == make_layout(((2, 3), (2, 4)),((1, 16), (2, 4)))
+end

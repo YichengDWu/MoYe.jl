@@ -204,3 +204,18 @@ julia> print_layout(raked_product(tile, matrix_of_tiles))
     +----+----+----+----+----+----+----+----+
 ```
 ### Division
+
+#### Logical division
+```julia
+julia> vec = Layout(16,3);
+
+julia> col = Layout(4,1);
+
+julia> logical_divide(vec, col)
+(4, 4):(3, 12)
+
+julia> col = Layout(4,4);
+
+julia> logical_divide(vec, col)
+(4, 4):(12, 3)
+```
