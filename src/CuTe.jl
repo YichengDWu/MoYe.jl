@@ -10,7 +10,7 @@ export flatten
 export colex_less, elem_less, increment
 export coord_to_index, index_to_coord
 export Layout, make_layout, shape, rank, depth, cosize, slice, dice, complement,
-       logical_product, blocked_product, raked_product, logical_divide
+       logical_product, blocked_product, raked_product, logical_divide, zipped_divide
 export print_layout
 
 end

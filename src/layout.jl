@@ -122,7 +122,6 @@ end
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
-
 function Base.size(layout::Layout, i::Int)
     return capacity(shape(layout)[i])
 end
@@ -130,9 +129,15 @@ end
 function rank(layout::Layout)
     return rank(shape(layout))
 end
+function rank(layout::Layout, i::Int)
+    return rank(shape(layout)[i])
+end
 
 function depth(layout::Layout)
     return depth(shape(layout))
+end
+function depth(layout::Layout, i::Int)
+    return depth(shape(layout)[i])
 end
 
 ## cosize, negative stride is not supported
@@ -144,16 +149,16 @@ function coord_to_index(coord, layout::Layout)
     return coord_to_index(coord, shape(layout), stride(layout))
 end
 
-function slice(coord, layout::Layout)
-    return make_layout(slice(coord, shape(layout)), slice(coord, stride(layout)))
+function slice(layout::Layout, coord)
+    return make_layout(slice(shape(layout), coord), slice(stride(layout), coord))
 end
 
-function slice_and_offset(coord, layout::Layout)
-    return slice(coord, layout), coord_to_index(coord, layout)
+function slice_and_offset(layout::Layout, coord)
+    return slice(layout, coord), coord_to_index(layout, coord)
 end
 
-function dice(coord, layout::Layout)
-    return make_layout(dice(coord, shape(layout)), dice(coord, stride(layout)))
+function dice(layout::Layout, coord)
+    return make_layout(dice(shape(layout), coord), dice(stride(layout), coord))
 end
 
 
@@ -368,13 +373,9 @@ function _transpose(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-# tiled_unzip
-
-# Logical divide
-
-# zipped_divide
-
-# tiled_divide
+function tiled_unzip(layout::Layout, tile::Tuple)
+    make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
+end
 
 function logical_product(layout::Layout, tile::Layout)
     return make_layout(layout,
@@ -430,4 +431,14 @@ function logical_divide(layout::Layout, tile::Colon)
 end
 function logical_divide(layout::Layout, tile::Int)
     return logical_divide(layout, make_layout(tile))
+end
+
+function zipped_divide(layout::Layout, tile)
+    tiled_unzip(logical_divide(layout, tile), tile)
+end
+
+function tiled_divide(layout::Layout, tile)
+    d = zipped_divide(layout, tile)
+    R = rank(d, 2)
+    return d(:, repeat(:, R))
 end
