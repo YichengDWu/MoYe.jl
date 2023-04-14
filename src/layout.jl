@@ -89,6 +89,10 @@ function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
 
+function Base.size(layout::Layout, i::Int)
+    return capacity(shape(layout)[i])
+end
+
 function rank(layout::Layout)
     return rank(shape(layout))
 end

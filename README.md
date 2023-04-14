@@ -37,3 +37,9 @@ print(coalesce(layout)) # 12:1
 ```julia
 make_layout(20,2) ∘ make_layout((4,5),(1,4)) # (4, 5):(2, 8)
 ```
+
+### Complement
+
+### Product
+
+### Division
