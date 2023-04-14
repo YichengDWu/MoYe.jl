@@ -11,13 +11,26 @@ Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/medi
 ### Constructing a `Layout`
 
 ```julia
-layout_2x4 = make_layout((2,(2,2)),(4,(1,2)))
-print("Shape: ", shape(layout_2x4)) # (2, (2, 2))
-print("Stride: ", stride(layout_2x4)) # (4, (1, 2))
-print("Size: ", size(layout_2x4)) # 8 
-print("Rank: ", rank(layout_2x4)) #2
-print("Depth: ", depth(layout_2x4)) # 2
-print("Cosize: ", cosize(layout_2x4)) # 8
+julia> print("Shape: ", shape(layout_2x4))
+Shape: (2, (2, 2))
+julia> print("Stride: ", stride(layout_2x4))
+Stride: (4, (1, 2))
+julia> print("Size: ", size(layout_2x4))
+Size: 8
+julia> print("Rank: ", rank(layout_2x4))
+Rank: 2
+julia> print("Depth: ", depth(layout_2x4))
+Depth: 2
+julia> print("Cosize: ", cosize(layout_2x4))
+Cosize: 8
+julia> print_layout(layout_2x4)
+(2, (2, 2)):(4, (1, 2))
+      1   2   3   4
+    +---+---+---+---+
+ 1  | 1 | 2 | 3 | 4 |
+    +---+---+---+---+
+ 2  | 5 | 6 | 7 | 8 |
+    +---+---+---+---+
 ```
 
 ### Flatten
