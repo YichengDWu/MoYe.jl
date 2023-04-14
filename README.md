@@ -11,6 +11,9 @@ Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/medi
 ### Constructing a `Layout`
 
 ```julia
+julia> layout_2x4 = make_layout((2,(2,2)),(4,(1,2)))
+(2, (2, 2)):(4, (1, 2))
+
 julia> print("Shape: ", shape(layout_2x4))
 Shape: (2, (2, 2))
 
