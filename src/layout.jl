@@ -367,7 +367,7 @@ function Base.zip(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-# tiled_zip
+# tiled_unzip
 
 # Logical divide
 
@@ -392,7 +392,6 @@ end
 # zipped_product
 
 # tiled_product
-# blocked_product
 function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
@@ -401,7 +400,14 @@ function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     return coalesce(zip(result[1], result[2]), repeat(1, R))
 end
 
-# raked_produc
+function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
+    R = max(N, M)
+    padded_block = append(block, R)
+    padded_layout = append(layout, R)
+    result = logical_product(padded_block, padded_layout)
+    return coalesce(zip(result[2], result[1]), repeat(1, R))
+end
+
 
 # tile_to_shape
 
