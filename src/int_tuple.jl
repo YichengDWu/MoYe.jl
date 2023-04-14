@@ -24,14 +24,14 @@ function depth(x::IntTuple)
     return max(map(depth, x)...) + 1
 end
 
-# safely extend prod
+product(x::Int) = x
 product(@nospecialize x::IntSequence) = prod(x)
 product(@nospecialize x::IntTuple) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 
-capacity(x::Int) = one(x)
+capacity(x::Int) = x
 capacity(@nospecialize x::IntTuple) = product(x)
 capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
 

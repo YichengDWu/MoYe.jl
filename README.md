@@ -12,11 +12,11 @@ Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/medi
 
 ```julia
 layout_2x4 = make_layout((2,(2,2)),(4,(1,2)))
-print("Shape:", shape(layout_2x4), 
-      "Stride:", stride(layout_2x4), 
-      "Size:", size(layout_2x4),
-      "Rank:", rank(layout_2x4),
-      "Depth:", depth(layout_2x4),
+print("Shape:", shape(layout_2x4), "\n"
+      "Stride:", stride(layout_2x4), "\n"
+      "Size:", size(layout_2x4), "\n"
+      "Rank:", rank(layout_2x4), "\n"
+      "Depth:", depth(layout_2x4), "\n"
       "Cosize:", cosize(layout_2x4))
 
 ```
