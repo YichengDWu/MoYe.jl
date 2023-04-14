@@ -8,6 +8,9 @@
 Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cute/00_quickstart.md) for tutorials.
 
 ## Layout
+
+Mathematically, a Layout represents a function that maps logical coordinates to physical index spaces. It consists of a Shape and a Stride, wherein the Shape determines the domain, and the Stride establishes the mapping through an inner product.
+
 ### Constructing a `Layout`
 
 ```julia
