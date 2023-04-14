@@ -100,3 +100,16 @@ end
 @inline function _transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
     return tuple(zip(t1, t2, ts...)...)
 end
+
+
+function zip2_by(t, guide::Tuple)
+    TR = length(t)
+    GR = length(guide)
+    GR <= TR || throw(ArgumentError("zip2_by: guide tuple is longer than tuple"))
+    split = Iterators.map(zip2_by, t, guide)
+    result = tuple(Iterators.zip(split...)...)
+    return (result[1], (result[2]..., t[GR+1:end]...))
+end
+function zip2_by(t, guide)
+    return t
+end
