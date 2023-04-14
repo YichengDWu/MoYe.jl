@@ -94,6 +94,13 @@ julia> make_layout(20,2) ∘ make_layout((4,5),(5,1))
 
 ### Complement
 
+```julia
+julia> complement(make_layout(4,1), 24)
+6:4
+
+julia> complement(make_layout(6,4), 24)
+4:1
+```
 ### Product
 
 ### Division
