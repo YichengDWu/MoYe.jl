@@ -8,7 +8,7 @@ struct Layout{N, Shape, Stride}
 end
 
 shape(l::Layout) = getfield(l, :shape)
-stride(l::Layout) = getfield(l, :stride)
+Base.stride(l::Layout) = getfield(l, :stride)
 
 function Base.show(io::IO, l::Layout)
     return print(io, shape(l), ":", stride(l))
@@ -83,13 +83,8 @@ function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
 end
 
-# avoid overloading Base.size(Int)
-function Base.size(layout::Layout{N, Int}) where N
-    return shape(layout)
-end
-
 function Base.size(layout::Layout)
-    return size(shape(layout))
+    return capacity(shape(layout))
 end
 
 function rank(layout::Layout)

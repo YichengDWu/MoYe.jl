@@ -25,15 +25,17 @@ function depth(x::IntTuple)
 end
 
 # safely extend prod
-Base.prod(@nospecialize x::Tuple{Vararg{Tuple}}) = prod(flatten(x))
+product(@nospecialize x::IntSequence) = prod(x)
+product(@nospecialize x::IntTuple) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 
-Base.size(@nospecialize x::IntTuple) = prod(x)
-Base.size(@nospecialize(x::IntTuple), I::Int, Is::Int) = size(getindex(x, I, Is...))
+capacity(x::Int) = one(x)
+capacity(@nospecialize x::IntTuple) = product(x)
+capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
 
-Base.sum(@nospecialize x::Tuple{Vararg{Tuple}}) = sum(flatten(x))
+flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
 
 inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
 inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = sum(map(inner_product, x, y))
@@ -50,7 +52,7 @@ function shape_div(a::Int, b::Int)
     return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
 function shape_div(a::Int, b::IntTuple)
-    shape_div(a, prod(b))
+    shape_div(a, product(b))
 end
 function shape_div(a::IntTuple, b::Int)
     result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])), shape_div(init[1], ai)), a; init = ((), b))
@@ -61,13 +63,8 @@ function shape_div(a::IntTuple, b::IntTuple)
     return map(shape_div, a, b)
 end
 
-
-
-
-
-
 @inline function elem_scale(x::Int, y)
-    return x * prod(y)
+    return x * product(y)
 end
 
 function elem_scale(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
@@ -139,7 +136,7 @@ function to_array(::Type{T}, x::IntTuple{N}) where {T, N}
 end
 
 # comparison
-# Base.:(<)(x::Int, y::Tuple) = x < prod(y) # maybe we need this for non congruent shapes
+# Base.:(<)(x::Int, y::Tuple) = x < product(y)?  maybe we need this for non congruent shapes
 #lex_less = <
 #lex_leq = <=
 #lex_geq = >=

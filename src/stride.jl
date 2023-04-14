@@ -8,11 +8,11 @@ function coord_to_index0(coord::Int, shape::Tuple{}, stride::Tuple{})
 end
 function coord_to_index0(coord::Int, shape::Tuple, stride::Tuple)
     s, d = first(shape), first(stride)
-    q, r = divrem(coord, prod(s))
+    q, r = divrem(coord, product(s))
     return coord_to_index0(r, s, d) + coord_to_index0(q, Base.tail(shape), Base.tail(stride))
 end
 function coord_to_index0(coord::Tuple, shape::Tuple, stride::Tuple)
-    sum(map(coord_to_index0, coord, shape, stride))
+    flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
 function coord_to_index(coord, shape, stride)
@@ -55,11 +55,11 @@ const GenRowMajor = CompactRowMajor()
 
 compact_major(shape::Int, current::Int, major::CompactMajor) = ifelse(isone(shape), zero(shape), current)
 function compact_major(shape::IntTuple, current::Int, major::CompactColMajor)
-    tuple((compact_major(shape[i], current * prod(shape[1:i-1]), major) for i in 1:length(shape))...)
+    tuple((compact_major(shape[i], current * product(shape[1:i-1]), major) for i in 1:length(shape))...)
 end
 
 function compact_major(shape::IntTuple, current::Int, major::CompactRowMajor)
-    tuple((compact_major(shape[i], current * prod(shape[i+1:end-1]), major) for i in 1:length(shape))...)
+    tuple((compact_major(shape[i], current * product(shape[i+1:end-1]), major) for i in 1:length(shape))...)
 end
 
 function compact_major(shape::IntTuple, current::IntTuple, major::CompactMajor)
@@ -118,7 +118,7 @@ function compact_order(shape::Tuple, order::Tuple, org_shape, org_order)
 end
 function compact_order(shape, order::Int, org_shape::Tuple, org_order::IntSequence)
     org_order = map(Base.Fix2(-, order), org_order)
-    d = prod(map((s,o) -> ifelse(signbit(o), prod(s), 1), org_shape, org_order))
+    d = productuct(map((s,o) -> ifelse(signbit(o), productuct(s), 1), org_shape, org_order))
     return compact_col_major(shape, d)
 end
 function compact_order(shape, order)
