@@ -1,11 +1,15 @@
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntSequence{N} = NTuple{N, Int}
 
-Base.@propagate_inbounds Base.getindex(x::Tuple, I::IntSequence{N}) where {N} = map(Base.Fix1(getindex, x), I)
+Base.@propagate_inbounds function Base.getindex(x::Tuple, I::IntSequence{N}) where {N}
+    return map(Base.Fix1(getindex, x), I)
+end
 
 const IntTuple{N} = Tuple{Vararg{Union{Int, Tuple}, N}}
 
-Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int, I2::Int, Is::Int...)
+# Note: this may be removed in the future
+Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int,
+                                                I2::Int, Is::Int...)
     return getindex(getindex(x, I1), I2, Is...)
 end
 
@@ -38,7 +42,9 @@ capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, 
 flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
 
 inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
-inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = sum(map(inner_product, x, y))
+function inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+    return sum(map(inner_product, x, y))
+end
 
 Base.cld(x::IntSequence, y::IntSequence) = map(cld, x, y)
 function Base.cld(x::IntTuple, y::IntTuple)
@@ -52,14 +58,16 @@ function shape_div(a::Int, b::Int)
     return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
 function shape_div(a::Int, b::IntTuple)
-    shape_div(a, product(b))
+    return shape_div(a, product(b))
 end
 function shape_div(a::IntTuple, b::Int)
-    result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])), shape_div(init[1], ai)), a; init = ((), b))
+    result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])),
+                                     shape_div(init[1], ai)), a; init=((), b))
     return result
 end
 function shape_div(a::IntTuple, b::IntTuple)
-    length(a) == length(b) || throw(DimensionMismatch("Tuple A and B must have the same rank"))
+    length(a) == length(b) ||
+        throw(DimensionMismatch("Tuple A and B must have the same rank"))
     return map(shape_div, a, b)
 end
 
@@ -86,12 +94,14 @@ end
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::Int, x) = iszero(a) ? 1 : x
-filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple)) = map(filter_zeros, x, y)
+function filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+    return map(filter_zeros, x, y)
+end
 filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
 
-
 function slice(A::Tuple, index::Tuple)
-    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+    length(A) == length(index) ||
+        throw(DimensionMismatch("Array and index must have the same rank"))
     return tuple_cat(map(slice, A, index)...)
 end
 function slice(A, index::Colon)
@@ -104,7 +114,8 @@ function slice(A, index::Int)
 end
 
 function dice(A::Tuple, index::Tuple)
-    length(A) == length(index) || throw(DimensionMismatch("Array and index must have the same rank"))
+    length(A) == length(index) ||
+        throw(DimensionMismatch("Array and index must have the same rank"))
     return tuple_cat(map(dice, A, index)...)
 end
 function dice(A, index::Colon)
@@ -118,7 +129,7 @@ end
 
 function make_int_tuple(N::Int, t, n::Int, init::Int)
     ntuple(N) do i
-        i ≤ n ? t[i] : init
+        return i ≤ n ? t[i] : init
     end
 end
 
@@ -175,7 +186,6 @@ elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
 
-
 increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
 function increment(coord, shape)
     c, s = first(coord), first(shape)
@@ -187,24 +197,23 @@ function increment(coord, shape)
         return (increment(c, s), Base.tail(coord)...)
     end
     return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
- end
+end
 
+# iterator
 
- # iterator
-
-struct ForwardCoordUnitRange{B, E} <:AbstractUnitRange{Int}
+struct ForwardCoordUnitRange{B, E} <: AbstractUnitRange{Int}
     start::B
     stop::E
 
     function ForwardCoordUnitRange(start::IntTuple, stop::IntTuple)
-        new{typeof(start), typeof(stop)}(start, stop)
+        return new{typeof(start), typeof(stop)}(start, stop)
     end
 end
 
 const ForwardCoordOneTo{T} = ForwardCoordUnitRange{T, T}
 function ForwardCoordOneTo(shape::IntTuple)
     start = repeat_like(shape, 1)
-    ForwardCoordUnitRange(start, shape)
+    return ForwardCoordUnitRange(start, shape)
 end
 
 Base.oneto(shape::IntTuple) = ForwardCoordOneTo(shape)
