@@ -13,16 +13,22 @@ Please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/medi
 ```julia
 julia> print("Shape: ", shape(layout_2x4))
 Shape: (2, (2, 2))
+
 julia> print("Stride: ", stride(layout_2x4))
 Stride: (4, (1, 2))
+
 julia> print("Size: ", size(layout_2x4))
 Size: 8
+
 julia> print("Rank: ", rank(layout_2x4))
 Rank: 2
+
 julia> print("Depth: ", depth(layout_2x4))
 Depth: 2
+
 julia> print("Cosize: ", cosize(layout_2x4))
 Cosize: 8
+
 julia> print_layout(layout_2x4)
 (2, (2, 2)):(4, (1, 2))
       1   2   3   4
