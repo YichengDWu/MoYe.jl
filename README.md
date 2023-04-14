@@ -35,20 +35,27 @@ julia> print_layout(layout_2x4)
 
 ### Flatten
 ```julia
-layout = make_layout(((4,3), 1), ((3, 1), 0))
-print(flatten(layout)) # (4, 3, 1):(3, 1, 0)
+julia> layout = make_layout(((4,3), 1), ((3, 1), 0))
+((4, 3), 1):((3, 1), 0)
+
+julia> print(flatten(layout))
+(4, 3, 1):(3, 1, 0)
 ```
 
 ### Coalesce
 
 ```julia
-layout = make_layout((2,(1,6)), (1,(6,2)))
-print(coalesce(layout)) # 12:1
+julia> layout = make_layout((2,(1,6)), (1,(6,2)))
+(2, (1, 6)):(1, (6, 2))
+
+julia> print(coalesce(layout))
+12:1
 ```
 
 ### Composition
 ```julia
-make_layout(20,2) ∘ make_layout((4,5),(1,4)) # (4, 5):(2, 8)
+julia> make_layout(20,2) ∘ make_layout((4,5),(1,4))
+(4, 5):(2, 8)
 ```
 
 ### Complement
