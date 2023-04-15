@@ -32,7 +32,7 @@ Rank: 2
 julia> print("Depth: ", depth(layout_2x4))
 Depth: 2
 
-julia> print("Cosize: ", cosize(layout_2x4))
+julia> print("Cosize: ", cosize(layout_2x4)) # create a row-major layout
 Cosize: 8
 
 julia> print_layout(layout_2x4)
@@ -47,7 +47,7 @@ julia> print_layout(layout_2x4)
 
 ### Concatenation
 
-A layout can be expressed as the concatenation of its sublayouts.
+A `layout` can be expressed as the concatenation of its sublayouts.
 
 ```julia
 julia> layout_2x4[2] # get the second sublayout
@@ -69,11 +69,11 @@ sublayout = (2, 2):(1, 2)
 
 ### Coordinate space
 
-The coordinate space of a Layout is determined by its Shape. This coordinate space can be viewed in three distinct ways:
+The coordinate space of a `Layout` is determined by its `Shape`. This coordinate space can be viewed in three different ways:
 
 1. H-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape.
 2. 1-D coordinate space: This can be visualized as the colexicographically flattening of the coordinate space into a one-dimensional space.
-3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (axis) of the Shape is colexicographically flattened into a one-dimensional space.
+3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space.
 
 ```julia
 julia> layout_2x4(2, (1,2)) # H-D coordinate
@@ -107,7 +107,7 @@ julia> print(coalesce(layout))
 
 ### Composition
 ```julia
-julia> make_layout(20,2) ∘ make_layout((4,5),(1,4))
+julia> make_layout(20,2) ∘ make_layout((4,5),(1,4)) # as function composition
 (4, 5):(2, 8)
 
 julia> make_layout(20,2) ∘ make_layout((4,5),(5,1))
