@@ -24,6 +24,7 @@ function (l::Layout)(coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
 function (l::Layout)(coord) # coord is fixed with colon
+    @assert Colon() ∈ coord
     return slice(l, coord)
 end
 function (l::Layout)(c1, c2, c3...)
