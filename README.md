@@ -48,14 +48,15 @@ julia> print_layout(layout_2x4)
 You can also use static tuples:
 
 ```julia
+julia> using Static
 julia> static_layout = make_layout(static((2, (2, 2))), static((4, (1, 2))))
-using Static
-
-julia> typeof(static_layout) # all infomation is stored in the type
 (static(2), (static(2), static(2))):(static(4), (static(1), static(2)))
 
-julia> sizeof(static_layout)
+julia> typeof(static_layout)
 Layout{2, Tuple{StaticInt{2}, Tuple{StaticInt{2}, StaticInt{2}}}, Tuple{StaticInt{4}, Tuple{StaticInt{1}, StaticInt{2}}}}
+
+julia> sizeof(static_layout)
+0
 ```
 
 ### Concatenation
