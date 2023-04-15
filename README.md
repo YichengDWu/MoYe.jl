@@ -14,7 +14,7 @@ Mathematically, a `Layout` represents a function that maps logical coordinates t
 ### Constructing a `Layout`
 
 ```julia
-julia> layout_2x4 = make_layout((2,(2,2)),(4,(1,2)))
+julia> layout_2x4 = make_layout((2, (2, 2)), (4, (1, 2)))
 (2, (2, 2)):(4, (1, 2))
 
 julia> print("Shape: ", shape(layout_2x4))
@@ -45,6 +45,19 @@ julia> print_layout(layout_2x4)
     +---+---+---+---+
 ```
 
+You can also use static tuples:
+
+```julia
+julia> static_layout = make_layout(static((2, (2, 2))), static((4, (1, 2))))
+using Static
+
+julia> typeof(static_layout) # all infomation is stored in the type
+(static(2), (static(2), static(2))):(static(4), (static(1), static(2)))
+
+julia> sizeof(static_layout)
+Layout{2, Tuple{StaticInt{2}, Tuple{StaticInt{2}, StaticInt{2}}}, Tuple{StaticInt{4}, Tuple{StaticInt{1}, StaticInt{2}}}}
+```
+
 ### Concatenation
 
 A `layout` can be expressed as the concatenation of its sublayouts.
@@ -60,26 +73,25 @@ julia> make_layout(layout_2x4...) # concatenating sublayouts
 (2, (2, 2)):(4, (1, 2))
 
 julia> for sublayout in layout_2x4 # iterating a layout
-       @show sublayout
+           @show sublayout
        end
 sublayout = 2:4
 sublayout = (2, 2):(1, 2)
-
 ```
 
 ### Coordinate space
 
 The coordinate space of a `Layout` is determined by its `Shape`. This coordinate space can be viewed in three different ways:
 
-1. H-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape.
-2. 1-D coordinate space: This can be visualized as the colexicographically flattening of the coordinate space into a one-dimensional space.
-3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space.
+ 1. H-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape.
+ 2. 1-D coordinate space: This can be visualized as the colexicographically flattening of the coordinate space into a one-dimensional space.
+ 3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space.
 
 ```julia
-julia> layout_2x4(2, (1,2)) # H-D coordinate
+julia> layout_2x4(2, (1, 2)) # H-D coordinate
 7
 
-julia> layout_2x4(2,3) # R-D coordinate
+julia> layout_2x4(2, 3) # R-D coordinate
 7
 
 julia> layout_2x4(6) # 1-D coordinate
@@ -87,8 +99,9 @@ julia> layout_2x4(6) # 1-D coordinate
 ```
 
 ### Flatten
+
 ```julia
-julia> layout = make_layout(((4,3), 1), ((3, 1), 0))
+julia> layout = make_layout(((4, 3), 1), ((3, 1), 0))
 ((4, 3), 1):((3, 1), 0)
 
 julia> print(flatten(layout))
@@ -98,7 +111,7 @@ julia> print(flatten(layout))
 ### Coalesce
 
 ```julia
-julia> layout = make_layout((2,(1,6)), (1,(6,2)))
+julia> layout = make_layout((2, (1, 6)), (1, (6, 2)))
 (2, (1, 6)):(1, (6, 2))
 
 julia> print(coalesce(layout))
@@ -106,28 +119,34 @@ julia> print(coalesce(layout))
 ```
 
 ### Composition
+
 ```julia
-julia> make_layout(20,2) ∘ make_layout((4,5),(1,4)) # as function composition
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4)) # as function composition
 (4, 5):(2, 8)
 
-julia> make_layout(20,2) ∘ make_layout((4,5),(5,1))
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 (4, 5):(10, 2)
 ```
 
 ### Complement
 
 ```julia
-julia> complement(make_layout(4,1), 24)
+julia> complement(make_layout(4, 1), 24)
 6:4
 
-julia> complement(make_layout(6,4), 24)
+julia> complement(make_layout(6, 4), 24)
 4:1
 ```
+
 ### Product
+
 #### Logical product
+
 ```julia
-julia> tile = make_layout((2,2), (1,2));
 julia> print_layout(tile)
+tile = make_layout((2,2), (1,2));
+
+julia> print_layout(matrix_of_tiles)
 (2, 2):(1, 2)
       1   2
     +---+---+
@@ -136,35 +155,12 @@ julia> print_layout(tile)
  2  | 2 | 4 |
     +---+---+
 
-julia> matrix_of_tiles = make_layout((3,4), (4,1));
-julia> print_layout(matrix_of_tiles)
-(3, 4):(4, 1)
-       1    2    3    4
-    +----+----+----+----+
- 1  |  1 |  2 |  3 |  4 |
-    +----+----+----+----+
- 2  |  5 |  6 |  7 |  8 |
-    +----+----+----+----+
- 3  |  9 | 10 | 11 | 12 |
-    +----+----+----+----+
-
-
 julia> print_layout(logical_product(tile, matrix_of_tiles));
-((2, 2), (3, 4)):((1, 2), (16, 4))
-       1    2    3    4    5    6    7    8    9   10   11   12
-    +----+----+----+----+----+----+----+----+----+----+----+----+
- 1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
-    +----+----+----+----+----+----+----+----+----+----+----+----+
- 2  |  2 | 18 | 34 |  6 | 22 | 38 | 10 | 26 | 42 | 14 | 30 | 46 |
-    +----+----+----+----+----+----+----+----+----+----+----+----+
- 3  |  3 | 19 | 35 |  7 | 23 | 39 | 11 | 27 | 43 | 15 | 31 | 47 |
-    +----+----+----+----+----+----+----+----+----+----+----+----+
- 4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
-    +----+----+----+----+----+----+----+----+----+----+----+----+
-
+matrix_of_tiles = make_layout((3,4), (4,1));
 ```
 
 #### Blocked product
+
 ```julia
 julia> print_layout(blocked_product(tile, matrix_of_tiles))
 ((2, 3), 8):((1, 16), 2)
@@ -185,6 +181,7 @@ julia> print_layout(blocked_product(tile, matrix_of_tiles))
 ```
 
 #### Raked product
+
 ```julia
 julia> print_layout(raked_product(tile, matrix_of_tiles))
 ((3, 2), (4, 2)):((16, 1), (4, 2))
@@ -203,28 +200,14 @@ julia> print_layout(raked_product(tile, matrix_of_tiles))
  6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
     +----+----+----+----+----+----+----+----+
 ```
+
 ### Division
 
 #### Logical division
+
 ```julia
-julia> raked_prod = raked_product(tile, matrix_of_tiles);
-julia> subtile = (Layout(2,3), Layout(2,4));
 julia> print_layout(logical_divide(raked_prod, subtile))
-((2, 3), (2, 4)):((1, 16), (2, 4))
-       1    2    3    4    5    6    7    8
-    +----+----+----+----+----+----+----+----+
- 1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
-    +----+----+----+----+----+----+----+----+
- 2  |  2 |  4 |  6 |  8 | 10 | 12 | 14 | 16 |
-    +----+----+----+----+----+----+----+----+
- 3  | 17 | 19 | 21 | 23 | 25 | 27 | 29 | 31 |
-    +----+----+----+----+----+----+----+----+
- 4  | 18 | 20 | 22 | 24 | 26 | 28 | 30 | 32 |
-    +----+----+----+----+----+----+----+----+
- 5  | 33 | 35 | 37 | 39 | 41 | 43 | 45 | 47 |
-    +----+----+----+----+----+----+----+----+
- 6  | 34 | 36 | 38 | 40 | 42 | 44 | 46 | 48 |
-    +----+----+----+----+----+----+----+----+
+raked_prod = raked_product(tile, matrix_of_tiles);
 ```
 
 #### Zipped division

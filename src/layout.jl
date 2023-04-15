@@ -6,7 +6,9 @@ struct Layout{N, Shape, Stride}
     function Layout(shape::IntTuple{N}, stride::IntTuple{N}) where {N}
         return new{rank(shape), typeof(shape), typeof(stride)}(shape, stride)
     end
-    Layout(shape::Int, stride::Int) = new{1, typeof(shape), typeof(stride)}(shape, stride)
+    function Layout(shape::IntType, stride::IntType)
+        return new{1, typeof(shape), typeof(stride)}(shape, stride)
+    end
 end
 
 shape(l::Layout) = getfield(l, :shape)
@@ -17,10 +19,10 @@ function Base.show(io::IO, l::Layout)
 end
 
 # map a logical coordinate to a linear index
-function (l::Layout)(coord::Int)
+function (l::Layout)(coord::IntType)
     return coord_to_index(coord, shape(l), stride(l))
 end
-function (l::Layout)(coord::IntTuple)
+function (l::Layout)(@nospecialize coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
 function (l::Layout)(coord) # coord is fixed with colon
@@ -32,22 +34,22 @@ function (l::Layout)(c1, c2, c3...)
 end
 
 # map 1D index to a hier coordinate
-function get_hier_coord(l::Layout, index::Int)
+function get_hier_coord(l::Layout, index::IntType)
     return index_to_coord(index, l.shape, l.stride)
 end
 
-function get_congr_coord(l::Layout{N}, index::Int) where {N}
+function get_congr_coord(l::Layout{N}, index::IntType) where {N}
     return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
 end
 
-function get_linear_coord(l::Layout, index::Int)
+function get_linear_coord(l::Layout, index::IntType)
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
-function make_layout(shape::IntTuple, stride::IntTuple)
+function make_layout(@nospecialize(shape::IntTuple), @nospecialize(stride::IntTuple))
     return Layout(shape, stride)
 end
-function make_layout(shape::Int, stride::Int)
+function make_layout(shape::IntType, stride::IntType)
     return Layout(shape, stride)
 end
 function make_layout(shape::Union{Int, IntTuple})
@@ -74,7 +76,7 @@ end
 # make_fragment_like
 # make_identity_layout
 
-function Base.getindex(layout::Layout, Is::Int...)
+function Base.getindex(layout::Layout, Is::IntType...)
     @inline
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
 end
@@ -92,7 +94,7 @@ function Base.lastindex(l::Layout)
 end
 
 function Base.first(l::Layout)
-   return l[1]
+    return l[1]
 end
 
 function Base.last(l::Layout{N}) where {N}
@@ -114,7 +116,7 @@ function Base.iterate(x::Layout{N}, state) where {N}
     return (x[new_state], new_state)
 end
 
-function take(layout::Layout, B::Int, E::Int)
+function take(layout::Layout, B::IntType, E::IntType)
     return make_layout(take(shape(layout), B, E), take(stride(layout), B, E))
 end
 
@@ -125,21 +127,21 @@ end
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
-function Base.size(layout::Layout, i::Int)
+function Base.size(layout::Layout, i::IntType)
     return capacity(shape(layout)[i])
 end
 
 function rank(layout::Layout)
     return rank(shape(layout))
 end
-function rank(layout::Layout, i::Int)
+function rank(layout::Layout, i::IntType)
     return rank(shape(layout)[i])
 end
 
 function depth(layout::Layout)
     return depth(shape(layout))
 end
-function depth(layout::Layout, i::Int)
+function depth(layout::Layout, i::IntType)
     return depth(shape(layout)[i])
 end
 
@@ -164,31 +166,30 @@ function dice(layout::Layout, coord)
     return make_layout(dice(shape(layout), coord), dice(stride(layout), coord))
 end
 
-
-function append(layout::Layout, x::Layout, N::Int)
+function append(layout::Layout, x::Layout, N::IntType)
     return make_layout(append(shape(layout), shape(x), N),
                        append(stride(layout), stride(x), N))
 end
 
-function append(layout::Layout, N::Int)
+function append(layout::Layout, N::IntType)
     return append(layout, make_layout(1, 0), N)
 end
 
-function prepend(layout::Layout, x::Layout, N::Int)
+function prepend(layout::Layout, x::Layout, N::IntType)
     return make_layout(prepend(shape(layout), shape(x), N),
                        prepend(stride(layout), stride(x), N))
 end
 
-function prepend(layout::Layout, N::Int)
+function prepend(layout::Layout, N::IntType)
     return prepend(layout, make_layout(1, 0), N)
 end
 
-function replace(layout::Layout, x::Layout, N::Int)
+function replace(layout::Layout, x::Layout, N::IntType)
     return make_layout(replace(shape(layout), shape(x), N),
                        replace(stride(layout), stride(x), N))
 end
 
-function group(layout::Layout, B::Int, E::Int)
+function group(layout::Layout, B::IntType, E::IntType)
     return make_layout(group(shape(layout), B, E), group(stride(layout), B, E))
 end
 
@@ -226,7 +227,7 @@ function Base.coalesce(layout::Layout)
     return bw_coalesce(Val(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
                        last(flat_stride))
 end
-function Base.coalesce(layout::Layout, trg_profile::IntTuple) # respect the target profile
+function Base.coalesce(layout::Layout, @nospecialize trg_profile::IntTuple) # respect the target profile
     @assert rank(trg_profile) <= rank(layout)
     return transform_layout(coalesce, layout, trg_profile)
 end
@@ -243,7 +244,8 @@ function Base.filter(l::Layout)
 end
 
 # Base case a:b ∘ c:d = c:(b*d)
-function composition(lhs::Layout{1, Int, Int}, rhs_shape::Int, rhs_stride::Int)
+function composition(lhs::Layout{1, IntType, IntType}, rhs_shape::IntType,
+                     rhs_stride::IntType)
     return Layout(rhs_shape, rhs_stride * stride(lhs))
 end
 
@@ -254,7 +256,7 @@ function composition(lhs::Layout, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N
     end                                                                             # we assume rank(lhs) == rank(rhs)
 end
 
-function composition(lhs::Layout, rhs_shape::Int, rhs_stride::Int)
+function composition(lhs::Layout, rhs_shape::IntType, rhs_stride::IntType)
     flat_shape = flatten(shape(lhs))
     flat_stride = flatten(stride(lhs))
     if iszero(rhs_stride)
@@ -294,7 +296,7 @@ end
 function composition(lhs::Layout, rhs::Layout)
     return composition(lhs, shape(rhs), stride(rhs))
 end
-function composition(lhs::Layout, rhs::Tuple{Vararg{Layout}})
+function composition(lhs::Layout, @nospecialize rhs::Tuple{Vararg{Layout}})
     @assert rank(rhs) <= length(lhs)
     return make_layout(Iterators.map(composition, lhs, rhs)...)
 end
@@ -319,14 +321,14 @@ function Base.:(∘)(l1::Layout, l2::Layout, l3::Layout...)
     return compose(l1, l2, l3...)
 end
 
-function withshape(l::Layout, shape::Union{Int, IntTuple})
+function withshape(l::Layout, shape::Union{Int, StaticInt, IntTuple})
     return composition(l, make_layout(shape))
 end
 function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
 
-function complement(l::Layout, cosize_hi::Int)
+function complement(l::Layout, cosize_hi::IntType)
     flat_layout = filter(l)
 
     if stride(flat_layout) == 0
@@ -350,7 +352,7 @@ function complement(l::Layout, cosize_hi::Int)
                     append(init[4], curr_shape * curr_stride))
         end
 
-        result = foldl(f, ntuple(identity, R-1); init=result)
+        result = foldl(f, ntuple(identity, R - 1); init=result)
     end
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
@@ -376,8 +378,8 @@ function _transpose(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-function tiled_unzip(layout::Layout, tile::Tuple)
-    make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
+function tiled_unzip(layout::Layout, @nospecialize(tile::Tuple))
+    return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
 function logical_product(layout::Layout, tile::Layout)
@@ -387,10 +389,10 @@ end
 function logical_product(layout::Layout, tile::Colon)
     return layout
 end
-function logical_product(layout::Layout, tile::Int)
+function logical_product(layout::Layout, tile::IntType)
     return logical_product(layout, make_layout(tile))
 end
-function logical_product(layout::Layout, tile::IntTuple)
+function logical_product(layout::Layout, @nospecialize(tile::IntTuple))
     return transform_layout(logical_product, layout, tile)
 end
 
@@ -413,7 +415,6 @@ function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     return coalesce(_transpose(result[2], result[1]), repeat(1, R))
 end
 
-
 # tile_to_shape
 
 # upcast
@@ -425,19 +426,19 @@ end
 function logical_divide(layout::Layout, tile::Layout)
     return composition(layout, make_layout(tile, complement(tile, size(layout))))
 end
-function logical_divide(layout::Layout, tile::Tuple)
+function logical_divide(layout::Layout, @nospecialize tile::Tuple)
     length(tile) <= rank(layout) || throw(DimensionMismatch("too many modes in tile"))
     return transform_layout(logical_divide, layout, tile)
 end
 function logical_divide(layout::Layout, tile::Colon)
     return layout
 end
-function logical_divide(layout::Layout, tile::Int)
+function logical_divide(layout::Layout, tile::IntType)
     return logical_divide(layout, make_layout(tile))
 end
 
 function zipped_divide(layout::Layout, tile)
-    tiled_unzip(logical_divide(layout, tile), tile)
+    return tiled_unzip(logical_divide(layout, tile), tile)
 end
 
 function tiled_divide(layout::Layout, tile)
