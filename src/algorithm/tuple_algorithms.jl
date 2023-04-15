@@ -67,8 +67,8 @@ end
 function append(@nospecialize(t::Tuple), x)
     return (t..., x)
 end
-function append(t::Int, x::Int)
-    (t, x)
+function append(t::IntType, x::IntType)
+    return (t, x)
 end
 
 function prepend(@nospecialize(t::Tuple), x, I)
@@ -77,8 +77,8 @@ end
 function prepend(@nospecialize(t::Tuple), x)
     return (x, t...)
 end
-function prepend(t::Int, x::Int)
-    (x, t)
+function prepend(t::IntType, x::IntType)
+    return (x, t)
 end
 
 @generated function escan(f::Function, x::NTuple{N, T}, init::T) where {N, T}
@@ -97,10 +97,10 @@ end
     return q
 end
 
-@inline function _transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple), @nospecialize(ts::Tuple...))
+@inline function _transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple),
+                            @nospecialize(ts::Tuple...))
     return tuple(zip(t1, t2, ts...)...)
 end
-
 
 function zip2_by(t, guide::Tuple)
     TR = length(t)
@@ -108,7 +108,7 @@ function zip2_by(t, guide::Tuple)
     GR <= TR || throw(ArgumentError("zip2_by: guide tuple is longer than tuple"))
     split = Iterators.map(zip2_by, t, guide)
     result = tuple(Iterators.zip(split...)...)
-    return (result[1], (result[2]..., t[GR+1:end]...))
+    return (result[1], (result[2]..., t[(GR + 1):end]...))
 end
 function zip2_by(t, guide)
     return t

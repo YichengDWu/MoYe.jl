@@ -1,11 +1,12 @@
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
-const IntSequence{N} = NTuple{N, Int}
+const IntSequence{N} = NTuple{N, Union{Int, StaticInt}}
 
-Base.@propagate_inbounds function Base.getindex(x::Tuple, I::IntSequence{N}) where {N}
+Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
+                                                @nospecialize(I::IntSequence{N})) where {N}
     return map(Base.Fix1(getindex, x), I)
 end
 
-const IntTuple{N} = Tuple{Vararg{Union{Int, Tuple}, N}}
+const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
 
 # Note: this may be removed in the future
 Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int,
@@ -14,64 +15,66 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::
 end
 
 # fmap where leaves are integers
-emap(f::Function, t::IntTuple) = map(Base.Fix1(emap, f), t)
-emap(f::Function, x::Int) = f(x)
+emap(f::Function, @nospecialize(t::IntTuple)) = map(Base.Fix1(emap, f), t)
+emap(f::Function, x::IntType) = f(x)
 
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
-@inline rank(@nospecialize x::Int) = 1
-@inline rank(@nospecialize(x::IntTuple), I::Int...) = rank(getindex(x, I...))
+@inline rank(@nospecialize x::IntType) = 1
+@inline rank(@nospecialize(x::IntTuple), I::IntType...) = rank(getindex(x, I...))
 
 # shape
 
-@inline depth(@nospecialize x::Int) = 0
-function depth(x::IntTuple)
+@inline depth(@nospecialize x::IntType) = 0
+function depth(@nospecialize x::IntTuple)
     return max(map(depth, x)...) + 1
 end
 
-product(x::Int) = x
+product(x::IntType) = x
 product(@nospecialize x::IntSequence) = prod(x)
 product(@nospecialize x::IntTuple) = prod(flatten(x))
 
 prod_each(@nospecialize x::IntSequence) = prod(x)
 prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 
-capacity(x::Int) = x
+capacity(x::IntType) = x
 capacity(@nospecialize x::IntTuple) = product(x)
-capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
+#capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
 
 flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
 
-inner_product(x::IntSequence, y::IntSequence) = sum(map(*, x, y))
+function inner_product(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence))
+    return sum(map(*, x, y))
+end
 function inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     return sum(map(inner_product, x, y))
 end
 
-Base.cld(x::IntSequence, y::IntSequence) = map(cld, x, y)
-function Base.cld(x::IntTuple, y::IntTuple)
+Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
+function Base.cld(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     @assert rank(x) >= rank(y)
     y = append(y, 1, rank(x))
     return map(cld, x, y)
 end
 
 #shape_div
-function shape_div(a::Int, b::Int)
+function shape_div(a::IntType, b::IntType)
     return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
-function shape_div(a::Int, b::IntTuple)
+function shape_div(a::IntType, @nospecialize b::IntTuple)
     return shape_div(a, product(b))
 end
-function shape_div(a::IntTuple, b::Int)
+function shape_div(@nospecialize(a::IntTuple), b::IntType)
     result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])),
                                      shape_div(init[1], ai)), a; init=((), b))
     return result
 end
-function shape_div(a::IntTuple, b::IntTuple)
+function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
     length(a) == length(b) ||
         throw(DimensionMismatch("Tuple A and B must have the same rank"))
     return map(shape_div, a, b)
 end
 
-@inline function elem_scale(x::Int, y)
+@inline function elem_scale(x::IntType, y)
     return x * product(y)
 end
 
@@ -93,13 +96,13 @@ end
 #end
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
-@inline filter_zeros(a::Int, x) = iszero(a) ? 1 : x
+@inline filter_zeros(a::IntType, x) = iszero(a) ? 1 : x
 function filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     return map(filter_zeros, x, y)
 end
 filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
 
-function slice(A::Tuple, index::Tuple)
+function slice(@nospecialize(A::Tuple), @nospecialize(index::Tuple))
     length(A) == length(index) ||
         throw(DimensionMismatch("Array and index must have the same rank"))
     return tuple_cat(map(slice, A, index)...)
@@ -108,12 +111,12 @@ function slice(A, index::Colon)
     @inline
     return A
 end
-function slice(A, index::Int)
+function slice(A, index::IntType)
     @inline
     return ()
 end
 
-function dice(A::Tuple, index::Tuple)
+function dice(@nospecialize(A::Tuple), @nospecialize(index::Tuple))
     length(A) == length(index) ||
         throw(DimensionMismatch("Array and index must have the same rank"))
     return tuple_cat(map(dice, A, index)...)
@@ -122,12 +125,12 @@ function dice(A, index::Colon)
     @inline
     return ()
 end
-function dice(A, index::Int)
+function dice(A, index::IntType)
     @inline
     return A
 end
 
-function make_int_tuple(N::Int, t, n::Int, init::Int)
+function make_int_tuple(N::IntType, t, n::IntType, init::IntType)
     ntuple(N) do i
         return i ≤ n ? t[i] : init
     end
@@ -137,8 +140,9 @@ end
 
 # make_int_tuple_from
 
-function to_array(::Type{T}, x::IntTuple{N}) where {T, N}
+function to_array(::Type{T}, @nospecialize(x::IntTuple)) where {T}
     x = flatten(x)
+    N = length(x)
     result = Array{T}(undef, N)
     ntuple(N) do i
         @inbounds result[i] = x[i]
@@ -152,11 +156,11 @@ end
 #lex_leq = <=
 #lex_geq = >=
 
-colex_less(x::Int, y::Int) = x < y
+colex_less(x::IntType, y::IntType) = x < y
 colex_less(::Tuple{}, ::Tuple{}) = false
 colex_less(::Tuple{}, ::Tuple) = true
 colex_less(::Tuple, ::Tuple{}) = false
-function colex_less(t1::Tuple, t2::Tuple)
+function colex_less(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple))
     a, b = last(t1), last(t2)
     if a ≠ b
         return colex_less(a, b)
@@ -164,12 +168,12 @@ function colex_less(t1::Tuple, t2::Tuple)
     return colex_less(Base.front(t1), Base.front(t2))
 end
 
-elem_less(x::Int, y::Int) = x < y
+elem_less(x::IntType, y::IntType) = x < y
 elem_less(::Tuple{}, ::Tuple{}) = true
 elem_less(::Tuple{}, ::Tuple) = true #  TupleA is exhausted
 elem_less(::Tuple, ::Tuple{}) = false # TupleA is not exhausted, TupleB is exhausted
 
-function elem_less(t1::Tuple, t2::Tuple)
+function elem_less(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple))
     a, b = first(t1), first(t2)
     if length(t1) == length(t2) == 1
         return a < b
@@ -186,7 +190,7 @@ elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
 
-increment(coord::Int, shape::Int) = ifelse(coord < shape, coord + 1, 1)
+increment(coord::IntType, shape::IntType) = ifelse(coord < shape, coord + 1, 1)
 function increment(coord, shape)
     c, s = first(coord), first(shape)
     if length(coord) == length(shape) == 1

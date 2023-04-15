@@ -1,4 +1,4 @@
-const Tile = Tuple{Vararg{Union{Int, Layout}}}
+const Tile = Tuple{Vararg{Union{Int, StaticInt, Layout}}}
 
 #function tile(l1::Layout, l2::Layout)
 #    return tiled_divide(l1, l2)
