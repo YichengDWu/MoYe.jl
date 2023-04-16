@@ -5,11 +5,6 @@ front(@nospecialize(t::Tuple)) = front(first(t))
 back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
 @inline back(x) = x
 
-# take Takes the elements in the range [B,E] of the tuple
-#function take(@nospecialize(t::Tuple), B, E)
-#    return getindex(t, B:E)
-#end
-
 unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 @inline unwrap(x) = x
 
@@ -61,13 +56,15 @@ function group(@nospecialize(t::Tuple), b, e)
 end
 
 # append x to extend t to rank N
-function append(@nospecialize(t::Tuple), x, N)
+function append(@nospecialize(t::Tuple), x, N::IntType)
     return (t..., ntuple(_ -> x, N - length(t))...)
 end
 function append(@nospecialize(t::Tuple), x)
+    @inline
     return (t..., x)
 end
 function append(t::IntType, x::IntType)
+    @inline
     return (t, x)
 end
 
@@ -75,9 +72,11 @@ function prepend(@nospecialize(t::Tuple), x, I)
     return (ntuple(_ -> x, I - length(t))..., t...)
 end
 function prepend(@nospecialize(t::Tuple), x)
+    @inline
     return (x, t...)
 end
 function prepend(t::IntType, x::IntType)
+    @inline
     return (x, t)
 end
 
