@@ -45,7 +45,9 @@ julia> print_layout(layout_2x4)
     +---+---+---+---+
 ```
 
-You can also use static tuples:
+#### Compile-time-ness of values
+
+You can also use static integers:
 
 ```julia
 julia> using Static
