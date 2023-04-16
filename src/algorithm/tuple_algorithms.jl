@@ -1,4 +1,4 @@
-# we don't overload Base.front, it finds the first non-tuple element
+# we don't overload Base.front, the following finds the first non-tuple element
 front(@nospecialize(t::Tuple)) = front(first(t))
 @inline front(x) = x
 
@@ -105,7 +105,7 @@ end
 function zip2_by(t, guide::Tuple)
     TR = length(t)
     GR = length(guide)
-    GR <= TR || throw(ArgumentError("zip2_by: guide tuple is longer than tuple"))
+    GR <= TR || throw(ArgumentError("zip2_by: guide tuple is longer than input tuple"))
     split = Iterators.map(zip2_by, t, guide)
     result = tuple(Iterators.zip(split...)...)
     return (result[1], (result[2]..., t[(GR + 1):end]...))
