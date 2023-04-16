@@ -11,6 +11,8 @@ struct Layout{N, Shape, Stride}
     end
 end
 
+const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
+
 shape(l::Layout) = getfield(l, :shape)
 Base.stride(l::Layout) = getfield(l, :stride)
 
@@ -193,7 +195,6 @@ function group(layout::Layout, B::IntType, E::IntType)
     return make_layout(group(shape(layout), B, E), group(stride(layout), B, E))
 end
 
-# transform_layout
 function transform_layout(f::Function, t1, t2)
     R1 = length(t1)
     R2 = length(t2)
@@ -378,7 +379,7 @@ function _transpose(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-function tiled_unzip(layout::Layout, @nospecialize(tile::Tuple))
+function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
     return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
@@ -392,13 +393,19 @@ end
 function logical_product(layout::Layout, tile::IntType)
     return logical_product(layout, make_layout(tile))
 end
-function logical_product(layout::Layout, @nospecialize(tile::IntTuple))
+function logical_product(layout::Layout, @nospecialize(tile::Tuple))
     return transform_layout(logical_product, layout, tile)
 end
 
-# zipped_product
+function zipped_product(layout::Layout, tile::Tile)
+    return tile_unzip(logical_product(layout, tile), tile)
+end
 
-# tiled_product
+function tiled_product(layout::Layout, tile::Tile{N}) where {N}
+    d = zipped_product(layout, tile)
+    return d(:, repeat(:, N))
+end
+
 function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
@@ -437,12 +444,19 @@ function logical_divide(layout::Layout, tile::IntType)
     return logical_divide(layout, make_layout(tile))
 end
 
-function zipped_divide(layout::Layout, tile)
-    return tiled_unzip(logical_divide(layout, tile), tile)
+function zipped_divide(layout::Layout, tile::Tile)
+    return tile_unzip(logical_divide(layout, tile), tile)
 end
 
-function tiled_divide(layout::Layout, tile)
+function tiled_divide(layout::Layout, tile::Tile)
     d = zipped_divide(layout, tile)
     R = rank(d, 2)
     return d(:, repeat(:, R))
+end
+
+function tile(l1::Layout, l2::Layout)
+    return tiled_divide(l1, l2)
+end
+function tile(l1::Layout, l2::Layout, l3::Layout...)
+    return tiled_divide(l1, make_layout(l2, l3...))
 end
