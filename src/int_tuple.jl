@@ -24,9 +24,9 @@ emap(f::Function, x::IntType) = f(x)
 
 # shape
 
-@inline depth(@nospecialize x::IntType) = 0
+@inline depth(@nospecialize x::IntType) = zero(x)
 function depth(@nospecialize x::IntTuple)
-    return max(map(depth, x)...) + 1
+    return max(map(depth, x)...) + static(1)
 end
 
 product(x::IntType) = x

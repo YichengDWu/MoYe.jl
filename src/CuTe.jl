@@ -1,6 +1,6 @@
 module CuTe
 
-using Static: StaticInt, IntType
+using Static: StaticInt, IntType, static
 
 include("algorithm/tuple_algorithms.jl")
 include("int_tuple.jl")
