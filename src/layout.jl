@@ -412,7 +412,7 @@ function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    return coalesce(_transpose(result[2], result[1]), repeat(1, R))
+    return coalesce(_transpose(result[2], result[1]), repeat(static(1), R))
 end
 
 # tile_to_shape

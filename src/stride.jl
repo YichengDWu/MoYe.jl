@@ -19,7 +19,7 @@ function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple
 end
 
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(emap(Base.Fix2(-, 1), coord), shape, stride) + 1
+    return coord_to_index0(emap(Base.Fix2(-, static(1)), coord), shape, stride) + static(1)
 end
 
 # defaul stride, compact + column major
@@ -29,7 +29,7 @@ function coord_to_index0_horner(coord::IntType, shape::IntType)
 end
 function coord_to_index0_horner(coord::Tuple{}, shape::Tuple{})
     @inline
-    return 0
+    return static(0)
 end
 function coord_to_index0_horner(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple))
     c, s = first(coord), first(shape)
@@ -43,7 +43,7 @@ function coord_to_index0(coord, shape)
 end
 
 function coord_to_index(coord, shape)
-    return coord_to_index0(emap(Base.Fix2(-, 1), coord), shape) + 1
+    return coord_to_index0(emap(Base.Fix2(-, static(1)), coord), shape) + static(1)
 end
 
 abstract type AbstractMajor end
@@ -84,7 +84,7 @@ compact_row_major(shape, current=1) = compact_major(shape, current, CompactRowMa
 ### index_to_coord
 function index_to_coord(index::IntType, shape::IntType, stride::IntType)
     @inline
-    return ((index - 1) ÷ stride) % shape + 1
+    return ((index - one(index)) ÷ stride) % shape + one(index)
 end
 function index_to_coord(index::IntType, @nospecialize(shape::Tuple),
                         @nospecialize(stride::Tuple))
@@ -111,7 +111,7 @@ function index_to_coord(index::IntType, shape::IntType)
     return index
 end
 function index_to_coord(index::IntType, @nospecialize(shape::Tuple))
-    return index_to_coord(index, shape, compact_col_major(shape, 1))
+    return index_to_coord(index, shape, compact_col_major(shape, static(1)))
 end
 function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple))
     length(index) == length(shape) ||
@@ -139,7 +139,7 @@ end
 function compact_order(shape, order::IntType, @nospecialize(org_shape::Tuple),
                        @nospecialize(org_order::IntSequence))
     org_order = map(Base.Fix2(-, order), org_order)
-    d = productuct(map((s, o) -> ifelse(signbit(o), productuct(s), 1), org_shape,
+    d = productuct(map((s, o) -> ifelse(signbit(o), productuct(s), static(1)), org_shape,
                        org_order))
     return compact_col_major(shape, d)
 end
@@ -149,5 +149,5 @@ function compact_order(shape, order)
     return compact_order(shape, order, flatten(shape), flatten(order))
 end
 function compact_order(shape, major::CompactMajor)
-    return compact_major(shape, 1, major)
+    return compact_major(shape, static(1), major)
 end
