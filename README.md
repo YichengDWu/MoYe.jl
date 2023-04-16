@@ -9,7 +9,7 @@ Please also refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main
 
 ## Layout
 
-Mathematically, a `Layout` represents a function that maps logical coordinates to physical index spaces. It consists of a `Shape` and a `Stride`, wherein the `Shape` determines the domain, and the `Stride` establishes the mapping through an inner product.
+Mathematically, a `Layout` represents a function that maps logical coordinates to physical 1-D index spaces. It consists of a `Shape` and a `Stride`, wherein the `Shape` determines the domain, and the `Stride` establishes the mapping through an inner product.
 
 ### Constructing a `Layout`
 
@@ -23,7 +23,7 @@ Shape: (2, (2, 2))
 julia> print("Stride: ", stride(layout_2x4))
 Stride: (4, (1, 2))
 
-julia> print("Size: ", size(layout_2x4))
+julia> print("Size: ", size(layout_2x4)) # the domain is (1,2,...,8)
 Size: 8
 
 julia> print("Rank: ", rank(layout_2x4))
@@ -63,12 +63,12 @@ julia> sizeof(static_layout)
 
 The coordinate space of a `Layout` is determined by its `Shape`. This coordinate space can be viewed in three different ways:
 
- 1. H-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape.
+ 1. h-D coordinate space: Each element in this space possesses the exact hierarchical structure as defined by the Shape. Here `h` stands for "hierarchical".
  2. 1-D coordinate space: This can be visualized as the colexicographically flattening of the coordinate space into a one-dimensional space.
- 3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space.
+ 3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space. Here `R` stands for the rank of the layout.
 
 ```julia
-julia> layout_2x4(2, (1, 2)) # H-D coordinate
+julia> layout_2x4(2, (1, 2)) # h-D coordinate
 7
 
 julia> layout_2x4(2, 3) # R-D coordinate
