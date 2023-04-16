@@ -378,7 +378,7 @@ function _transpose(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-function tiled_unzip(layout::Layout, @nospecialize(tile::Tuple))
+function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
     return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
@@ -438,7 +438,7 @@ function logical_divide(layout::Layout, tile::IntType)
 end
 
 function zipped_divide(layout::Layout, tile)
-    return tiled_unzip(logical_divide(layout, tile), tile)
+    return tile_unzip(logical_divide(layout, tile), tile)
 end
 
 function tiled_divide(layout::Layout, tile)
