@@ -21,7 +21,7 @@ function Base.show(io::IO, l::Layout)
 end
 
 # map a logical coordinate to a linear index
-function (l::Layout)(coord::IntType)
+function (l::Layout)(@nospecialize coord::IntType)
     return coord_to_index(coord, shape(l), stride(l))
 end
 function (l::Layout)(@nospecialize coord::IntTuple)
@@ -36,15 +36,15 @@ function (l::Layout)(c1, c2, c3...)
 end
 
 # map 1D index to a hier coordinate
-function get_hier_coord(l::Layout, index::IntType)
+function get_hier_coord(l::Layout, @nospecialize index::IntType)
     return index_to_coord(index, l.shape, l.stride)
 end
 
-function get_congr_coord(l::Layout{N}, index::IntType) where {N}
+function get_congr_coord(l::Layout{N}, @nospecialize index::IntType) where {N}
     return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
 end
 
-function get_linear_coord(l::Layout, index::IntType)
+function get_linear_coord(l::Layout, @nospecialize index::IntType)
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
@@ -118,10 +118,6 @@ function Base.iterate(x::Layout{N}, state) where {N}
     return (x[new_state], new_state)
 end
 
-function take(layout::Layout, B::IntType, E::IntType)
-    return make_layout(take(shape(layout), B, E), take(stride(layout), B, E))
-end
-
 function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
 end
@@ -129,21 +125,21 @@ end
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
-function Base.size(layout::Layout, i::IntType)
+function Base.size(layout::Layout, i::Int)
     return capacity(shape(layout)[i])
 end
 
 function rank(layout::Layout)
     return rank(shape(layout))
 end
-function rank(layout::Layout, i::IntType)
+function rank(layout::Layout, i::Int)
     return rank(shape(layout)[i])
 end
 
 function depth(layout::Layout)
     return depth(shape(layout))
 end
-function depth(layout::Layout, i::IntType)
+function depth(layout::Layout, i::Int)
     return depth(shape(layout)[i])
 end
 

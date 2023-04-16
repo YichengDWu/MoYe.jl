@@ -1,4 +1,3 @@
-# the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntSequence{N} = NTuple{N, Union{Int, StaticInt}}
 
 Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
@@ -6,6 +5,7 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
     return map(Base.Fix1(getindex, x), I)
 end
 
+# the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
 
 # Note: this may be removed in the future
@@ -29,18 +29,18 @@ function depth(@nospecialize x::IntTuple)
     return max(map(depth, x)...) + static(1)
 end
 
-product(x::IntType) = x
-product(@nospecialize x::IntSequence) = prod(x)
-product(@nospecialize x::IntTuple) = prod(flatten(x))
+@inline product(x::IntType) = x
+@inline product(@nospecialize x::IntSequence) = prod(x)
+@inline product(@nospecialize x::IntTuple) = prod(flatten(x))
 
-prod_each(@nospecialize x::IntSequence) = prod(x)
-prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
+@inline prod_each(@nospecialize x::IntSequence) = prod(x)
+@inline prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
 
-capacity(x::IntType) = x
-capacity(@nospecialize x::IntTuple) = product(x)
+@inline capacity(x::IntType) = x
+@inline capacity(@nospecialize x::IntTuple) = product(x)
 #capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
 
-flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
+@inline flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
 
 function inner_product(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence))
     return sum(map(*, x, y))
@@ -74,10 +74,10 @@ function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
     return map(shape_div, a, b)
 end
 
-@inline function elem_scale(x::IntType, y)
+function elem_scale(x::IntType, y)
+    @inline
     return x * product(y)
 end
-
 function elem_scale(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     @assert rank(x) == rank(y)
     return map(elem_scale, x, y)
@@ -88,12 +88,10 @@ function iscongruent(x, y)
 end
 
 # Any coordinate into A can also be used as a coordinate into B
-#@inline iscompatiable(@nospecialize(A::Int), @nospecialize(B::IntTuple)) = static(A == size(B))
-#@inline iscompatiable(@nospecialize(A::IntTuple), @nospecialize(B::Int)) =false
-#function iscompatiable(@nospecialize(A::IntTuple), @nospecialize(B::IntTuple))
-#    rank(A) === rank(B) || return  false
-#    return Static.reduce_tup(&, map(iscompatiable, A, B))
-#end
+@inline iscompatiable(@nospecialize(a::Tuple), @nospecialize(b::Tuple)) = all(map(iscompatiable, a, b))
+@inline iscompatiable(a::IntType, b) = a == capacity(b)
+@inline iscompatiable(a, b::IntType) = false
+@inline iscompatiable(a, b) = iscompatiable(shape(a), shape(b))
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::IntType, x) = iszero(a) ? 1 : x
@@ -190,7 +188,7 @@ elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
 
-increment(coord::IntType, shape::IntType) = ifelse(coord < shape, coord + 1, 1)
+@inline increment(coord::IntType, shape::IntType) = ifelse(coord < shape, coord + one(coord), one(coord))
 function increment(coord, shape)
     c, s = first(coord), first(shape)
     if length(coord) == length(shape) == 1
