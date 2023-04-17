@@ -32,10 +32,10 @@ Rank: 2
 julia> print("Depth: ", depth(layout_2x4))
 Depth: 2
 
-julia> print("Cosize: ", cosize(layout_2x4)) # create a row-major layout
+julia> print("Cosize: ", cosize(layout_2x4)) 
 Cosize: 8
 
-julia> print_layout(layout_2x4)
+julia> print_layout(layout_2x4) # this can be viewed as a row-major matrix
 (2, (2, 2)):(4, (1, 2))
       1   2   3   4
     +---+---+---+---+
