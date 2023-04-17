@@ -402,20 +402,24 @@ function tiled_product(layout::Layout, tile::Tile{N}) where {N}
     return d(:, repeat(:, N))
 end
 
-function blocked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
+function blocked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    return coalesce(_transpose(result[1], result[2]), repeat(1, R))
+    result = _transpose(result[1], result[2])
+    coalesce_result && return coalesce(result, repeat(static(1), R))
+    return result
 end
 
-function raked_product(block::Layout{N}, layout::Layout{M}) where {N, M}
+function raked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    return coalesce(_transpose(result[2], result[1]), repeat(static(1), R))
+    result = _transpose(result[2], result[1])
+    coalesce_result && return coalesce(result, repeat(static(1), R))
+    return result
 end
 
 # tile_to_shape
