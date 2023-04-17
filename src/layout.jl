@@ -408,8 +408,7 @@ function blocked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = 
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
     result = _transpose(result[1], result[2])
-    if coalesce_result
-        return coalesce(result, repeat(static(1), R))
+    coalesce_result && return coalesce(result, repeat(static(1), R))
     return result
 end
 
@@ -419,8 +418,7 @@ function raked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = fa
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
     result = _transpose(result[2], result[1])
-    if coalesce_result
-        return coalesce(result, repeat(static(1), R))
+    coalesce_result && return coalesce(result, repeat(static(1), R))
     return result
 end
 
