@@ -27,7 +27,7 @@ end
         @test stride(result) == ((1, 2), (16, 4))
     end
     @testset "Blocked product" begin
-        result = blocked_product(tile, matrix_of_tiles)
+        result = coalesce(blocked_product(tile, matrix_of_tiles), repeat(1, 2))
         @test shape(result) == ((2, 3), 8)
         @test stride(result) == ((1, 16), 2)
     end
