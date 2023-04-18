@@ -1,4 +1,28 @@
-using CuTe, Test
+using CuTe, Test, JET
+
+@testset "Capacity" begin
+    @test capacity(((2,3,(1,1)), 4)) == 24
+    @test_opt capacity(((2, 3, (1,1)), 4))
+end
+
+@testset "Shape Division" begin
+    @test CuTe.shape_div((12,3), (2,3)) == (6,1)
+    @test_opt CuTe.shape_div((12,3), (2,3))
+
+    @test CuTe.shape_div((12,3), 3) == (4,3)
+    @test_opt CuTe.shape_div((12,3), 3)
+
+    @test CuTe.shape_div(12, (3,4)) == 1
+    @test_opt CuTe.shape_div(12, (3,4))
+end
+
+@testset "Slice" begin
+    @test CuTe.slice((3,4),(2,:)) == (4,)
+    @test_opt CuTe.slice((3,4),(2,:))
+
+    @test CuTe.slice((3,(4,5)),(:,(2,:))) == (3,5)
+    @test_opt CuTe.slice((3,(4,5)),(:,(2,:)))
+end
 
 @testset "Elementwise Comparison" begin
     @test elem_less((1, 2, 3), (1, 2, 4)) == true
@@ -18,6 +42,8 @@ using CuTe, Test
     @test elem_less(((1, 2), (3, 4)), ((3, 4), (3, 4))) == false
     @test elem_less(((1, 2), (3, 4)), ((3, 4), (3, 4, 1))) == true
     @test elem_less(((1, 2), (3, 4)), ((3, 4), (3, 4), 1)) == true
+
+    @test_opt elem_less(((1, 2), (3, 4)), ((3, 4), (3, 4), 1))
 end
 
 @testset "Colexicographical Comparison" begin
@@ -37,6 +63,8 @@ end
     @test colex_less(((1, 2), (3, 4)), ((1, 3), (3, 4))) == true
     @test colex_less(((5, 4), (3, 4)), ((3, 4), (3, 4))) == false
     @test colex_less(((1, 2), (3, 4)), ((1, 1, 2), (3, 4))) == true
+
+    @test_opt colex_less(((1, 2), (3, 4)), ((1, 1, 2), (3, 4)))
 end
 
 @testset "Increment" begin
@@ -48,4 +76,6 @@ end
     @test increment((2, (2, 2), 1), (2, (2, 3), 3)) == (1, (1, 3), 1)
     @test increment((2, (2, 3), 1), (2, (2, 3), 3)) == (1, (1, 1), 2)
     @test increment((2, (2, 3), 3), (2, (2, 3), 3)) == (1, (1, 1), 1)
+
+    @test_opt increment((2, (2, 3), 3), (2, (2, 3), 3))
 end

@@ -19,7 +19,7 @@ emap(f::Function, @nospecialize(t::IntTuple)) = map(Base.Fix1(emap, f), t)
 emap(f::Function, x::IntType) = f(x)
 
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
-@inline rank(@nospecialize x::IntType) = 1
+@inline rank(@nospecialize x::IntType) = one(x)
 @inline rank(@nospecialize(x::IntTuple), I::IntType...) = rank(getindex(x, I...))
 
 # shape
@@ -60,12 +60,12 @@ end
 function shape_div(a::IntType, b::IntType)
     return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
-function shape_div(a::IntType, @nospecialize b::IntTuple)
+function shape_div(@nospecialize(a::IntType), @nospecialize(b::IntTuple))
     return shape_div(a, product(b))
 end
 function shape_div(@nospecialize(a::IntTuple), b::IntType)
     result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])),
-                                     shape_div(init[1], ai)), a; init=((), b))
+                                     shape_div(init[2], ai)), a; init=((), b))
     return result
 end
 function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
@@ -74,7 +74,7 @@ function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
     return map(shape_div, a, b)
 end
 
-function elem_scale(x::IntType, y)
+function elem_scale(@nospecialize(x::IntType), @nospecialize(y))
     @inline
     return x * product(y)
 end

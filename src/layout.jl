@@ -2,7 +2,7 @@ struct Layout{N, Shape, Stride}
     shape::Shape
     stride::Stride
 
-    # in fact shape and stride should be congruent
+    # shape and stride must be congruent
     function Layout(shape::IntTuple{N}, stride::IntTuple{N}) where {N}
         return new{rank(shape), typeof(shape), typeof(stride)}(shape, stride)
     end
@@ -12,6 +12,7 @@ struct Layout{N, Shape, Stride}
 end
 
 const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
+const GenIntTuple = Union{Int, StaticInt, IntTuple}
 
 shape(l::Layout) = getfield(l, :shape)
 Base.stride(l::Layout) = getfield(l, :stride)
@@ -54,16 +55,16 @@ end
 function make_layout(shape::IntType, stride::IntType)
     return Layout(shape, stride)
 end
-function make_layout(shape::Union{Int, IntTuple})
+function make_layout(shape::GenIntTuple)
     return Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
     return make_layout(shape.(layouts), stride.(layouts)) # concatenation
 end
-function make_layout(shape, ::CompactColMajor)
+function make_layout(shape::GenIntTuple, ::Type{CompactColMajor})
     return make_layout(shape, compact_col_major(shape))
 end
-function make_layout(shape, ::CompactRowMajor)
+function make_layout(shape::GenIntTuple, ::Type{CompactRowMajor})
     return make_layout(shape, compact_row_major(shape))
 end
 
@@ -199,7 +200,7 @@ function transform_layout(f::Function, t1, t2)
 end
 
 function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape, new_stride)
-    new_shape == 1 && return Layout(1, 0)
+    new_shape == 1 && return Layout(one(new_shape), zero(new_shape))
     return Layout(new_shape, new_stride)
 end
 function bw_coalesce(::Val{I}, old_shape, old_stride, new_shape, new_stride) where {I}
@@ -258,7 +259,7 @@ function composition(lhs::Layout, rhs_shape::IntType, rhs_stride::IntType)
     flat_stride = flatten(stride(lhs))
     if iszero(rhs_stride)
         return Layout(rhs_shape, rhs_stride)
-    elseif flat_shape isa Integer
+    elseif flat_shape isa IntType
         result_stride = flat_stride * rhs_stride
         return Layout(rhs_shape, result_stride)
     elseif isone(rhs_shape)
@@ -318,39 +319,43 @@ function Base.:(∘)(l1::Layout, l2::Layout, l3::Layout...)
     return compose(l1, l2, l3...)
 end
 
-function withshape(l::Layout, shape::Union{Int, StaticInt, IntTuple})
+function withshape(l::Layout, shape::GenIntTuple)
     return composition(l, make_layout(shape))
 end
 function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
 
-function complement(l::Layout, cosize_hi::IntType)
-    flat_layout = filter(l)
-
-    if stride(flat_layout) == 0
+function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
+    if stride == 0
+        return make_layout(cosize_hi)
+    end
+    rest_stride = shape * stride
+    return bw_coalesce(Val(1), (stride,), (one(shape),), cld(cosize_hi, rest_stride),
+                       rest_stride)
+end
+function _complement(shape::IntTuple{R}, stride::IntTuple{R}, cosize_hi::IntType) where {R}
+    if stride == 0
         return make_layout(cosize_hi)
     end
 
-    R = rank(flat_layout)
-    result = (shape(flat_layout), stride(flat_layout), (), (1,))
+    curr_stride, curr_idx = findmin(stride)
+    curr_shape = shape[curr_idx]
 
-    if !isone(R)
-        function f(init, i)
-            curr_stride = minimum(init[2])
-            curr_idx = findfirst(==(curr_stride), init[2])
-            if isnothing(curr_idx)
-                curr_idx = length(init[2])
-            end
-            curr_shape = init[1][curr_idx]
+    result = (remove(shape, curr_idx), remove(stride, curr_idx),
+              tuple(curr_stride),
+              tuple(one(curr_stride), curr_shape * curr_stride))
 
-            return (remove(init[1], curr_idx), remove(init[2], curr_idx),
-                    append(init[3], curr_stride ÷ init[4][i]),
-                    append(init[4], curr_shape * curr_stride))
-        end
+    function f(init, i)
+        curr_stride, curr_idx = findmin(init[2])
+        curr_shape = init[1][curr_idx]
 
-        result = foldl(f, ntuple(identity, R - 1); init=result)
+        return (remove(init[1], curr_idx), remove(init[2], curr_idx),
+                append(init[3], curr_stride ÷ init[4][i]),
+                append(init[4], curr_shape * curr_stride))
     end
+
+    result = foldl(f, ntuple(x->x+1, R - 2); init=result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
@@ -359,8 +364,14 @@ function complement(l::Layout, cosize_hi::IntType)
                        rest_stride)
 end
 
+function complement(l::Layout, cosize_hi::IntType)
+    filter_layout = filter(l)
+    return _complement(shape(filter_layout), stride(filter_layout), cosize_hi)
+end
+
 function complement(l::Layout)
-    return complement(l, cosize(l))
+    filter_layout = filter(l)
+    return _complement(shape(filter_layout), stride(filter_layout), cosize(filter_layout))
 end
 
 # inverse_seq
@@ -458,5 +469,5 @@ function tile(l1::Layout, l2::Layout)
     return tiled_divide(l1, l2)
 end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
-    return tiled_divide(l1, make_layout(l2, l3...))
+    return tiled_divide(l1, (l2, l3...))
 end
