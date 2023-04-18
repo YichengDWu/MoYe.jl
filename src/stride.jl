@@ -54,32 +54,29 @@ struct CompactColMajor <: AbstractColMajor end
 struct CompactRowMajor <: AbstractRowMajor end
 const CompactMajor = Union{CompactColMajor, CompactRowMajor}
 
-const GenColMajor = CompactColMajor()
-const GenRowMajor = CompactRowMajor()
-
-function compact_major(shape::IntType, current::IntType, major::CompactMajor)
+function compact_major(shape::IntType, current::IntType, major::Type{<:CompactMajor})
     return ifelse(isone(shape), zero(shape), current)
 end
 function compact_major(@nospecialize(shape::IntTuple), current::IntType,
-                       major::CompactColMajor)
+                       major::Type{CompactColMajor})
     return tuple((compact_major(shape[i], current * product(shape[1:(i - 1)]), major) for i in 1:length(shape))...)
 end
 
 function compact_major(@nospecialize(shape::IntTuple), current::IntType,
-                       major::CompactRowMajor)
+                       major::Type{CompactRowMajor})
     return tuple((compact_major(shape[i], current * product(shape[(i + 1):(end - 1)]),
                                 major) for i in 1:length(shape))...)
 end
 
 function compact_major(@nospecialize(shape::IntTuple), @nospecialize(current::IntTuple),
-                       major::CompactMajor)
+                       major::Type{<:CompactMajor})
     length(shape) == length(current) ||
         throw(DimensionMismatch("shape and current must have the same rank"))
     return tuple((compact_major(s, c, major) for (s, c) in zip(shape, current))...)
 end
 
-compact_col_major(shape, current=1) = compact_major(shape, current, CompactColMajor())
-compact_row_major(shape, current=1) = compact_major(shape, current, CompactRowMajor())
+compact_col_major(shape, current=1) = compact_major(shape, current, CompactColMajor)
+compact_row_major(shape, current=1) = compact_major(shape, current, CompactRowMajor)
 
 ### index_to_coord
 function index_to_coord(index::IntType, shape::IntType, stride::IntType)
@@ -139,7 +136,7 @@ end
 function compact_order(shape, order::IntType, @nospecialize(org_shape::Tuple),
                        @nospecialize(org_order::IntSequence))
     org_order = map(Base.Fix2(-, order), org_order)
-    d = productuct(map((s, o) -> ifelse(signbit(o), productuct(s), static(1)), org_shape,
+    d = product(map((s, o) -> ifelse(signbit(o), product(s), static(1)), org_shape,
                        org_order))
     return compact_col_major(shape, d)
 end
