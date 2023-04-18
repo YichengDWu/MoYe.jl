@@ -4,16 +4,17 @@ authors = ["MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors"]
 version = "1.0.0"
 
 [deps]
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Static = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
 
 [compat]
 julia = "1.8"
 
 [extras]
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Static = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 
 [targets]
 test = ["Test", "SafeTestsets", "Static", "JET"]

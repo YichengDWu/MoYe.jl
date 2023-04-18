@@ -50,7 +50,7 @@ julia> print_layout(layout_2x4) # this can be viewed as a row-major matrix
 You can also use static integers:
 
 ```julia
-julia> static_layout = @static make_layout((2, (2, 2)), (4, (1, 2)))
+julia> static_layout = make_layout(static((2, (2, 2))), static((4, (1, 2))))
 (static(2), (static(2), static(2))):(static(4), (static(1), static(2)))
 
 julia> typeof(static_layout)
