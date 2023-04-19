@@ -21,6 +21,8 @@ function Base.show(io::IO, l::Layout)
     return print(io, shape(l), ":", stride(l))
 end
 
+Static.is_static(l::Layout) = is_static(shape(l)) && is_static(stride(l))
+
 # map a logical coordinate to a linear index
 function (l::Layout)(@nospecialize coord::IntType)
     return coord_to_index(coord, shape(l), stride(l))
@@ -61,10 +63,10 @@ end
 function make_layout(layouts::Layout...)
     return make_layout(shape.(layouts), stride.(layouts)) # concatenation
 end
-function make_layout(shape::GenIntTuple, ::Type{CompactColMajor})
+function make_layout(shape::GenIntTuple, ::Type{GenColMajor})
     return make_layout(shape, compact_col_major(shape))
 end
-function make_layout(shape::GenIntTuple, ::Type{CompactRowMajor})
+function make_layout(shape::GenIntTuple, ::Type{GenRowMajor})
     return make_layout(shape, compact_row_major(shape))
 end
 

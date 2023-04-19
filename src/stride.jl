@@ -46,42 +46,10 @@ function coord_to_index(coord, shape)
     return coord_to_index0(emap(Base.Fix2(-, static(1)), coord), shape) + static(1)
 end
 
-abstract type AbstractMajor end
-abstract type AbstractColMajor <: AbstractMajor end
-abstract type AbstractRowMajor <: AbstractMajor end
-
-struct CompactColMajor <: AbstractColMajor end
-struct CompactRowMajor <: AbstractRowMajor end
-const CompactMajor = Union{CompactColMajor, CompactRowMajor}
-
-function compact_major(shape::IntType, current::IntType, major::Type{<:CompactMajor})
-    return ifelse(isone(shape), zero(shape), current)
-end
-function compact_major(@nospecialize(shape::IntTuple), current::IntType,
-                       major::Type{CompactColMajor})
-    return tuple((compact_major(shape[i], current * product(shape[1:(i - 1)]), major) for i in 1:length(shape))...)
-end
-
-function compact_major(@nospecialize(shape::IntTuple), current::IntType,
-                       major::Type{CompactRowMajor})
-    return tuple((compact_major(shape[i], current * product(shape[(i + 1):(end - 1)]),
-                                major) for i in 1:length(shape))...)
-end
-
-function compact_major(@nospecialize(shape::IntTuple), @nospecialize(current::IntTuple),
-                       major::Type{<:CompactMajor})
-    length(shape) == length(current) ||
-        throw(DimensionMismatch("shape and current must have the same rank"))
-    return tuple((compact_major(s, c, major) for (s, c) in zip(shape, current))...)
-end
-
-compact_col_major(shape, current=1) = compact_major(shape, current, CompactColMajor)
-compact_row_major(shape, current=1) = compact_major(shape, current, CompactRowMajor)
-
 ### index_to_coord
 function index_to_coord(index::IntType, shape::IntType, stride::IntType)
     @inline
-    return ((index - one(index)) ÷ stride) % shape + one(index)
+    return ifelse(isone(shape),  zero(stride), ((index - one(index)) ÷ stride) % shape + one(index))
 end
 function index_to_coord(index::IntType, @nospecialize(shape::Tuple),
                         @nospecialize(stride::Tuple))
@@ -129,22 +97,62 @@ function coord_to_coord(coord, src_shape, dst_shape)
     return index_to_coord(coord_to_index(coord, src_shape), dst_shape)
 end
 
-function compact_order(@nospecialize(shape::Tuple), @nospecialize(order::Tuple), org_shape,
-                       org_order)
-    return tuple((compact_order(s, o, org_shape, org_order) for (s, o) in zip(shape, order))...)
+struct LayoutLeft end
+struct LayoutRight end
+
+const GenColMajor = LayoutLeft
+const GenRowMajor = LayoutRight
+
+struct CompactLambda{Major} end
+
+function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
+    return foldl(CompactLambda{LayoutLeft}(), shape; init = ((), current))
 end
-function compact_order(shape, order::IntType, @nospecialize(org_shape::Tuple),
-                       @nospecialize(org_order::IntSequence))
-    org_order = map(Base.Fix2(-, order), org_order)
-    d = product(map((s, o) -> ifelse(signbit(o), product(s), static(1)), org_shape,
-                       org_order))
+function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
+    return foldl(CompactLambda{LayoutRight}(), reverse(shape); init = ((), current))
+end
+function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
+    return ifelse(isone(shape), (static(0), current),  (current, current * shape))
+end
+
+function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
+    length(shape) == length(current) ||
+        throw(DimensionMismatch("shape and current must have the same rank"))
+    return map((s,c) -> compact_major(s,c,major), shape, current)
+end
+function compact_major(shape, current::IntType, major::Type{Major}) where {Major}
+    return first(compact(shape, current, major))
+end
+
+function (::CompactLambda{LayoutLeft})(init, si)
+    result = compact(si, init[2], LayoutLeft)
+    return (append(init[1], result[1]), result[2])
+end
+function (::CompactLambda{LayoutRight})(init, si)
+    result = compact(si, init[2], LayoutRight)
+    return (prepend(init[1], result[1]), result[2])
+end
+
+compact_col_major(shape, current=static(1)) = compact_major(shape, current, LayoutLeft)
+compact_row_major(shape, current=static(1)) = compact_major(shape, current, LayoutRight)
+
+function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
+    return let old_shape = old_shape, old_order = old_order
+        map((x, y) -> compact_order(x, y, old_shape, old_order), shape, order)
+    end
+end
+function compact_order(shape, order::IntType, old_shape, old_order)
+    d = let order = order
+        product(map((s, o) -> ifelse(o < order, product(s), static(1)), old_shape, old_order))
+    end
     return compact_col_major(shape, d)
 end
 function compact_order(shape, order)
-    iscongruent(shape, order) ||
-        throw(DimensionMismatch("shape and order are not congruent"))
-    return compact_order(shape, order, flatten(shape), flatten(order))
+    return compact_order(shape, order, tuple(flatten(shape)...), tuple(flatten(order)...))
 end
-function compact_order(shape, major::CompactMajor)
-    return compact_major(shape, static(1), major)
+function compact_order(shape, ::Type{LayoutLeft})
+    return compact_col_major(shape)
+end
+function compact_order(shape, ::Type{LayoutRight})
+    return compact_row_major(shape)
 end

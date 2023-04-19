@@ -8,12 +8,6 @@ end
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
 
-# Note: this may be removed in the future
-Base.@propagate_inbounds function Base.getindex(@nospecialize(x::IntTuple), I1::Int,
-                                                I2::Int, Is::Int...)
-    return getindex(getindex(x, I1), I2, Is...)
-end
-
 # fmap where leaves are integers
 emap(f::Function, @nospecialize(t::IntTuple)) = map(Base.Fix1(emap, f), t)
 emap(f::Function, x::IntType) = f(x)
