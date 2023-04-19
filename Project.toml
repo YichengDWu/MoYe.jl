@@ -4,6 +4,7 @@ authors = ["MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors"]
 version = "1.0.0"
 
 [deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Static = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
 
