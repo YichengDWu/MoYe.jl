@@ -53,3 +53,11 @@ end
 
     @test_throws DimensionMismatch index_to_coord(9, (3, 4), (1, 3, 5))
 end
+
+@testset "Default Major" begin
+    @test compact_col_major(static((3,4,5))) === static((1,3,12))
+    @test compact_row_major(static((3,4,5))) === static((20,5,1))
+
+    @test_opt compact_col_major((3,4,5))
+    @test_opt compact_row_major((3,4,5))
+end
