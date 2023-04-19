@@ -70,6 +70,28 @@ function make_layout(shape::GenIntTuple, ::Type{GenRowMajor})
     return make_layout(shape, compact_row_major(shape))
 end
 
+"""
+    Layout(shape, stride=nothing)
+
+Construct a static layout with the given shape and stride.
+
+## Arguments
+
+  - `shape`: a tuple of integers or a single integer
+  - `stride`: a tuple of integers, a single integer, `GenColMajor` or `GenRowMajor`
+"""
+macro Layout(expr1, expr2=nothing)
+    if expr2 === nothing
+        layout_call = :(make_layout(static($expr1)))
+    elseif expr2 isa Symbol
+        layout_call = :(make_layout(static($expr1), $expr2))
+    else
+        expr2
+        layout_call = :(make_layout(static($expr1), static($expr2)))
+    end
+    return layout_call
+end
+
 function make_ordered_layout(shape, order) # The arguments may be static, which is not handled
     return make_layout(shape, compact_order(shape, order))
 end
@@ -344,8 +366,7 @@ function _complement(shape::IntTuple{R}, stride::IntTuple{R}, cosize_hi::IntType
     curr_stride, curr_idx = findmin(stride)
     curr_shape = shape[curr_idx]
 
-    result = (remove(shape, curr_idx), remove(stride, curr_idx),
-              tuple(curr_stride),
+    result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
               tuple(one(curr_stride), curr_shape * curr_stride))
 
     function f(init, i)
@@ -357,7 +378,7 @@ function _complement(shape::IntTuple{R}, stride::IntTuple{R}, cosize_hi::IntType
                 append(init[4], curr_shape * curr_stride))
     end
 
-    result = foldl(f, ntuple(x->x+1, R - 2); init=result)
+    result = foldl(f, ntuple(x -> x + 1, R - 2); init=result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
@@ -415,7 +436,8 @@ function tiled_product(layout::Layout, tile::Tile{N}) where {N}
     return d(:, repeat(:, N))
 end
 
-function blocked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = false) where {N, M}
+function blocked_product(block::Layout{N}, layout::Layout{M},
+                         coalesce_result=false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)
@@ -425,7 +447,8 @@ function blocked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = 
     return result
 end
 
-function raked_product(block::Layout{N}, layout::Layout{M}, coalesce_result = false) where {N, M}
+function raked_product(block::Layout{N}, layout::Layout{M},
+                       coalesce_result=false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)

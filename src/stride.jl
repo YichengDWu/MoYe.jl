@@ -49,7 +49,8 @@ end
 ### index_to_coord
 function index_to_coord(index::IntType, shape::IntType, stride::IntType)
     @inline
-    return ifelse(isone(shape),  zero(stride), ((index - one(index)) ÷ stride) % shape + one(index))
+    return ifelse(isone(shape), zero(stride),
+                  ((index - one(index)) ÷ stride) % shape + one(index))
 end
 function index_to_coord(index::IntType, @nospecialize(shape::Tuple),
                         @nospecialize(stride::Tuple))
@@ -106,19 +107,19 @@ const GenRowMajor = LayoutRight
 struct CompactLambda{Major} end
 
 function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
-    return foldl(CompactLambda{LayoutLeft}(), shape; init = ((), current))
+    return foldl(CompactLambda{LayoutLeft}(), shape; init=((), current))
 end
 function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
-    return foldl(CompactLambda{LayoutRight}(), reverse(shape); init = ((), current))
+    return foldl(CompactLambda{LayoutRight}(), reverse(shape); init=((), current))
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
-    return ifelse(isone(shape), (static(0), current),  (current, current * shape))
+    return ifelse(isone(shape), (static(0), current), (current, current * shape))
 end
 
 function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
     length(shape) == length(current) ||
         throw(DimensionMismatch("shape and current must have the same rank"))
-    return map((s,c) -> compact_major(s,c,major), shape, current)
+    return map((s, c) -> compact_major(s, c, major), shape, current)
 end
 function compact_major(shape, current::IntType, major::Type{Major}) where {Major}
     return first(compact(shape, current, major))
@@ -143,7 +144,8 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
 end
 function compact_order(shape, order::IntType, old_shape, old_order)
     d = let order = order
-        product(map((s, o) -> ifelse(o < order, product(s), static(1)), old_shape, old_order))
+        product(map((s, o) -> ifelse(o < order, product(s), static(1)), old_shape,
+                    old_order))
     end
     return compact_col_major(shape, d)
 end

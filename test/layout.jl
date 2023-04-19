@@ -2,6 +2,20 @@ using CuTe, Test, JET
 
 CuTe.static(l::Layout) = Layout(static(shape(l)), static(stride(l)))
 
+@testset "Macro" begin
+    @test @Layout((2, (2, 2)), (4, (1, 2))) ==
+          make_layout(static((2, (2, 2))), static((4, (1, 2))))
+    @test @Layout(2, 4) == make_layout(static(2), static(4))
+
+    @test @Layout((2, (2, 2))) == make_layout(static((2, (2, 2))))
+    @test @Layout(2) == make_layout(static(2))
+
+    @test @Layout((2, (2, 2)), GenColMajor) == make_layout(static((2, (2, 2))), GenColMajor)
+    @test @Layout(2, GenColMajor) == make_layout(static(2), GenColMajor)
+
+    @test @Layout((2, (2, 2)), GenRowMajor) == make_layout(static((2, (2, 2))), GenRowMajor)
+    @test @Layout(2, GenRowMajor) == make_layout(static(2), GenRowMajor)
+end
 @testset "Flatten" begin
     @test flatten(make_layout(((4, 3), 1), ((3, 1), 0))) ==
           make_layout((4, 3, 1), (3, 1, 0))
@@ -32,7 +46,6 @@ end
 @testset "Product" begin
     tile = make_layout((2, 2), (1, 2))
     matrix_of_tiles = make_layout((3, 4), (4, 1))
-
 
     @testset "Logical product" begin
         result = logical_product(tile, matrix_of_tiles)
