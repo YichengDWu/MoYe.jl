@@ -8,7 +8,10 @@ struct ViewEngine{T, P} <: Engine{T}
     len::Int
 end
 
-@inline function ViewEngine(ptr::Ref{T}, len::Int) where {T}
+@inline function ViewEngine(ptr::Ptr{T}, len::Int) where {T}
+    return ViewEngine{T, typeof(ptr)}(ptr, len)
+end
+@inline function ViewEngine(ptr::Core.LLVMPtr{T}, len::Int) where {T}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
 
