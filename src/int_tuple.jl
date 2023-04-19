@@ -82,7 +82,9 @@ function iscongruent(x, y)
 end
 
 # Any coordinate into A can also be used as a coordinate into B
-@inline iscompatiable(@nospecialize(a::Tuple), @nospecialize(b::Tuple)) = all(map(iscompatiable, a, b))
+@inline function iscompatiable(@nospecialize(a::Tuple), @nospecialize(b::Tuple))
+    return all(map(iscompatiable, a, b))
+end
 @inline iscompatiable(a::IntType, b) = a == capacity(b)
 @inline iscompatiable(a, b::IntType) = false
 @inline iscompatiable(a, b) = iscompatiable(shape(a), shape(b))
@@ -182,7 +184,9 @@ elem_leq(x, y) = !elem_less(y, x)
 elem_gtr(x, y) = elem_less(y, x)
 elem_geq(x, y) = !elem_geq(x, y)
 
-@inline increment(coord::IntType, shape::IntType) = ifelse(coord < shape, coord + one(coord), one(coord))
+@inline function increment(coord::IntType, shape::IntType)
+    return ifelse(coord < shape, coord + one(coord), one(coord))
+end
 function increment(coord, shape)
     c, s = first(coord), first(shape)
     if length(coord) == length(shape) == 1

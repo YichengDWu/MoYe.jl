@@ -21,7 +21,7 @@ function insert(@nospecialize(t::Tuple), x, N)
 end
 
 function remove(@nospecialize(t::Tuple), ::Nothing)
-    t
+    return t
 end
 function remove(@nospecialize(t::Tuple), N::IntType)
     if N > length(t)
