@@ -11,9 +11,6 @@ end
 @inline function ViewEngine(ptr::Ptr{T}, len::Int) where {T}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
-@inline function ViewEngine(ptr::Core.LLVMPtr{T}, len::Int) where {T}
-    return ViewEngine{T, typeof(ptr)}(ptr, len)
-end
 
 @inline function ViewEngine(A::AbstractArray)
     p = LayoutPointers.memory_reference(A)[1] # not sure what this does
@@ -40,7 +37,6 @@ end
 end
 
 @inline ManualMemory.preserve_buffer(::ViewEngine) = nothing
-
 mutable struct ArrayEngine{T, L} <: DenseVector{T}
     data::NTuple{L, T}
     @inline ArrayEngine{T, L}(::UndefInitializer) where {T, L} = new{T, L}()
