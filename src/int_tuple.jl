@@ -9,9 +9,9 @@ end
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
 const StaticIntTuple{N} = Tuple{Vararg{Union{StaticInt, Tuple}, N}} # note that this type is only almost static
 
-# fmap where leaves are integers
-emap(f::Function, @nospecialize(t::IntTuple)) = map(Base.Fix1(emap, f), t)
-emap(f::Function, x::IntType) = f(x)
+# fmap where leaves are integers or colons
+emap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(emap, f), t)
+emap(f::Function, x::Union{IntType, Colon}) = f(x)
 
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)

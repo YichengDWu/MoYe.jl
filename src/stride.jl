@@ -2,6 +2,10 @@ function coord_to_index0(coord::IntType, shape::IntType, stride::IntType)
     @inline
     return coord * stride
 end
+function coord_to_index0(coord::Colon, shape::IntType, stride::IntType)
+    @inline
+    return zero(stride)
+end
 function coord_to_index0(coord::IntType, shape::Tuple{}, stride::Tuple{})
     @inline
     return zero(coord)
@@ -18,8 +22,10 @@ function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
+@inline _offset(x::Colon) = x  # don't touch colons
+@inline _offset(x) = x - one(x)
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(emap(Base.Fix2(-, static(1)), coord), shape, stride) + static(1)
+    return coord_to_index0(emap(_offset, coord), shape, stride) + static(1)
 end
 
 # defaul stride, compact + column major
@@ -42,8 +48,9 @@ function coord_to_index0(coord, shape)
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
+
 function coord_to_index(coord, shape)
-    return coord_to_index0(emap(Base.Fix2(-, static(1)), coord), shape) + static(1)
+    return coord_to_index0(emap(_offset, coord), shape) + static(1)
 end
 
 ### index_to_coord

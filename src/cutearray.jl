@@ -62,12 +62,12 @@ end
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
-Base.size(x::CuTeArray) = map(capacity, shape(layout(x)))
-Base.length(x::CuTeArray) = capacity(shape(layout(x))) # note this the logical length, not the physical length in the Engine
-Base.strides(x::CuTeArray) = stride(layout(x))
-Base.stride(x::CuTeArray, i::IntType) = getindex(stride(layout(x)), i)
-rank(x::CuTeArray) = rank(layout(x))
-depth(x::CuTeArray) = depth(layout(x))
+@inline Base.size(x::CuTeArray) = map(capacity, shape(layout(x)))
+@inline Base.length(x::CuTeArray) = capacity(shape(layout(x))) # note this the logical length, not the physical length in the Engine
+@inline Base.strides(x::CuTeArray) = stride(layout(x))
+@inline Base.stride(x::CuTeArray, i::IntType) = getindex(stride(layout(x)), i)
+@inline rank(x::CuTeArray) = rank(layout(x))
+@inline depth(x::CuTeArray) = depth(layout(x))
 
 @inline function ManualMemory.preserve_buffer(A::CuTeArray)
     return ManualMemory.preserve_buffer(engine(A))
@@ -101,7 +101,14 @@ Base.@propagate_inbounds function Base.getindex(x::CuTeArray,
     return getindex(engine(x), layout(x)(ids...))
 end
 
-# TODO: support slicing
+# Currently don't support directly slicing, but we could make a view and then copy the view
+@inline function Base.view(x::CuTeArray{T}, coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
+    b = ManualMemory.preserve_buffer(x)
+    GC.@preserve b begin
+        sliced_layout, offset = slice_and_offset(layout(x), coord)
+        CuTeArray(pointer(x) + offset * sizeof(T), sliced_layout)
+    end
+end
 
 Base.@propagate_inbounds function Base.setindex!(x::CuTeArray{T, N, <:ArrayEngine}, val,
                                                  ids::Union{Integer, StaticInt, IntTuple}...) where {
@@ -161,32 +168,32 @@ group(x::CuTeArray, B::IntType, E::IntType) = CuTeArray(pointer(x), group(layout
 
 
 # Algebra
-function logical_divide(x::CuTeArray, tile::Tile)
+@inline function logical_divide(x::CuTeArray, tile::Tile)
     return CuTeArray(pointer(x), logical_divide(layout(x), tile))
 end
 
-function zipped_divide(x::CuTeArray, tile::Tile)
+@inline function zipped_divide(x::CuTeArray, tile::Tile)
     return CuTeArray(pointer(x), zipped_divide(layout(x), tile))
 end
 
-function tiled_divide(x::CuTeArray, tile::Tile)
+@inline function tiled_divide(x::CuTeArray, tile::Tile)
     return CuTeArray(pointer(x), tiled_divide(layout(x), tile))
 end
 
 #local_partition
 
 
-function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple)
+@inline function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple)
     R1 = length(tile)
     R2 = rank(x)
     return zipped_divide(x, tile)(repeat(:, R1), append(coord, :, R2))
 end
-function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple, proj)
+@inline function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
 end
 
 # Array operations for owning CuTeArray
-function Base.fill!(x::CuTeArray{T,N,<:ArrayEngine}, val) where {T,N}
+@inline function Base.fill!(x::CuTeArray{T,N,<:ArrayEngine}, val) where {T,N}
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
         fill!(ViewEngine(engine(x)), val)
@@ -194,7 +201,7 @@ function Base.fill!(x::CuTeArray{T,N,<:ArrayEngine}, val) where {T,N}
     return x
 end
 
-function Base.sum(x::CuTeArray{T,N,<:ArrayEngine}) where {T,N}
+@inline function Base.sum(x::CuTeArray{T,N,<:ArrayEngine}) where {T,N}
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
         sum(ViewEngine(engine(x)))

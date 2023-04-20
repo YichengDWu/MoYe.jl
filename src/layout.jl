@@ -191,8 +191,12 @@ function cosize(layout::Layout)
     return layout(size(layout))
 end
 
-function coord_to_index(coord, layout::Layout)
+function coord_to_index(layout::Layout, coord)
     return coord_to_index(coord, shape(layout), stride(layout))
+end
+
+function coord_to_index0(layout::Layout, coord)
+    return coord_to_index0(coord, shape(layout), stride(layout))
 end
 
 function slice(layout::Layout, coord)
@@ -200,7 +204,7 @@ function slice(layout::Layout, coord)
 end
 
 function slice_and_offset(layout::Layout, coord)
-    return slice(layout, coord), coord_to_index(layout, coord)
+    return slice(layout, coord), coord_to_index(layout, coord) - static(1)
 end
 
 function dice(layout::Layout, coord)
