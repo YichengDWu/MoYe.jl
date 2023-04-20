@@ -20,9 +20,6 @@ function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N - one(N)))..., x, getindex(t, N:length(t))...)
 end
 
-function remove(@nospecialize(t::Tuple), ::Nothing)
-    return t
-end
 function remove(@nospecialize(t::Tuple), N::IntType)
     if N > length(t)
         return t
