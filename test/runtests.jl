@@ -5,3 +5,4 @@ using Test, SafeTestsets
 @safetestset "Stride" begin include("stride.jl") end
 @safetestset "Layout" begin include("layout.jl") end
 @safetestset "Static" begin include("static.jl") end
+@safetestset "Engine" begin include("engine.jl") end
