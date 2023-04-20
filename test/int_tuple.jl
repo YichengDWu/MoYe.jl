@@ -22,6 +22,9 @@ end
 
     @test CuTe.slice((3, (4, 5)), (:, (2, :))) == (3, 5)
     @test_opt CuTe.slice((3, (4, 5)), (:, (2, :)))
+
+    @test  CuTe.slice(((2, 4), (4, 2)), (:,(:,:))) == ((2, 4), 4, 2)
+    @test_opt  CuTe.slice(((2, 4), (4, 2)), (:,(:,:)))
 end
 
 @testset "Elementwise Comparison" begin
