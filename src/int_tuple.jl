@@ -7,7 +7,9 @@ end
 
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
-const StaticIntTuple{N} = Tuple{Vararg{Union{StaticInt, Tuple}, N}} # note that this type is only almost static
+
+# note that this type is only **almost** static
+const StaticIntTuple{N} = Tuple{Vararg{Union{StaticInt, Tuple{Vararg{Union{StaticInt, Tuple}}}}, N}}
 
 # fmap where leaves are integers or colons
 emap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(emap, f), t)

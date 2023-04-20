@@ -5,6 +5,9 @@ using Static: StaticInt, IntType, static
 import Static
 @reexport using Static: static, is_static
 using ManualMemory, LayoutPointers
+using CUDA
+using CUDA: AS
+using Core: LLVMPtr
 import Adapt
 
 include("algorithm/tuple_algorithms.jl")
@@ -14,6 +17,7 @@ include("layout.jl")
 include("print.jl")
 include("container/engine.jl")
 include("cutearray.jl")
+include("algorithm/array_algorithms.jl")
 
 export flatten
 export colex_less, elem_less, increment, capacity
