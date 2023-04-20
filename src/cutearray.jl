@@ -40,6 +40,10 @@ julia> CuTeArray(pointer(A), slayout)
  1.0  1.0
  1.0  1.0
  1.0  1.0
+
+julia> B = ViewEngine(A);
+
+julia> CuTeArray(B, slayout); # If B itself is non-owning, we can create a non-owning CuTeArray in this way
 ```
 """
 struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, N}
@@ -56,6 +60,9 @@ struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, 
     @inline function CuTeArray(ptr::Ptr{T}, layout::StaticLayout) where {T<:Number}
         engine = ViewEngine(ptr, cosize(layout)) # this differs from the first constructor since we recompute the length
         return CuTeArray(engine, layout)
+    end
+    @inline function CuTeArray(engine::DenseVector{T}, shape::GenIntTuple, args...) where {T}
+        return CuTeArray(engine, make_layout(shape, args...))
     end
 end
 
