@@ -137,23 +137,23 @@ function Adapt.adapt_storage(::Type{CuTeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
-function make_cutearray_like(::Type{T}, layout::StaticLayout) where {T<:Number}
+@inline function make_cutearray_like(::Type{T}, layout::StaticLayout) where {T<:Number}
     return CuTeArray{T}(make_ordered_layout(layout)) # make the layout compact
 end
-function make_cutearray_like(::Type{T}, x::CuTeArray) where {T}
+@inline function make_cutearray_like(::Type{T}, x::CuTeArray) where {T}
     return make_cutearray_like(T, layout(x))
 end
-function make_cutearray_like(x::CuTeArray{T}) where {T}
+@inline function make_cutearray_like(x::CuTeArray{T}) where {T}
     return make_cutearray_like(T, x)
 end
 
-function make_fragment_like(::Type{T}, layout::Layout) where {T}
+@inline function make_fragment_like(::Type{T}, layout::Layout) where {T}
     return CuTeArray{T}(make_fragment_like(layout))
 end
-function make_fragment_like(::Type{T}, ::CuTeArray) where {T}
+@inline function make_fragment_like(::Type{T}, ::CuTeArray) where {T}
     return make_fragment_like(T, layout(x))
 end
-function make_fragment_like(x::CuTeArray{T}) where {T}
+@inline function make_fragment_like(x::CuTeArray{T}) where {T}
     return make_fragment_like(T, x)
 end
 
@@ -161,10 +161,10 @@ end
 
 
 # Layout manipulation, should return a non-owning CuTeArray
-flatten(x::CuTeArray) = CuTeArray(pointer(x), flatten(layout(x)))
-Base.coalesce(x::CuTeArray) = CuTeArray(pointer(x), coalesce(layout(x)))
-Base.coalesce(x::CuTeArray, @nospecialize trg_profile::IntTuple) = CuTeArray(pointer(x), coalesce(layout(x), trg_profile))
-group(x::CuTeArray, B::IntType, E::IntType) = CuTeArray(pointer(x), group(layout(x), B, E))
+@inline flatten(x::CuTeArray) = CuTeArray(pointer(x), flatten(layout(x)))
+@inline Base.coalesce(x::CuTeArray) = CuTeArray(pointer(x), coalesce(layout(x)))
+@inline Base.coalesce(x::CuTeArray, @nospecialize trg_profile::IntTuple) = CuTeArray(pointer(x), coalesce(layout(x), trg_profile))
+@inline group(x::CuTeArray, B::IntType, E::IntType) = CuTeArray(pointer(x), group(layout(x), B, E))
 
 
 # Algebra
