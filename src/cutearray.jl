@@ -191,4 +191,12 @@ function Base.fill!(x::CuTeArray{T,N,<:ArrayEngine}, val) where {T,N}
     GC.@preserve b begin
         fill!(ViewEngine(engine(x)), val)
     end
+    return x
+end
+
+function Base.sum(x::CuTeArray{T,N,<:ArrayEngine}) where {T,N}
+    b = ManualMemory.preserve_buffer(x)
+    GC.@preserve b begin
+        sum(ViewEngine(engine(x)))
+    end
 end
