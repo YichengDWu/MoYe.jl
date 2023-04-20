@@ -27,8 +27,8 @@ end
     return Base.unsafe_convert(p, pointer(A))
 end
 
-@inline Base.size(A::ViewEngine) = tuple(getfield(A, :len))
-@inline Base.length(A::ViewEngine) = getfield(A, :len)
+@inline Base.size(A::ViewEngine) = tuple(Static.dynamic(getfield(A, :len)))
+@inline Base.length(A::ViewEngine) = Static.dynamic(getfield(A, :len))
 
 @inline function Base.getindex(A::ViewEngine{T}, i::Integer) where {T}
     @boundscheck checkbounds(A, i)
