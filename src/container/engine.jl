@@ -50,12 +50,11 @@ A owning vector of type `T` with length `L`. It is stack-allocated and mutable. 
 behaves like a `StaticStrideArray` with from `StrideArrays` package.
 
 ## Examples
+
 ```julia
 function test_alloc()
     x = ArrayEngine{Float32}(one, static(10))
-    GC.@preserve x begin
-    sum(ViewEngine(x))
-    end
+    GC.@preserve x begin sum(ViewEngine(x)) end
 end
 
 @test @allocated(test_alloc()) == 0

@@ -6,7 +6,7 @@ Create a CuTeArray from an engine and a layout. See also [`ArrayEngine`](@ref) a
 ## Examples
 
 ```julia
-julia> slayout = @Layout (5,2);
+julia> slayout = @Layout (5, 2);
 
 julia> array_engine = ArrayEngine{Float32}(one, static(10));
 
@@ -37,34 +37,39 @@ Base.length(x::CuTeArray) = length(engine(x))
     return ManualMemory.preserve_buffer(engine(A))
 end
 
-@inline function Base.unsafe_convert(::Type{Ptr{T}}, A::CuTeArray{T,N,<:ArrayEngine}) where {T,N}
+@inline function Base.unsafe_convert(::Type{Ptr{T}},
+                                     A::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
 end
-@inline function Base.pointer(A::CuTeArray{T,N,<:ArrayEngine}) where {N,T}
+@inline function Base.pointer(A::CuTeArray{T, N, <:ArrayEngine}) where {N, T}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
 end
 
-Base.@propagate_inbounds function Base.getindex(x::CuTeArray{T,N,<:ArrayEngine}, ids::Union{Integer, StaticInt}...) where {T,N}
+Base.@propagate_inbounds function Base.getindex(x::CuTeArray{T, N, <:ArrayEngine},
+                                                ids::Union{Integer, StaticInt}...) where {T,
+                                                                                          N}
     b = ManualMemory.preserve_buffer(x)
     index = layout(x)(ids...)
-    GC.@preserve b begin
-        ViewEngine(engine(x))[index]
-    end
+    GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
-Base.@propagate_inbounds function Base.getindex(x::CuTeArray, ids::Union{Integer, StaticInt}...)
+Base.@propagate_inbounds function Base.getindex(x::CuTeArray,
+                                                ids::Union{Integer, StaticInt}...)
     return getindex(engine(x), layout(x)(ids...))
 end
 
 # TODO: support slicing
 
-Base.@propagate_inbounds function Base.setindex!(x::CuTeArray{T,N,<:ArrayEngine}, val, ids::Union{Integer, StaticInt}...) where {T,N}
+Base.@propagate_inbounds function Base.setindex!(x::CuTeArray{T, N, <:ArrayEngine}, val,
+                                                 ids::Union{Integer, StaticInt}...) where {
+                                                                                           T,
+                                                                                           N
+                                                                                           }
     b = ManualMemory.preserve_buffer(x)
     index = layout(x)(ids...)
-    GC.@preserve b begin
-        ViewEngine(engine(x))[index] = val
-    end
+    GC.@preserve b begin ViewEngine(engine(x))[index] = val end
 end
-Base.@propagate_inbounds function Base.setindex!(x::CuTeArray, val, ids::Union{Integer, StaticInt}...)
+Base.@propagate_inbounds function Base.setindex!(x::CuTeArray, val,
+                                                 ids::Union{Integer, StaticInt}...)
     return setindex!(engine(x), val, layout(x)(ids...))
 end
 
@@ -76,5 +81,7 @@ function Adapt.adapt_structure(to, x::CuTeArray)
     return CuTeArray(data, layout(x))
 end
 
-Adapt.adapt_storage(::Type{CuTeArray{T,N,A}}, xs::AT) where {T,N,A,AT<:AbstractArray} =
-    Adapt.adapt_storage(A, xs)
+function Adapt.adapt_storage(::Type{CuTeArray{T, N, A}},
+                             xs::AT) where {T, N, A, AT <: AbstractArray}
+    return Adapt.adapt_storage(A, xs)
+end
