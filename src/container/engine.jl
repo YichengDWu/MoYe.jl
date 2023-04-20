@@ -10,10 +10,10 @@ A non-owning view of a memory buffer. `P` is the type of the pointer.
 """
 struct ViewEngine{T, P} <: Engine{T}
     ptr::P
-    len::Int
+    len::IntType
 end
 
-@inline function ViewEngine(ptr::Ptr{T}, len::Int) where {T}
+@inline function ViewEngine(ptr::Ptr{T}, len::IntType) where {T}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
 
@@ -27,8 +27,8 @@ end
     return Base.unsafe_convert(p, pointer(A))
 end
 
-@inline Base.size(A::ViewEngine) = tuple(getfield(A, :len))
-@inline Base.length(A::ViewEngine) = getfield(A, :len)
+@inline Base.size(A::ViewEngine) = tuple(Static.dynamic(getfield(A, :len)))
+@inline Base.length(A::ViewEngine) = Static.dynamic(getfield(A, :len))
 
 @inline function Base.getindex(A::ViewEngine{T}, i::Integer) where {T}
     @boundscheck checkbounds(A, i)

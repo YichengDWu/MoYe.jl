@@ -13,6 +13,7 @@ end
 
 const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
+const StaticLayout{N} = Layout{N, <:StaticIntTuple{N}, <:StaticIntTuple{N}}
 
 shape(l::Layout) = getfield(l, :shape)
 Base.stride(l::Layout) = getfield(l, :stride)
@@ -92,6 +93,22 @@ macro Layout(expr1, expr2=nothing)
     return layout_call
 end
 
+"""
+    make_ordered_layout(shape, order)
+    make_ordered_layout(layout)
+
+Construct a compact layout with the given shape and the stride is following the given order.
+
+## Examples
+
+```julia
+julia> CuTe.make_ordered_layout((3,5), (2, 6))
+(3, 5):(static(1), 3)
+
+julia> CuTe.make_ordered_layout((3,5), (10, 2))
+(3, 5):(5, static(1))
+```
+"""
 function make_ordered_layout(shape, order) # The arguments may be static, which is not handled
     return make_layout(shape, compact_order(shape, order))
 end
@@ -100,7 +117,8 @@ function make_ordered_layout(layout::Layout)
 end
 
 # make_layout_like
-# make_fragment_like
+
+
 # make_identity_layout
 
 function Base.getindex(layout::Layout, Is::IntType...)
@@ -173,8 +191,12 @@ function cosize(layout::Layout)
     return layout(size(layout))
 end
 
-function coord_to_index(coord, layout::Layout)
+function coord_to_index(layout::Layout, coord)
     return coord_to_index(coord, shape(layout), stride(layout))
+end
+
+function coord_to_index0(layout::Layout, coord)
+    return coord_to_index0(coord, shape(layout), stride(layout))
 end
 
 function slice(layout::Layout, coord)
@@ -182,7 +204,7 @@ function slice(layout::Layout, coord)
 end
 
 function slice_and_offset(layout::Layout, coord)
-    return slice(layout, coord), coord_to_index(layout, coord)
+    return slice(layout, coord), coord_to_index(layout, coord) - static(1)
 end
 
 function dice(layout::Layout, coord)
@@ -496,3 +518,14 @@ end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
     return tiled_divide(l1, (l2, l3...))
 end
+
+"""
+Make a layout of the same shape with the first mode being col-major, and with the rest
+following the given order.
+"""
+make_fragment_like(layout::StaticLayout{1}) = make_layout(shape(layout))
+function make_fragment_like(layout::StaticLayout{R}) where {R}
+    return tiled_product(make_layout(shape(layout)[1]), tuple(make_ordered_layout(make_layout(layout[2:end]...))...))
+end
+make_fragment_like(layout::Layout) = make_layout(shape(layout))
+make_fragment_like(shape::GenIntTuple) = make_layout(shape)
