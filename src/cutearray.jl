@@ -74,7 +74,7 @@ Base.@propagate_inbounds function Base.setindex!(x::CuTeArray, val,
 end
 
 Base.elsize(x::CuTeArray) = Base.elsize(engine(x))
-Base.sizeof(x::CuTeArray) = Base.elsize(x) * length(eigine(x))
+Base.sizeof(x::CuTeArray) = Base.elsize(x) * length(engine(x))
 
 function Adapt.adapt_structure(to, x::CuTeArray)
     data = Adapt.adapt_structure(to, engine(x))
