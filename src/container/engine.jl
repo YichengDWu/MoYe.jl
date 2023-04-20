@@ -3,6 +3,11 @@ abstract type Engine{T} <: DenseVector{T} end
 @inline Base.IndexStyle(::Type{<:Engine}) = IndexLinear()
 @inline Base.elsize(::Engine{T}) where {T} = sizeof(T)
 
+"""
+    ViewEngine{T, P} <: Engine{T} <: DenseVector{T}
+
+A non-owning view of a memory buffer. `P` is the type of the pointer.
+"""
 struct ViewEngine{T, P} <: Engine{T}
     ptr::P
     len::Int
@@ -37,12 +42,32 @@ end
 end
 
 @inline ManualMemory.preserve_buffer(::ViewEngine) = nothing
+
+"""
+    ArrayEngine{T, L} <: Engine{T} <: DenseVector{T}
+
+A owning vector of type `T` with length `L`. It is stack-allocated and mutable. It should
+behaves like a `StaticStrideArray` with from `StrideArrays` package.
+
+## Examples
+```julia
+function test_alloc()
+    x = ArrayEngine{Float32}(one, static(10))
+    GC.@preserve x begin
+    sum(ViewEngine(x))
+    end
+end
+
+@test @allocated(test_alloc()) == 0
+```
+"""
 mutable struct ArrayEngine{T, L} <: Engine{T}
     data::NTuple{L, T}
     @inline ArrayEngine{T, L}(::UndefInitializer) where {T, L} = new{T, L}()
     @inline function ArrayEngine{T}(::UndefInitializer, ::StaticInt{L}) where {T, L}
         return ArrayEngine{T, L}(undef)
     end
+    @inline ArrayEngine(data::NTuple{L, T}) where {T, L} = new{T, L}(data)
 end
 
 @inline function Base.unsafe_convert(::Type{Ptr{T}}, A::ArrayEngine{T}) where {T}
