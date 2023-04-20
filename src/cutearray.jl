@@ -31,7 +31,7 @@ engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
 Base.size(x::CuTeArray) = map(capacity, shape(layout(x)))
-Base.length(x::CuTeArray) = length(engine(x))
+Base.length(x::CuTeArray) = capacity(shape(layout(x)))
 
 @inline function ManualMemory.preserve_buffer(A::CuTeArray)
     return ManualMemory.preserve_buffer(engine(A))
