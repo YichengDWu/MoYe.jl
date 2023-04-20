@@ -62,8 +62,8 @@ end
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
-@inline Base.size(x::CuTeArray) = map(capacity, shape(layout(x)))
-@inline Base.length(x::CuTeArray) = capacity(shape(layout(x))) # note this the logical length, not the physical length in the Engine
+@inline Base.size(x::CuTeArray) = Static.dynamic(map(capacity, shape(layout(x))))
+@inline Base.length(x::CuTeArray) = Static.dynamic(capacity(shape(layout(x)))) # note this the logical length, not the physical length in the Engine
 @inline Base.strides(x::CuTeArray) = stride(layout(x))
 @inline Base.stride(x::CuTeArray, i::IntType) = getindex(stride(layout(x)), i)
 @inline rank(x::CuTeArray) = rank(layout(x))
