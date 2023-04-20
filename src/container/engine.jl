@@ -37,7 +37,7 @@ end
 end
 
 @inline ManualMemory.preserve_buffer(::ViewEngine) = nothing
-mutable struct ArrayEngine{T, L} <: DenseVector{T}
+mutable struct ArrayEngine{T, L} <: Engine{T}
     data::NTuple{L, T}
     @inline ArrayEngine{T, L}(::UndefInitializer) where {T, L} = new{T, L}()
     @inline function ArrayEngine{T}(::UndefInitializer, ::StaticInt{L}) where {T, L}
