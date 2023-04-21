@@ -53,20 +53,3 @@ end
 @inline function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
 end
-
-# Array operations
-@inline Base.similar(x::CuTeArray{T}) where {T} = similar(x, T)
-@inline function Base.similar(x::CuTeArray{S, N, <:ArrayEngine}, ::Type{T}) where {S, N, T}
-    return CuTeArray{T}(undef, layout(x))
-end
-
-@inline function Base.fill!(x::CuTeArray{T, N, <:ArrayEngine}, val) where {T, N}
-    b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin fill!(ViewEngine(engine(x)), val) end
-    return x
-end
-
-@inline function Base.sum(x::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
-    b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin sum(ViewEngine(engine(x))) end
-end
