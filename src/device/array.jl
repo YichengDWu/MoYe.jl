@@ -3,7 +3,6 @@
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
 
-
 @inline function CuTeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
     engine = ViewEngine(ptr, cosize(layout))
     return CuTeArray(engine, layout)

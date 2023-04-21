@@ -40,7 +40,6 @@ julia> CuTeArray(pointer(A), slayout) # create a non-owning array
  1.0  1.0
  1.0  1.0
  1.0  1.0
-
 ```
 """
 struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, N}
@@ -49,23 +48,25 @@ struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, 
     @inline function CuTeArray(engine::DenseVector{T}, layout::Layout{N}) where {T, N}
         return new{T, N, typeof(engine), typeof(layout)}(engine, layout)
     end
-    @inline function CuTeArray(engine::DenseVector{T}, shape::GenIntTuple, args...) where {T}
+    @inline function CuTeArray(engine::DenseVector{T}, shape::GenIntTuple,
+                               args...) where {T}
         return CuTeArray(engine, make_layout(shape, args...))
     end
 end
 
-@inline function CuTeArray{T}(::UndefInitializer, l::StaticLayout) where {T<:Number}
+@inline function CuTeArray{T}(::UndefInitializer, l::StaticLayout) where {T <: Number}
     return CuTeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
-@inline function CuTeArray{T}(::UndefInitializer, shape::Union{StaticInt, StaticIntTuple}, args...) where {T<:Number}
+@inline function CuTeArray{T}(::UndefInitializer, shape::Union{StaticInt, StaticIntTuple},
+                              args...) where {T <: Number}
     l = make_layout(shape, args...)
     return CuTeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
-@inline function CuTeArray(ptr::Ptr{T}, layout::Layout) where {T<:Number}
+@inline function CuTeArray(ptr::Ptr{T}, layout::Layout) where {T <: Number}
     engine = ViewEngine(ptr, cosize(layout)) # this differs from the first constructor since we recompute the length
     return CuTeArray(engine, layout)
 end
-@inline function CuTeArray(ptr::Ptr{T}, shape::GenIntTuple, args...) where {T<:Number}
+@inline function CuTeArray(ptr::Ptr{T}, shape::GenIntTuple, args...) where {T <: Number}
     l = make_layout(shape, args...)
     return CuTeArray(ptr, l)
 end
@@ -93,7 +94,8 @@ end
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
 end
 
-@inline function Base.unsafe_convert(::Type{Ptr{T}}, A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
+@inline function Base.unsafe_convert(::Type{Ptr{T}},
+                                     A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
     return Base.unsafe_convert(Ptr{T}, engine(A))
 end
 @inline function Base.pointer(A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
@@ -101,8 +103,10 @@ end
 end
 
 Base.@propagate_inbounds function Base.getindex(x::CuTeArray{T, N, <:ArrayEngine},
-                                                ids::Union{Integer, StaticInt, IntTuple}...) where {T,
-                                                                                          N}
+                                                ids::Union{Integer, StaticInt, IntTuple}...) where {
+                                                                                                    T,
+                                                                                                    N
+                                                                                                    }
     b = ManualMemory.preserve_buffer(x)
     index = layout(x)(ids...)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
@@ -113,7 +117,8 @@ Base.@propagate_inbounds function Base.getindex(x::CuTeArray,
 end
 
 # Currently don't support directly slicing, but we could make a view and then copy the view
-@inline function Base.view(x::CuTeArray{T}, coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
+@inline function Base.view(x::CuTeArray{T},
+                           coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
         sliced_layout, offset = slice_and_offset(layout(x), coord)
@@ -122,16 +127,15 @@ end
 end
 
 Base.@propagate_inbounds function Base.setindex!(x::CuTeArray{T, N, <:ArrayEngine}, val,
-                                                 ids::Union{Integer, StaticInt, IntTuple}...) where {
-                                                                                           T,
-                                                                                           N
-                                                                                           }
+                                                 ids::Union{Integer, StaticInt, IntTuple
+                                                            }...) where {T, N}
     b = ManualMemory.preserve_buffer(x)
     index = layout(x)(ids...)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
 end
 Base.@propagate_inbounds function Base.setindex!(x::CuTeArray, val,
-                                                 ids::Union{Integer, StaticInt, IntTuple}...)
+                                                 ids::Union{Integer, StaticInt, IntTuple
+                                                            }...)
     return setindex!(engine(x), val, layout(x)(ids...))
 end
 

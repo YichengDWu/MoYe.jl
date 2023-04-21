@@ -48,7 +48,6 @@ function coord_to_index0(coord, shape)
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
-
 function coord_to_index(coord, shape)
     return coord_to_index0(emap(_offset, coord), shape) + static(1)
 end

@@ -1,4 +1,4 @@
-@inline function make_cutearray_like(::Type{T}, layout::StaticLayout) where {T<:Number}
+@inline function make_cutearray_like(::Type{T}, layout::StaticLayout) where {T <: Number}
     return CuTeArray{T}(undef, make_ordered_layout(layout)) # make the layout compact, hence not the same as `similar`
 end
 @inline function make_cutearray_like(::Type{T}, x::CuTeArray) where {T}
@@ -20,13 +20,15 @@ end
 
 #  make_identity_tensor
 
-
 # Layout manipulation, should return a non-owning CuTeArray
 @inline flatten(x::CuTeArray) = CuTeArray(pointer(x), flatten(layout(x)))
 @inline Base.coalesce(x::CuTeArray) = CuTeArray(pointer(x), coalesce(layout(x)))
-@inline Base.coalesce(x::CuTeArray, @nospecialize trg_profile::IntTuple) = CuTeArray(pointer(x), coalesce(layout(x), trg_profile))
-@inline group(x::CuTeArray, B::IntType, E::IntType) = CuTeArray(pointer(x), group(layout(x), B, E))
-
+@inline function Base.coalesce(x::CuTeArray, @nospecialize trg_profile::IntTuple)
+    return CuTeArray(pointer(x), coalesce(layout(x), trg_profile))
+end
+@inline function group(x::CuTeArray, B::IntType, E::IntType)
+    return CuTeArray(pointer(x), group(layout(x), B, E))
+end
 
 # Algebra
 @inline function logical_divide(x::CuTeArray, tile::Tile)
@@ -43,7 +45,6 @@ end
 
 #local_partition
 
-
 @inline function local_tile(x::CuTeArray, tile::Tile, coord::IntTuple)
     R1 = length(tile)
     R2 = rank(x)
@@ -55,19 +56,17 @@ end
 
 # Array operations
 @inline Base.similar(x::CuTeArray{T}) where {T} = similar(x, T)
-@inline Base.similar(x::CuTeArray{S,N,<:ArrayEngine}, ::Type{T}) where {S,N,T} = CuTeArray{T}(undef, layout(x))
+@inline function Base.similar(x::CuTeArray{S, N, <:ArrayEngine}, ::Type{T}) where {S, N, T}
+    return CuTeArray{T}(undef, layout(x))
+end
 
-@inline function Base.fill!(x::CuTeArray{T,N,<:ArrayEngine}, val) where {T,N}
+@inline function Base.fill!(x::CuTeArray{T, N, <:ArrayEngine}, val) where {T, N}
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin
-        fill!(ViewEngine(engine(x)), val)
-    end
+    GC.@preserve b begin fill!(ViewEngine(engine(x)), val) end
     return x
 end
 
-@inline function Base.sum(x::CuTeArray{T,N,<:ArrayEngine}) where {T,N}
+@inline function Base.sum(x::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin
-        sum(ViewEngine(engine(x)))
-    end
+    GC.@preserve b begin sum(ViewEngine(engine(x))) end
 end
