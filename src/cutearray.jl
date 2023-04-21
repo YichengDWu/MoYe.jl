@@ -86,7 +86,7 @@ end
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
-@inline Base.size(x::CuTeArray) = Static.dynamic(map(capacity, shape(layout(x))))
+@inline Base.size(x::CuTeArray) = tuple(Static.dynamic(map(capacity, shape(layout(x))))...)
 @inline Base.length(x::CuTeArray) = Static.dynamic(capacity(shape(layout(x)))) # note this the logical length, not the physical length in the Engine
 @inline Base.strides(x::CuTeArray) = stride(layout(x))
 @inline Base.stride(x::CuTeArray, i::IntType) = getindex(stride(layout(x)), i)
@@ -171,8 +171,6 @@ end
     end
 end
 
-# What to do with copying a ViewEngine?
-@inline Base.similar(x::CuTeArray{T}) where {T} = similar(x, T)
-@inline function Base.similar(x::CuTeArray{S, N, <:ArrayEngine}, ::Type{T}) where {S, N, T}
+@inline function Base.similar(x::CuTeArray{S,N,E,<:StaticLayout}, ::Type{T}) where {S,N,E,T}
     return CuTeArray{T}(undef, layout(x))
 end
