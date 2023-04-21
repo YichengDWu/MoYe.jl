@@ -45,7 +45,7 @@ end
         @test ca2 == ca
 
         A = ones(6)
-        ca3 = CuTeArray{Float32}(pointer(A), static((2, 3)))
+        ca3 = CuTeArray(pointer(A), static(6))
         ca4 = copy(ca3)
         @test ca4 isa CuTeArray
         @test ca4.engine isa ArrayEngine

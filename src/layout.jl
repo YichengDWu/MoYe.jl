@@ -16,7 +16,7 @@ A tuple of `Layout`s or `Colon`s.
 """
 const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
-const StaticLayout{N} = Layout{N, <:StaticIntTuple{N}, <:StaticIntTuple{N}}
+const StaticLayout{N} = Layout{N, <:Union{StaticInt, StaticIntTuple{N}}, <:Union{StaticInt,StaticIntTuple{N}}}
 
 shape(l::Layout) = getfield(l, :shape)
 Base.stride(l::Layout) = getfield(l, :stride)

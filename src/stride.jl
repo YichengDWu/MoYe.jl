@@ -2,6 +2,10 @@ function coord_to_index0(coord::IntType, shape::IntType, stride::IntType)
     @inline
     return coord * stride
 end
+function coord_to_index0(coord::Tuple{IntType}, shape::IntType, stride::IntType)
+    @inline
+    return first(coord) * stride
+end
 function coord_to_index0(coord::Colon, shape::IntType, stride::IntType)
     @inline
     return zero(stride)
