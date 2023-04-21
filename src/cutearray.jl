@@ -40,6 +40,18 @@ julia> CuTeArray(pointer(A), slayout) # create a non-owning array
  1.0  1.0
  1.0  1.0
  1.0  1.0
+
+julia> function test_alloc()  # when powered by a ArrayEngine, CuTeArray is stack-allocated
+    slayout = @Layout (2, 3)          # and mutable
+    x = CuTeArray{Float32}(undef, slayout)
+    fill!(x, 1.0f0)
+    return sum(x)
+end
+test_alloc (generic function with 2 methods)
+
+julia> @allocated(test_alloc())
+0
+
 ```
 """
 struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, N}
