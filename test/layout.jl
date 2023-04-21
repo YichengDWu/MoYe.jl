@@ -41,6 +41,94 @@ end
 
     @test_opt complement(make_layout(4, 1), 24)
     @test_opt complement(make_layout(6, 4), 24)
+
+    function test_complement(l, cosize_hi)
+        result = complement(l, cosize_hi)
+        @test size(result) ≥ cosize_hi ÷ size(filter(l))
+        @test cosize(result) ≤ cld(cosize_hi, cosize(l)) * cosize(l)
+
+        for i in 2:size(result)
+            @test result(i-1) < result(i)
+            for j in 1:size(l)
+                @test result(i) != l(j)
+            end
+        end
+
+        @test size(result) ≤ cosize(result)
+        @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
+
+        if CuTe.Static.dynamic(is_static(stride(make_layout(l, result))))
+            @test size(complement(make_layout(l, result))) == 1
+        end
+    end
+
+    test_complement(l::Layout) = test_complement(l, cosize(l))
+
+    let layout = @Layout(1,0)
+        test_complement(layout)
+        test_complement(layout, static(2))
+    end
+
+    let layout = @Layout(1,1)
+        test_complement(layout)
+        test_complement(layout, static(2))
+    end
+
+    let layout = @Layout(1,2)
+        test_complement(layout, static(1))
+        test_complement(layout, static(2))
+        test_complement(layout, static(8))
+    end
+
+    let layout = @Layout(4,0)
+        test_complement(layout, static(1))
+        test_complement(layout, static(2))
+        test_complement(layout, static(8))
+    end
+
+    let layout = @Layout(4,1)
+        test_complement(layout, static(1))
+        test_complement(layout, static(2))
+        test_complement(layout, static(8))
+    end
+
+    let layout = @Layout(4,2)
+        test_complement(layout, static(1))
+        test_complement(layout)
+        test_complement(layout, static(16))
+    end
+
+    let layout = @Layout(4,4)
+        test_complement(layout, static(1))
+        test_complement(layout)
+        test_complement(layout, static(17))
+    end
+
+    let layout = @Layout(2,4)
+        test_complement(layout)
+    end
+
+    let layout = @Layout(2,3)
+        test_complement(layout)
+    end
+
+    let layout = @Layout((2,4), (1,4))
+        test_complement(layout)
+    end
+
+    let layout = @Layout((2,4,8), (8,1,64))
+        test_complement(layout)
+    end
+
+    let layout = @Layout((2,4,8), (8,1,0))
+        test_complement(layout)
+        test_complement(layout, static(460))
+    end
+
+    let layout = @Layout(((2,2), (2,2)), ((1,4), (8,32)))
+        test_complement(layout)
+    end
+
 end
 
 @testset "Product" begin
@@ -53,6 +141,60 @@ end
         @test stride(result) == ((1, 2), (16, 4))
 
         @test_opt logical_product(static(tile), static(matrix_of_tiles)) # note that `complement` requires a static layout to avoid dynamic dispatch
+
+        function test_logical_product(A,B)
+            C = logical_product(A,B)
+            @test rank(C) == 2
+            @test CuTe.iscompatible(A, first(C))
+        end
+
+        let vec = @Layout(1,0), tile = @Layout(1,0)
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(1,1), tile = @Layout(1,0)
+            test_logical_product(tile, vec)
+        end
+
+        let vec = @Layout(1,1), tile = @Layout(1,1)
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(3,1), tile = @Layout(4,0)
+            test_logical_product(tile, vec)
+        end
+
+        let vec = @Layout(3,0), tile = @Layout(4,0)
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(3,2), tile = @Layout(4,1)
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout((3,)), tile = @Layout((2,4))
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout((8,(2,2))), tile = @Layout(4,2)
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout((2,2)), tile = @Layout((3,3), (3,1))
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(3,32), tile = @Layout((8,8))
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(((2,2),(2,2)), ((1,4),(8,32))), tile = @Layout((2,2), (1,2))
+            test_logical_product(vec, tile)
+        end
+
+        let vec = @Layout(((2,2),(2,2)), ((1,4),(8,32))), tile = @Layout((2,2), (2,1))
+            test_logical_product(vec, tile)
+        end
     end
     @testset "Blocked product" begin
         result = blocked_product(tile, matrix_of_tiles, true)
@@ -88,6 +230,56 @@ end
 
         @test_opt logical_divide(static(raked_prod), static(subtile))
         @test_call logical_divide(raked_prod, subtile)
+
+        function test_logical_divide(A,B)
+            C = logical_divide(A,B)
+            @test rank(C) == 2
+            @test CuTe.iscompatible(B, first(C))
+        end
+
+        let vec = @Layout(1,0), tile = @Layout(1,0)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(1,0), tile = @Layout(1,1)
+            test_logical_divide(tile, vec)
+        end
+
+        let vec = @Layout(1,1), tile = @Layout(1,0)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,1), tile = @Layout(2,1)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,1), tile = @Layout(2,3)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,1), tile = @Layout((2,3),(3,1))
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,2), tile = @Layout(2,1)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,2), tile = @Layout(2,3)
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout(6,2), tile = @Layout((2,3),(3,1))
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout((6,6),(1,12)), tile = @Layout((6,3),(3,1))
+            test_logical_divide(vec, tile)
+        end
+
+        let vec = @Layout((6,6),(12,1)), tile = @Layout((6,3),(3,1))
+            test_logical_divide(vec, tile)
+        end
     end
 
     @testset "Zipped division" begin

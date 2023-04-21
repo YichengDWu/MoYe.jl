@@ -1,12 +1,8 @@
 const IntSequence{N} = NTuple{N, Union{Int, StaticInt}}
 
-Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
-                                                @nospecialize(I::IntSequence{N})) where {N}
-    return map(Base.Fix1(getindex, x), I)
-end
-
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
+const GenIntTuple = Union{Int, StaticInt, IntTuple}
 
 # note that this type is only **almost** static
 const StaticIntTuple{N} = Tuple{
@@ -14,6 +10,10 @@ const StaticIntTuple{N} = Tuple{
                                        Union{StaticInt,
                                              Tuple{Vararg{Union{StaticInt, Tuple}}}}, N}}
 
+Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
+                                                @nospecialize(I::IntSequence{N})) where {N}
+    return map(Base.Fix1(getindex, x), I)
+end
 # fmap where leaves are integers or colons
 emap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(emap, f), t)
 emap(f::Function, x::Union{IntType, Colon}) = f(x)
@@ -88,12 +88,11 @@ function iscongruent(x, y)
 end
 
 # Any coordinate into A can also be used as a coordinate into B
-@inline function iscompatiable(@nospecialize(a::Tuple), @nospecialize(b::Tuple))
-    return all(map(iscompatiable, a, b))
+@inline function iscompatible(@nospecialize(a::Tuple), @nospecialize(b::Tuple))
+    return length(a)==length(b) && all(map(iscompatible, a, b))
 end
-@inline iscompatiable(a::IntType, b) = a == capacity(b)
-@inline iscompatiable(a, b::IntType) = false
-@inline iscompatiable(a, b) = iscompatiable(shape(a), shape(b))
+@inline iscompatible(a::IntType, b::GenIntTuple) = a == capacity(b)
+@inline iscompatible(a::Tuple, b::IntType) = false
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::IntType, x) = iszero(a) ? 1 : x
