@@ -10,7 +10,7 @@ Create a CuTeArray from an engine and a layout. See also [`ArrayEngine`](@ref) a
 ```julia
 julia> slayout = @Layout (5, 2);
 
-julia> array_engine = ArrayEngine{Float32}(one, static(10));
+julia> array_engine = ArrayEngine{Float32}(one, cosize(slayout));
 
 julia> CuTeArray(array_engine, slayout)
 5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
