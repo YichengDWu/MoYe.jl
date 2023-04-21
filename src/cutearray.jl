@@ -171,8 +171,7 @@ end
     end
 end
 
-# What to do with copying a ViewEngine?
 @inline Base.similar(x::CuTeArray{T}) where {T} = similar(x, T)
-@inline function Base.similar(x::CuTeArray{S, N, <:ArrayEngine}, ::Type{T}) where {S, N, T}
+@inline function Base.similar(x::CuTeArray, ::Type{T}) where {T}
     return CuTeArray{T}(undef, layout(x))
 end
