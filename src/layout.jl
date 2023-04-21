@@ -373,9 +373,7 @@ function withshape(l::Layout, s1, s2, s3...)
 end
 
 function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
-    if stride == 0
-        return make_layout(cosize_hi)
-    end
+    stride == 0 && return make_layout(cosize_hi)
     rest_stride = shape * stride
     return bw_coalesce(Val(1), (stride,), (one(shape),), cld(cosize_hi, rest_stride),
                        rest_stride)
