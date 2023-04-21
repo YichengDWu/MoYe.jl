@@ -12,7 +12,7 @@ struct Layout{N, Shape, Stride}
 end
 
 """
-A tuple of `Layout` or `Colon`.
+A tuple of `Layout`s or `Colon`s.
 """
 const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
