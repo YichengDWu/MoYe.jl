@@ -3,12 +3,14 @@
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
 
-## Shared Memory, static allocation but the layout can be dynamic
-@inline SharedMemory(T, ::StaticInt{L}) = CUDA.emit_shmem(T, Val(L))
-@inline function CuTeArray(ptr::LLVMPtr{T, AS.Shared}, layout::Layout) where {T, AS}
+
+@inline function CuTeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
     engine = ViewEngine(ptr, cosize(layout))
     return CuTeArray(engine, layout)
 end
-@inline function CuTeArray(ptr::LLVMPtr{T, AS.Shared}, shape::GenIntTuple, args...) where {T<:Number, AS}
+@inline function CuTeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
     return CuTeArray(ptr, make_layout(shape, args...))
 end
+
+## Shared Memory, static allocation but the layout can be dynamic
+@inline SharedMemory(T, ::StaticInt{L}) where {L} = CUDA.emit_shmem(T, Val(L))

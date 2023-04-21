@@ -1,5 +1,5 @@
 @inline function make_cutearray_like(::Type{T}, layout::StaticLayout) where {T<:Number}
-    return CuTeArray{T}(make_ordered_layout(layout)) # make the layout compact, hence not the same as `similar`
+    return CuTeArray{T}(undef, make_ordered_layout(layout)) # make the layout compact, hence not the same as `similar`
 end
 @inline function make_cutearray_like(::Type{T}, x::CuTeArray) where {T}
     return make_cutearray_like(T, layout(x))
@@ -9,9 +9,9 @@ end
 end
 
 @inline function make_fragment_like(::Type{T}, layout::Layout) where {T}
-    return CuTeArray{T}(make_fragment_like(layout))
+    return CuTeArray{T}(undef, make_fragment_like(layout))
 end
-@inline function make_fragment_like(::Type{T}, ::CuTeArray) where {T}
+@inline function make_fragment_like(::Type{T}, x::CuTeArray) where {T}
     return make_fragment_like(T, layout(x))
 end
 @inline function make_fragment_like(x::CuTeArray{T}) where {T}
