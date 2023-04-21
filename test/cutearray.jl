@@ -22,3 +22,35 @@ end
     @test ca.engine isa ViewEngine
     @test ca2.engine isa ViewEngine
 end
+
+@testset "Array Operations" begin
+    @testset "View" begin
+        ca = CuTeArray{Float32}(undef, static((2, 3)))
+        va = view(ca, :, 1)
+        @test va isa CuTeArray
+        @test va.engine isa ViewEngine
+        @test va.layout.shape == tuple(static(2))
+
+        va2 = view(ca, :, :)
+        @test va2 isa CuTeArray
+        @test va2.engine isa ViewEngine
+        @test va2.layout.shape == tuple(static(2), static(3))
+    end
+
+    @testset "Copy" begin
+        ca = CuTeArray{Float32}(undef, static((2, 3)))
+        ca2 = copy(ca)
+        @test ca2 isa CuTeArray
+        @test ca2.engine isa ArrayEngine
+        @test ca2 == ca
+    end
+end
+
+@testset "BLAS" begin
+    @testset "fill! and sum" begin
+        ca = CuTeArray{Float32}(undef, static((2, 3)))
+        fill!(ca, 1.0f0)
+        @test all(ca .== 1.0f0)
+        @test sum(ca) == 6.0f0
+    end
+end

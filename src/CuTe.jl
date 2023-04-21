@@ -4,7 +4,7 @@ using Reexport
 using Static: StaticInt, IntType, static
 import Static
 @reexport using Static: static, is_static
-using ManualMemory, LayoutPointers
+using ManualMemory, LayoutPointers, LoopVectorization
 using CUDA
 using Core: LLVMPtr
 import Adapt
@@ -17,6 +17,7 @@ include("print.jl")
 include("container/engine.jl")
 include("cutearray.jl")
 include("algorithm/array_algorithms.jl")
+include("algorithm/blas.jl")
 
 include("device/array.jl")
 
@@ -29,5 +30,6 @@ export Layout, make_layout, shape, rank, depth, cosize, complement, logical_prod
        tiled_divide
 export print_layout
 export ArrayEngine, ViewEngine, CuTeArray, make_fragment_like
+export axpby!
 
 end

@@ -10,7 +10,7 @@ Create a CuTeArray from an engine and a layout. See also [`ArrayEngine`](@ref) a
 ```julia
 julia> slayout = @Layout (5, 2);
 
-julia> array_engine = ArrayEngine{Float32}(one, static(10));
+julia> array_engine = ArrayEngine{Float32}(one, cosize(slayout));
 
 julia> CuTeArray(array_engine, slayout)
 5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
@@ -128,16 +128,6 @@ Base.@propagate_inbounds function Base.getindex(x::CuTeArray,
     return getindex(engine(x), layout(x)(ids...))
 end
 
-# Currently don't support directly slicing, but we could make a view and then copy the view
-@inline function Base.view(x::CuTeArray{T},
-                           coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
-    b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin
-        sliced_layout, offset = slice_and_offset(layout(x), coord)
-        CuTeArray(pointer(x) + offset * sizeof(T), sliced_layout)
-    end
-end
-
 Base.@propagate_inbounds function Base.setindex!(x::CuTeArray{T, N, <:ArrayEngine}, val,
                                                  ids::Union{Integer, StaticInt, IntTuple
                                                             }...) where {T, N}
@@ -162,4 +152,27 @@ end
 function Adapt.adapt_storage(::Type{CuTeArray{T, N, A}},
                              xs::AT) where {T, N, A, AT <: AbstractArray}
     return Adapt.adapt_storage(A, xs)
+end
+
+# Array operations
+# Currently don't support directly slicing, but we could make a view and then copy the view
+@inline function Base.view(x::CuTeArray{T, N}, coord::Vararg{Colon, N}) where {T, N}
+    b = ManualMemory.preserve_buffer(x)
+    GC.@preserve b begin
+        CuTeArray(pointer(x), layout(x))
+    end
+end
+@inline function Base.view(x::CuTeArray{T},
+                           coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
+    b = ManualMemory.preserve_buffer(x)
+    GC.@preserve b begin
+        sliced_layout, offset = slice_and_offset(layout(x), coord)
+        CuTeArray(pointer(x) + offset * sizeof(T), sliced_layout)
+    end
+end
+
+# What to do with copying a ViewEngine?
+@inline Base.similar(x::CuTeArray{T}) where {T} = similar(x, T)
+@inline function Base.similar(x::CuTeArray{S, N, <:ArrayEngine}, ::Type{T}) where {S, N, T}
+    return CuTeArray{T}(undef, layout(x))
 end
