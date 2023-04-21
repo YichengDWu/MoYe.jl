@@ -30,6 +30,11 @@ end
         @test va isa CuTeArray
         @test va.engine isa ViewEngine
         @test va.layout.shape == tuple(static(2))
+
+        va2 = view(ca, :, :)
+        @test va2 isa CuTeArray
+        @test va2.engine isa ViewEngine
+        @test va2.layout.shape == tuple(static(2), static(3))
     end
 
     @testset "Copy" begin
