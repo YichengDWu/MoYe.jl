@@ -201,6 +201,8 @@ function coord_to_index0(layout::Layout, coord)
     return coord_to_index0(coord, shape(layout), stride(layout))
 end
 
+@inline iscompatible(a::Layout, b::Layout) = iscompatible(shape(a), shape(b))
+
 function slice(layout::Layout, coord)
     return make_layout(slice(shape(layout), coord), slice(stride(layout), coord))
 end
@@ -443,10 +445,9 @@ corresponds to indexing through `A` and indexing through the second mode corresp
 through `B`.
 
 ```julia
-julia> print_layout(tile)
-tile = make_layout((2,2), (1,2));
+julia> tile = make_layout((2,2), (1,2));
 
-julia> print_layout(matrix_of_tiles)
+julia> print_layout(tile)
 (2, 2):(1, 2)
       1   2
     +---+---+
@@ -455,8 +456,31 @@ julia> print_layout(matrix_of_tiles)
  2  | 2 | 4 |
     +---+---+
 
+julia> matrix_of_tiles = make_layout((3,4), (4,1));
+
+julia> print_layout(matrix_of_tiles)
+(3, 4):(4, 1)
+       1    2    3    4
+    +----+----+----+----+
+ 1  |  1 |  2 |  3 |  4 |
+    +----+----+----+----+
+ 2  |  5 |  6 |  7 |  8 |
+    +----+----+----+----+
+ 3  |  9 | 10 | 11 | 12 |
+    +----+----+----+----+
+
 julia> print_layout(logical_product(tile, matrix_of_tiles));
-matrix_of_tiles = make_layout((3,4), (4,1));
+((2, 2), (3, 4)):((1, 2), (16, 4))
+       1    2    3    4    5    6    7    8    9   10   11   12
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 2  |  2 | 18 | 34 |  6 | 22 | 38 | 10 | 26 | 42 | 14 | 30 | 46 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 3  |  3 | 19 | 35 |  7 | 23 | 39 | 11 | 27 | 43 | 15 | 31 | 47 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
 ```
 """
 function logical_product(layout::Layout, tile::Layout)
@@ -496,6 +520,21 @@ julia> tile = make_layout((2, 2), (1, 2));
 julia> matrix_of_tiles = make_layout((3, 4), (4, 1));
 
 julia> print_layout(blocked_product(tile, matrix_of_tiles))
+((2, 3), (2, 4)):((1, 16), (2, 4))
+       1    2    3    4    5    6    7    8
+    +----+----+----+----+----+----+----+----+
+ 1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
+    +----+----+----+----+----+----+----+----+
+ 2  |  2 |  4 |  6 |  8 | 10 | 12 | 14 | 16 |
+    +----+----+----+----+----+----+----+----+
+ 3  | 17 | 19 | 21 | 23 | 25 | 27 | 29 | 31 |
+    +----+----+----+----+----+----+----+----+
+ 4  | 18 | 20 | 22 | 24 | 26 | 28 | 30 | 32 |
+    +----+----+----+----+----+----+----+----+
+ 5  | 33 | 35 | 37 | 39 | 41 | 43 | 45 | 47 |
+    +----+----+----+----+----+----+----+----+
+ 6  | 34 | 36 | 38 | 40 | 42 | 44 | 46 | 48 |
+    +----+----+----+----+----+----+----+----+
 
 ```
 """
