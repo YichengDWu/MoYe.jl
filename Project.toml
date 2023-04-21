@@ -5,6 +5,7 @@ version = "1.0.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 LayoutPointers = "10f19ff3-798f-405d-979b-55457f8fc047"
 ManualMemory = "d125e4d3-2237-4719-b19c-fa641b8a4667"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"

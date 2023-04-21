@@ -11,6 +11,9 @@ struct Layout{N, Shape, Stride}
     end
 end
 
+"""
+A tuple of `Layout` or `Colon`.
+"""
 const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
 const StaticLayout{N} = Layout{N, <:StaticIntTuple{N}, <:StaticIntTuple{N}}
@@ -102,10 +105,10 @@ Construct a compact layout with the given shape and the stride is following the 
 ## Examples
 
 ```julia
-julia> CuTe.make_ordered_layout((3,5), (2, 6))
+julia> CuTe.make_ordered_layout((3, 5), (2, 6))
 (3, 5):(static(1), 3)
 
-julia> CuTe.make_ordered_layout((3,5), (10, 2))
+julia> CuTe.make_ordered_layout((3, 5), (10, 2))
 (3, 5):(5, static(1))
 ```
 """
@@ -117,7 +120,6 @@ function make_ordered_layout(layout::Layout)
 end
 
 # make_layout_like
-
 
 # make_identity_layout
 
@@ -373,9 +375,7 @@ function withshape(l::Layout, s1, s2, s3...)
 end
 
 function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
-    if stride == 0
-        return make_layout(cosize_hi)
-    end
+    stride == 0 && return make_layout(cosize_hi)
     rest_stride = shape * stride
     return bw_coalesce(Val(1), (stride,), (one(shape),), cld(cosize_hi, rest_stride),
                        rest_stride)
@@ -435,6 +435,30 @@ function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
     return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
+"""
+    logical_product(A::Layout, B::Layout)
+
+Compute the logical product of two layouts. Indexing through the first mode of the new layout
+corresponds to indexing through `A` and indexing through the second mode corresponds to indexing
+through `B`.
+
+```julia
+julia> print_layout(tile)
+tile = make_layout((2,2), (1,2));
+
+julia> print_layout(matrix_of_tiles)
+(2, 2):(1, 2)
+      1   2
+    +---+---+
+ 1  | 1 | 3 |
+    +---+---+
+ 2  | 2 | 4 |
+    +---+---+
+
+julia> print_layout(logical_product(tile, matrix_of_tiles));
+matrix_of_tiles = make_layout((3,4), (4,1));
+```
+"""
 function logical_product(layout::Layout, tile::Layout)
     return make_layout(layout,
                        composition(complement(layout, size(layout) * cosize(layout)), tile))
@@ -458,8 +482,25 @@ function tiled_product(layout::Layout, tile::Tile{N}) where {N}
     return d(:, repeat(:, N))
 end
 
+"""
+    blocked_product(tile::Layout, matrix_of_tiles::Layout, coalesce_result::Bool=false)
+
+Compute the blocked product of two layouts. Indexing through the first mode of the new layout
+corresponds to indexing through the cartesian product of the first mode of `tile` and the first
+mode of `matrix_of_tiles`. Indexing through the second mode is similar. If `coalesce_result` is
+true, then the result is coalesced.
+
+```julia
+julia> tile = make_layout((2, 2), (1, 2));
+
+julia> matrix_of_tiles = make_layout((3, 4), (4, 1));
+
+julia> print_layout(blocked_product(tile, matrix_of_tiles))
+
+```
+"""
 function blocked_product(block::Layout{N}, layout::Layout{M},
-                         coalesce_result=false) where {N, M}
+                         coalesce_result::Bool=false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)
@@ -469,8 +510,36 @@ function blocked_product(block::Layout{N}, layout::Layout{M},
     return result
 end
 
+"""
+    raked_product(tile::Layout, matrix_of_tiles::Layout, coalesce_result::Bool=false)
+
+The tile is shattered or interleaved with the matrix of tiles.
+
+```julia
+julia> tile = make_layout((2, 2), (1, 2));
+
+julia> matrix_of_tiles = make_layout((3, 4), (4, 1));
+
+julia> print_layout(raked_product(tile, matrix_of_tiles))
+((3, 2), (4, 2)):((16, 1), (4, 2))
+       1    2    3    4    5    6    7    8
+    +----+----+----+----+----+----+----+----+
+ 1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
+    +----+----+----+----+----+----+----+----+
+ 2  | 17 | 21 | 25 | 29 | 19 | 23 | 27 | 31 |
+    +----+----+----+----+----+----+----+----+
+ 3  | 33 | 37 | 41 | 45 | 35 | 39 | 43 | 47 |
+    +----+----+----+----+----+----+----+----+
+ 4  |  2 |  6 | 10 | 14 |  4 |  8 | 12 | 16 |
+    +----+----+----+----+----+----+----+----+
+ 5  | 18 | 22 | 26 | 30 | 20 | 24 | 28 | 32 |
+    +----+----+----+----+----+----+----+----+
+ 6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
+    +----+----+----+----+----+----+----+----+
+```
+"""
 function raked_product(block::Layout{N}, layout::Layout{M},
-                       coalesce_result=false) where {N, M}
+                       coalesce_result::Bool=false) where {N, M}
     R = max(N, M)
     padded_block = append(block, R)
     padded_layout = append(layout, R)
@@ -488,6 +557,52 @@ end
 
 # recast
 
+"""
+    logical_divide(layout::Layout, tile::Tile)
+
+Gather the elements of `layout` along all modes into blocks according to `tile`.
+
+```julia
+julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));
+
+julia> print_layout(raked_prod)
+((3, 2), (4, 2)):((16, 1), (4, 2))
+       1    2    3    4    5    6    7    8
+    +----+----+----+----+----+----+----+----+
+ 1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
+    +----+----+----+----+----+----+----+----+
+ 2  | 17 | 21 | 25 | 29 | 19 | 23 | 27 | 31 |
+    +----+----+----+----+----+----+----+----+
+ 3  | 33 | 37 | 41 | 45 | 35 | 39 | 43 | 47 |
+    +----+----+----+----+----+----+----+----+
+ 4  |  2 |  6 | 10 | 14 |  4 |  8 | 12 | 16 |
+    +----+----+----+----+----+----+----+----+
+ 5  | 18 | 22 | 26 | 30 | 20 | 24 | 28 | 32 |
+    +----+----+----+----+----+----+----+----+
+ 6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
+    +----+----+----+----+----+----+----+----+
+
+julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode
+       # and 2 elements with stride 4 along the second mode
+
+julia> print_layout(logical_divide(raked_prod, subtile))
+((2, 3), (2, 4)):((1, 16), (2, 4))
+       1    2    3    4    5    6    7    8
+    +----+----+----+----+----+----+----+----+
+ 1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
+    +----+----+----+----+----+----+----+----+
+ 2  |  2 |  4 |  6 |  8 | 10 | 12 | 14 | 16 |
+    +----+----+----+----+----+----+----+----+
+ 3  | 17 | 19 | 21 | 23 | 25 | 27 | 29 | 31 |
+    +----+----+----+----+----+----+----+----+
+ 4  | 18 | 20 | 22 | 24 | 26 | 28 | 30 | 32 |
+    +----+----+----+----+----+----+----+----+
+ 5  | 33 | 35 | 37 | 39 | 41 | 43 | 45 | 47 |
+    +----+----+----+----+----+----+----+----+
+ 6  | 34 | 36 | 38 | 40 | 42 | 44 | 46 | 48 |
+    +----+----+----+----+----+----+----+----+
+```
+"""
 function logical_divide(layout::Layout, tile::Layout)
     return composition(layout, make_layout(tile, complement(tile, size(layout))))
 end
@@ -502,10 +617,48 @@ function logical_divide(layout::Layout, tile::IntType)
     return logical_divide(layout, make_layout(tile))
 end
 
+"""
+    zipped_divide(layout::Layout, tile::Tile)
+
+Compute the logical division of `layout` by `tile`, then flatten the blocks into single
+mode and the rest into another mode.
+
+```julia
+julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));
+
+julia> print_layout(raked_prod)
+
+julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode
+       # and 2 elements with stride 4 along the second mode
+((3, 2), (4, 2)):((16, 1), (4, 2))
+       1    2    3    4    5    6    7    8
+    +----+----+----+----+----+----+----+----+
+ 1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
+    +----+----+----+----+----+----+----+----+
+ 2  | 17 | 21 | 25 | 29 | 19 | 23 | 27 | 31 |
+    +----+----+----+----+----+----+----+----+
+ 3  | 33 | 37 | 41 | 45 | 35 | 39 | 43 | 47 |
+    +----+----+----+----+----+----+----+----+
+ 4  |  2 |  6 | 10 | 14 |  4 |  8 | 12 | 16 |
+    +----+----+----+----+----+----+----+----+
+ 5  | 18 | 22 | 26 | 30 | 20 | 24 | 28 | 32 |
+    +----+----+----+----+----+----+----+----+
+ 6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
+    +----+----+----+----+----+----+----+----+
+
+julia> print_layout(zipped_divide(raked_prod, subtile))
+
+```
+"""
 function zipped_divide(layout::Layout, tile::Tile)
     return tile_unzip(logical_divide(layout, tile), tile)
 end
 
+"""
+    tiled_divide(layout::Layout, tile::Tile)
+
+Similar to `zipped_divide`, but upack the second mode into multiple modes.
+"""
 function tiled_divide(layout::Layout, tile::Tile)
     d = zipped_divide(layout, tile)
     R = rank(d, 2)
@@ -520,12 +673,15 @@ function tile(l1::Layout, l2::Layout, l3::Layout...)
 end
 
 """
-Make a layout of the same shape with the first mode being col-major, and with the rest
+    make_fragment_like(::Layout)
+
+Make a compact layout of the same shape with the first mode being col-major, and with the rest
 following the given order.
 """
 make_fragment_like(layout::StaticLayout{1}) = make_layout(shape(layout))
 function make_fragment_like(layout::StaticLayout{R}) where {R}
-    return tiled_product(make_layout(shape(layout)[1]), tuple(make_ordered_layout(make_layout(layout[2:end]...))...))
+    return tiled_product(make_layout(shape(layout)[1]),
+                         tuple(make_ordered_layout(make_layout(layout[2:end]...))...))
 end
 make_fragment_like(layout::Layout) = make_layout(shape(layout))
 make_fragment_like(shape::GenIntTuple) = make_layout(shape)
