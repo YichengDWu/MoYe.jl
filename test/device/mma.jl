@@ -9,7 +9,13 @@ function kernel()
     c_frag = op.CRegisters()
 
     d_frag = mma(op, a_frag, b_frag, c_frag) # this should be a ArrayEngine in the future
+
+    s = d_frag[1][1].value
+    @cushow Float32(s)
     return
 end
 
-@test_nowarn @device_code_ptx @cuda threads=32 kernel()
+buf = IOBuffer()
+@device_code_ptx io = buf @cuda threads=32 kernel()
+asm = String(take!(copy(buf)))
+@test occursin("mma.sync.aligned.m16n8k16.row.col.f16.f16.f16.f16", asm)
