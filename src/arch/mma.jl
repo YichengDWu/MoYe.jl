@@ -334,6 +334,29 @@ end
 get_mma_ops()
 export mma
 
+#= Currently generated MMA OP
+ "MMA_8x8x4_F64F64F64F64_TN"
+ "MMA_8x8x4_F32F16F16F16_TN"
+ "MMA_8x8x4_F32F16F16F16_NT"
+ "MMA_8x8x4_F32F16F16F16_TT"
+ "MMA_8x8x4_F32F16F16F16_NN"
+ "MMA_8x8x4_F32F16F16F32_TN"
+ "MMA_8x8x4_F32F16F16F32_NT"
+ "MMA_8x8x4_F32F16F16F32_TT"
+ "MMA_8x8x4_F32F16F16F32_NN"
+ "MMA_8x8x4_F16F16F16F16_TN"
+ "MMA_8x8x4_F16F16F16F16_NT"
+ "MMA_8x8x4_F16F16F16F16_TT"
+ "MMA_8x8x4_F16F16F16F16_NN"
+ "MMA_16x8x8_F16F16F16F16_TN"
+ "MMA_16x8x16_F16F16F16F16_TN"
+ "MMA_16x8x8_F32F16F16F32_TN"
+ "MMA_16x8x16_F32F16F16F32_TN"
+ "MMA_16x8x8_F32BF16BF16F32_TN"
+ "MMA_16x8x16_F32BF16BF16F32_TN"
+ "MMA_16x8x8_F32TF32TF32F32_TN"
+ =#
+
 #function make_ldmatrix_ops(geoms, frags, types)
 #    for (geom, frag, ptx_type) in Iterators.product(geoms, frags, types)
 #        make_frag(geom, frag, ptx_type)
