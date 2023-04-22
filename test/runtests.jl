@@ -9,6 +9,6 @@ using Test, SafeTestsets
 @safetestset "CuTeArray" begin include("cutearray.jl") end
 
 @testset "Device" begin
-    #@safetestset "Array" begin include("device/memory.jl") end
+    #@safetestset "Memory" begin include("device/memory.jl") end
     @safetestset "MMA" begin include("device/mma.jl") end
 end
