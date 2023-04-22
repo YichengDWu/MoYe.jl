@@ -12,4 +12,4 @@ function kernel()
     return
 end
 
-@test_nowarn @cuda threads=32 kernel()
+@test_nowarn @device_code_ptx @cuda threads=32 kernel()
