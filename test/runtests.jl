@@ -7,3 +7,8 @@ using Test, SafeTestsets
 @safetestset "Static" begin include("static.jl") end
 @safetestset "Engine" begin include("engine.jl") end
 @safetestset "CuTeArray" begin include("cutearray.jl") end
+
+@testset "Device" begin
+    @safetestset "Array" begin include("device/array.jl") end
+    @safetestset "MMA" begin include("device/mma.jl") end
+end

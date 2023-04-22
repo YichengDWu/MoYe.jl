@@ -66,15 +66,15 @@ struct CuTeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, 
     end
 end
 
-@inline function CuTeArray{T}(::UndefInitializer, l::StaticLayout) where {T <: Number}
+@inline function CuTeArray{T}(::UndefInitializer, l::StaticLayout) where {T}
     return CuTeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
 @inline function CuTeArray{T}(::UndefInitializer, shape::Union{StaticInt, StaticIntTuple},
-                              args...) where {T <: Number}
+                              args...) where {T}
     l = make_layout(shape, args...)
     return CuTeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
-@inline function CuTeArray(ptr::Ptr{T}, layout::Layout) where {T <: Number}
+@inline function CuTeArray(ptr::Ptr{T}, layout::Layout) where {T}
     engine = ViewEngine(ptr, cosize(layout)) # this differs from the first constructor since we recompute the length
     return CuTeArray(engine, layout)
 end
