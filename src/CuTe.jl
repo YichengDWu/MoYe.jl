@@ -5,7 +5,7 @@ using Static: StaticInt, IntType, static
 import Static
 @reexport using Static: static, is_static
 using ManualMemory, LayoutPointers, LoopVectorization
-using CUDA, BFloat16s
+using CUDA, BFloat16s, LLVM
 using Core: LLVMPtr
 import Adapt
 
@@ -21,6 +21,7 @@ include("algorithm/blas.jl")
 
 include("device/array.jl")
 include("arch/mma.jl")
+include("arch/ldmatrix.jl")
 
 export flatten
 export colex_less, elem_less, increment, capacity

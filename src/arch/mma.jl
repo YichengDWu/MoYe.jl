@@ -1,50 +1,12 @@
 abstract type MMAOP{DRegisters, ARegisters, BRegisters, CRegisters} end
+export MMAOP
+
+@inline Adapt.adapt(to, x::MMAOP) = x
+
+"""
+A struct to hold the register type and number of registers.
+"""
 struct Registers{T,S} end
-
-
-"""
-    mma(::MMAOP, A, B, C)
-
-Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
-```julia
- "MMA_8x8x4_F64F64F64F64_TN"
- "MMA_8x8x4_F32F16F16F16_TN"
- "MMA_8x8x4_F32F16F16F16_NT"
- "MMA_8x8x4_F32F16F16F16_TT"
- "MMA_8x8x4_F32F16F16F16_NN"
- "MMA_8x8x4_F32F16F16F32_TN"
- "MMA_8x8x4_F32F16F16F32_NT"
- "MMA_8x8x4_F32F16F16F32_TT"
- "MMA_8x8x4_F32F16F16F32_NN"
- "MMA_8x8x4_F16F16F16F16_TN"
- "MMA_8x8x4_F16F16F16F16_NT"
- "MMA_8x8x4_F16F16F16F16_TT"
- "MMA_8x8x4_F16F16F16F16_NN"
- "MMA_16x8x8_F16F16F16F16_TN"
- "MMA_16x8x16_F16F16F16F16_TN"
- "MMA_16x8x8_F32F16F16F32_TN"
- "MMA_16x8x16_F32F16F16F32_TN"
- "MMA_16x8x8_F32BF16BF16F32_TN"
- "MMA_16x8x16_F32BF16BF16F32_TN"
- "MMA_16x8x8_F32TF32TF32F32_TN"
-```
-You can instantiate any of these `MMAOP`s and inspect the information about the operation
-
-```julia
-julia> op =  MMA_16x8x8_F32TF32TF32F32_TN()
-MMA_16x8x8_F32TF32TF32F32_TN()
-
-julia> op.ARegisters        # Register type, and number of registers
-CuTe.Registers{UInt32, 4}
-
-julia> op.BRegisters
-CuTe.Registers{UInt32, 2}
-
-julia> op.CRegisters
-CuTe.Registers{Float32, 4}
-```
-"""
-function mma end
 
 @inline Base.eltype(::Registers{T}) where {T} = T
 @inline Base.length(::Registers{T, L}) where {T, L} = L
@@ -65,6 +27,51 @@ function Base.getproperty(obj::MMAOP{DRegisters, ARegisters,
         return getfield(obj,sym)
     end
 end
+
+
+"""
+    mma(A, B, C, ::MMAOP)
+
+Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
+```julia
+"MMA_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
+"MMA_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
+"MMA_8x8x4_F32F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f16"
+"MMA_8x8x4_F32F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f16"
+"MMA_8x8x4_F32F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f16"
+"MMA_8x8x4_F32F16F16F32_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f32"
+"MMA_8x8x4_F32F16F16F32_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f32"
+"MMA_8x8x4_F32F16F16F32_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f32"
+"MMA_8x8x4_F32F16F16F32_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f32"
+"MMA_8x8x4_F16F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f16.f16"
+"MMA_8x8x4_F16F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f16.f16"
+"MMA_8x8x4_F16F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f16.f16"
+"MMA_8x8x4_F16F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f16.f16"
+"MMA_16x8x8_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f16.f16"
+"MMA_16x8x16_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f16.f16"
+"MMA_16x8x8_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f32.f32"
+"MMA_16x8x16_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f32.f32"
+"MMA_16x8x8_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.bf16"
+"MMA_16x8x16_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.bf16"
+"MMA_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
+```
+
+You can instantiate any of these `MMAOP`s and inspect the information about the operation
+```julia
+julia> op =  MMA_16x8x8_F32TF32TF32F32_TN()
+MMA_16x8x8_F32TF32TF32F32_TN()
+
+julia> op.ARegisters        # Register type, and number of registers
+CuTe.Registers{UInt32, 4}
+
+julia> op.BRegisters
+CuTe.Registers{UInt32, 2}
+
+julia> op.CRegisters
+CuTe.Registers{Float32, 4}
+```
+"""
+function mma end
 
 # PTX types to LLVM types
 const ptx_to_llvm = Dict(
@@ -275,10 +282,6 @@ end
 
 function make_frag(geom, frag, ptx_elt_type)
    T, S = ptx_to_jl[ptx_elt_type], get_nregs(geom, frag, ptx_elt_type)
-   if S === nothing
-    @show T, geom, frag, S, ptx_elt_type
-    @show "$geom:$frag:$ptx_elt_type"
-   end
    return Registers{T, S}
 end
 
@@ -327,13 +330,12 @@ function get_ccall_args(ARegisters, BRegisters, CRegisters, DRegisters)
 end
 
 function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
-    struct_names = String[]
+    struct_names = []
     for (geom, type_a, type_c) in Iterators.product(geoms,  types_a, types_c)
         for (type_b, type_d) in Iterators.product(ifelse(isempty(types_b), [type_a], types_b),
                                                 ifelse(isempty(types_d), [type_c], types_d))
             for signature in signatures
                 struct_name = "MMA_$(convert_geom(geom))_$(uppercase(type_d*type_a*type_b*type_c))_$(signature)"
-                push!(struct_names, struct_name)
 
                 DRegisters = make_frag(geom, "d", type_d)
                 ARegisters = make_frag(geom, "a", type_a)
@@ -348,8 +350,14 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                 layout = op_signature_to_layout[signature]
                 mma_intrinsic = "llvm.nvvm.mma.$geom.$layout.$intrinsic_signature"
 
+                push!(struct_names, struct_name => mma_intrinsic)
                 a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
-                @eval @inline mma(::$_struct_name, a, b, c) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+
+                if d_sz == 1
+                    @eval @inline mma(a, b, c, ::$_struct_name) = tuple(ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                else
+                    @eval @inline mma(a, b, c, ::$_struct_name) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                end
             end
         end
     end
@@ -401,14 +409,6 @@ export mma
  "MMA_16x8x16_F32BF16BF16F32_TN"
  "MMA_16x8x8_F32TF32TF32F32_TN"
  =#
-
-#function make_ldmatrix_ops(geoms, frags, types)
-#    for (geom, frag, ptx_type) in Iterators.product(geoms, frags, types)
-#        make_frag(geom, frag, ptx_type)
-#    end
-#end
-
-#make_ldmatrix_ops(["m8n8"], ["x1", "x2", "x4"], ["b16"])
 
 const space_map = Dict(
     ".global" => AS.Global,
