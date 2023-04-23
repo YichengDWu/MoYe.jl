@@ -5,7 +5,7 @@ if CUDA.functional()
     @inline _tofloat32(x::VecElement) = convert(Float32, x.value)
     @inline _tofloat32(x::Number) = convert(Float32, x)
 
-    @testset "Compile" begin
+    @testset "Compile to LLVM" begin
         function kernel(op)
             a_frag = op.ARegisters()
             b_frag = op.BRegisters()
