@@ -1,6 +1,51 @@
 abstract type MMAOP{DRegisters, ARegisters, BRegisters, CRegisters} end
 struct Registers{T,S} end
 
+
+"""
+    mma(::MMAOP, A, B, C)
+
+Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
+```julia
+ "MMA_8x8x4_F64F64F64F64_TN"
+ "MMA_8x8x4_F32F16F16F16_TN"
+ "MMA_8x8x4_F32F16F16F16_NT"
+ "MMA_8x8x4_F32F16F16F16_TT"
+ "MMA_8x8x4_F32F16F16F16_NN"
+ "MMA_8x8x4_F32F16F16F32_TN"
+ "MMA_8x8x4_F32F16F16F32_NT"
+ "MMA_8x8x4_F32F16F16F32_TT"
+ "MMA_8x8x4_F32F16F16F32_NN"
+ "MMA_8x8x4_F16F16F16F16_TN"
+ "MMA_8x8x4_F16F16F16F16_NT"
+ "MMA_8x8x4_F16F16F16F16_TT"
+ "MMA_8x8x4_F16F16F16F16_NN"
+ "MMA_16x8x8_F16F16F16F16_TN"
+ "MMA_16x8x16_F16F16F16F16_TN"
+ "MMA_16x8x8_F32F16F16F32_TN"
+ "MMA_16x8x16_F32F16F16F32_TN"
+ "MMA_16x8x8_F32BF16BF16F32_TN"
+ "MMA_16x8x16_F32BF16BF16F32_TN"
+ "MMA_16x8x8_F32TF32TF32F32_TN"
+```
+You can instantiate any of these `MMAOP`s and inspect the information about the operation
+
+```julia
+julia> op =  MMA_16x8x8_F32TF32TF32F32_TN()
+MMA_16x8x8_F32TF32TF32F32_TN()
+
+julia> op.ARegisters
+CuTe.Registers{UInt32, 4}
+
+julia> op.BRegisters
+CuTe.Registers{UInt32, 2}
+
+julia> op.CRegisters
+CuTe.Registers{Float32, 4}
+```
+"""
+function mma end
+
 @inline Base.eltype(::Registers{T}) where {T} = T
 @inline Base.length(::Registers{T, L}) where {T, L} = L
 
