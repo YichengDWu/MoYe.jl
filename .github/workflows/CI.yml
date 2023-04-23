@@ -20,6 +20,7 @@ jobs:
         version:
           - '1'
           - '~1.9.0-0'
+          - 'vc/upgrade_llvm15'
         os:
           - ubuntu-latest
         arch:
