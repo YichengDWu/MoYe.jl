@@ -2,22 +2,27 @@ using Test, CuTe, CUDA
 
 if CUDA.functional()
     @inline CuTe.Registers{T,S}() where {T, S} = ArrayEngine{T}(undef, static(S))
+    @inline _tofloat32(x::VecElement) = convert(Float32, x.value)
+    @inline _tofloat32(x::Number) = convert(Float32, x)
 
-    function kernel(op)
-        a_frag = op.ARegisters()
-        b_frag = op.BRegisters()
-        c_frag = op.CRegisters()
+    @testset "Compile" begin
+        function kernel(op)
+            a_frag = op.ARegisters()
+            b_frag = op.BRegisters()
+            c_frag = op.CRegisters()
 
-        d_frag = mma(a_frag, b_frag, c_frag, op) # this should be a ArrayEngine in the future
+            d_frag = mma(a_frag, b_frag, c_frag, op) # this should be a ArrayEngine in the future
+            @cushow _tofloat32(d_frag[1][1])
+            return
+        end
 
-        s = d_frag[1][1].value
-        @cushow Float32(s)
-        return
+        op_to_intrinsic = Dict(CuTe.get_mma_ops())
+        for op in Base.subtypes(MMAOP)
+            buf = IOBuffer()
+            @device_code_llvm io = buf @cuda threads=32 kernel(op())
+            asm = String(take!(copy(buf)))
+
+            @test occursin(op_to_intrinsic["$op"], asm)
+        end
     end
-
-    buf = IOBuffer()
-    @device_code_ptx io = buf @cuda threads=32 kernel(MMA_16x8x16_F16F16F16F16_TN())
-    asm = String(take!(copy(buf)))
-    @test occursin("mma.sync.aligned.m16n8k16.row.col.f16.f16.f16.f16", asm)
-
 end
