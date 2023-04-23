@@ -63,9 +63,16 @@ function get_ldmatrix_ops()
 
         llvm_struct = Symbol("LLVMStruct$d_sz")
         ret_type = @eval $llvm_struct{$d_type}
-        @eval @inline function load(src_addr::LLVMPtr, ::$(Symbol(ld_type)))
-            _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-            convert(NTuple{$d_sz, $d_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
+        if isone(d_sz)
+            @eval @inline function load(src_addr::LLVMPtr, ::$(Symbol(ld_type)))
+                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
+                return tuple(ccall($intrinsic, llvmcall, $d_type, ($ptr_type,), _src_addr))
+            end
+        else
+            @eval @inline function load(src_addr::LLVMPtr, ::$(Symbol(ld_type)))
+                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
+                return convert(NTuple{$d_sz, $d_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
+            end
         end
     end
     return ld_ops

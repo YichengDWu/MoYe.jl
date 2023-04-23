@@ -352,7 +352,12 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
 
                 push!(struct_names, struct_name => mma_intrinsic)
                 a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
-                @eval @inline mma(a, b, c, ::$_struct_name) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+
+                if d_sz == 1
+                    @eval @inline mma(a, b, c, ::$_struct_name) = tuple(ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                else
+                    @eval @inline mma(a, b, c, ::$_struct_name) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                end
             end
         end
     end
