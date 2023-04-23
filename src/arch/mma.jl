@@ -4,7 +4,9 @@ export MMAOP
 @inline Adapt.adapt(to, x::MMAOP) = x
 
 """
-A struct to hold the register type and number of registers.
+  Registers{T,S}
+
+A struct that wraps the register file type `T` and number of register files `S`.
 """
 struct Registers{T,S} end
 
