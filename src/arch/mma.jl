@@ -34,7 +34,7 @@ You can instantiate any of these `MMAOP`s and inspect the information about the 
 julia> op =  MMA_16x8x8_F32TF32TF32F32_TN()
 MMA_16x8x8_F32TF32TF32F32_TN()
 
-julia> op.ARegisters
+julia> op.ARegisters        # Register type, and number of registers
 CuTe.Registers{UInt32, 4}
 
 julia> op.BRegisters
