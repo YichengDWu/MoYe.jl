@@ -36,32 +36,32 @@ end
 
 Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
 ```julia
-"MMA_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
-"MMA_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
-"MMA_8x8x4_F32F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f16"
-"MMA_8x8x4_F32F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f16"
-"MMA_8x8x4_F32F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f16"
-"MMA_8x8x4_F32F16F16F32_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f32"
-"MMA_8x8x4_F32F16F16F32_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f32"
-"MMA_8x8x4_F32F16F16F32_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f32"
-"MMA_8x8x4_F32F16F16F32_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f32"
-"MMA_8x8x4_F16F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f16.f16"
-"MMA_8x8x4_F16F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f16.f16"
-"MMA_8x8x4_F16F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f16.f16"
-"MMA_8x8x4_F16F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f16.f16"
-"MMA_16x8x8_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f16.f16"
-"MMA_16x8x16_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f16.f16"
-"MMA_16x8x8_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f32.f32"
-"MMA_16x8x16_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f32.f32"
-"MMA_16x8x8_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.bf16"
-"MMA_16x8x16_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.bf16"
-"MMA_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
+"MMAOP_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
+"MMAOP_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
+"MMAOP_8x8x4_F32F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f16"
+"MMAOP_8x8x4_F32F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f16"
+"MMAOP_8x8x4_F32F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f16"
+"MMAOP_8x8x4_F32F16F16F32_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f32"
+"MMAOP_8x8x4_F32F16F16F32_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f32"
+"MMAOP_8x8x4_F32F16F16F32_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f32"
+"MMAOP_8x8x4_F32F16F16F32_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f32"
+"MMAOP_8x8x4_F16F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f16.f16"
+"MMAOP_8x8x4_F16F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f16.f16"
+"MMAOP_8x8x4_F16F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f16.f16"
+"MMAOP_8x8x4_F16F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f16.f16"
+"MMAOP_16x8x8_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f16.f16"
+"MMAOP_16x8x16_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f16.f16"
+"MMAOP_16x8x8_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f32.f32"
+"MMAOP_16x8x16_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f32.f32"
+"MMAOP_16x8x8_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.bf16"
+"MMAOP_16x8x16_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.bf16"
+"MMAOP_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
 ```
 
 You can instantiate any of these `MMAOP`s and inspect the information about the operation
 ```julia
-julia> op =  MMA_16x8x8_F32TF32TF32F32_TN()
-MMA_16x8x8_F32TF32TF32F32_TN()
+julia> op =  MMAOP_16x8x8_F32TF32TF32F32_TN()
+MMAOP_16x8x8_F32TF32TF32F32_TN()
 
 julia> op.ARegisters        # Register type, and number of registers
 CuTe.Registers{UInt32, 4}
@@ -79,8 +79,8 @@ CuTe.Registers{Float32, 4}
 """
 function mma end
 
-# PTX types to LLVM types
-const ptx_to_llvm = Dict(
+# PTX types to LLVM types for registers
+const ptx_to_llvm_reg = Dict(
     "f16"  => "<2 x half>",
     "f32"  => "float",
     "f64"  => "double",
@@ -95,8 +95,8 @@ const ptx_to_llvm = Dict(
     "tf32" => "i32",
 )
 
-# PTX types to julia types
-const ptx_to_jl = Dict(
+# PTX types to julia types for registers
+const ptx_to_jl_reg = Dict(
     "f16"  => NTuple{2, VecElement{Float16}},
     "f32"  => Float32,
     "f64"  => Float64,
@@ -111,15 +111,22 @@ const ptx_to_jl = Dict(
     "tf32" => UInt32
 )
 
+const ptx_to_jl = Dict(
+    "f16" => Float16,
+    "f32" => Float32,
+    "f64" => Float64,
+    "s32"  => Int32,
+    "s8" => Int8,
+    "u8" => UInt8,
+    "bf16" => BFloat16,
+)
+
 const ptx_reg_pattern = Dict(
     "f16" => r"%hh[0-9]+",
     "f32" => r"%f[0-9]+",
     "f64" => r"%fd[0-9]+",
 )
 
-#function get_mma_type(ptx_type::String)
-#    return ptx_to_llvm[ptx_type]#, get(ptx_reg_pattern, ptx_type, r"%r[0-9]+")
-#end
 
 const nregs = Dict(
     "m16n16k16:a:u8" => 2,
@@ -287,12 +294,8 @@ function get_nregs(geom, frag, ptx_elt_type)
 end
 
 function make_frag(geom, frag, ptx_elt_type)
-   T, S = ptx_to_jl[ptx_elt_type], get_nregs(geom, frag, ptx_elt_type)
+   T, S = ptx_to_jl_reg[ptx_elt_type], get_nregs(geom, frag, ptx_elt_type)
    return Registers{T, S}
-end
-
-function get_mmaop_name(prefix, geom, type_d, type_a, type_b, type_c, signature)
-    return "$(prefix)_$(geom)_$(type_d)$(type_a)$(type_b)$(type_c)_$(signature)"
 end
 
 function mma_signature(ptx_type_d, ptx_type_a, ptx_type_b, ptx_type_c,)
@@ -341,7 +344,7 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
         for (type_b, type_d) in Iterators.product(ifelse(isempty(types_b), [type_a], types_b),
                                                 ifelse(isempty(types_d), [type_c], types_d))
             for signature in signatures
-                struct_name = "MMA_$(convert_geom(geom))_$(uppercase(type_d*type_a*type_b*type_c))_$(signature)"
+                struct_name = "MMAOP_$(convert_geom(geom))_$(uppercase(type_d*type_a*type_b*type_c))_$(signature)"
 
                 DRegisters = make_frag(geom, "d", type_d)
                 ARegisters = make_frag(geom, "a", type_a)
@@ -392,36 +395,3 @@ end
 
 get_mma_ops()
 export mma
-
-#= Currently generated MMA OP
- "MMA_8x8x4_F64F64F64F64_TN"
- "MMA_8x8x4_F32F16F16F16_TN"
- "MMA_8x8x4_F32F16F16F16_NT"
- "MMA_8x8x4_F32F16F16F16_TT"
- "MMA_8x8x4_F32F16F16F16_NN"
- "MMA_8x8x4_F32F16F16F32_TN"
- "MMA_8x8x4_F32F16F16F32_NT"
- "MMA_8x8x4_F32F16F16F32_TT"
- "MMA_8x8x4_F32F16F16F32_NN"
- "MMA_8x8x4_F16F16F16F16_TN"
- "MMA_8x8x4_F16F16F16F16_NT"
- "MMA_8x8x4_F16F16F16F16_TT"
- "MMA_8x8x4_F16F16F16F16_NN"
- "MMA_16x8x8_F16F16F16F16_TN"
- "MMA_16x8x16_F16F16F16F16_TN"
- "MMA_16x8x8_F32F16F16F32_TN"
- "MMA_16x8x16_F32F16F16F32_TN"
- "MMA_16x8x8_F32BF16BF16F32_TN"
- "MMA_16x8x16_F32BF16BF16F32_TN"
- "MMA_16x8x8_F32TF32TF32F32_TN"
- =#
-
-const space_map = Dict(
-    ".global" => AS.Global,
-    ".shared" => AS.Shared,
-    ".const"  => AS.Constant,
-    ".local"  => AS.Local,
-    ".param"  => 101,
-    ""        => AS.Generic,
-    ".generic" => AS.Generic,
-)
