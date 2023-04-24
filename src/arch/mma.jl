@@ -72,6 +72,10 @@ CuTe.Registers{UInt32, 2}
 julia> op.CRegisters
 CuTe.Registers{Float32, 4}
 ```
+
+!!! note
+    Do not use `mma` with `wmma.load` together. Their data layouts do not agree.
+    The correct execution chain is ldmatrix + mma.
 """
 function mma end
 
