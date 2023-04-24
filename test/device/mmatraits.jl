@@ -7,6 +7,6 @@ using Test, CuTe
                  MMAOP_16x8x16_F16F16F16F16_TN,
                  MMAOP_16x8x16_F32F16F16F32_TN,
                  MMAOP_16x8x16_F32BF16BF16F32_TN]
-        @test size(MMATraits{mmaop}()) == 0
+        @test sizeof(MMATraits{mmaop}()) == 0
     end
 end
