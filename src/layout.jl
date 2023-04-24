@@ -666,9 +666,6 @@ mode and the rest into another mode.
 julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));
 
 julia> print_layout(raked_prod)
-
-julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode
-       # and 2 elements with stride 4 along the second mode
 ((3, 2), (4, 2)):((16, 1), (4, 2))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
@@ -684,8 +681,20 @@ julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3
     +----+----+----+----+----+----+----+----+
  6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
     +----+----+----+----+----+----+----+----+
+julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode and 2 elements with stride 4 along the second mode
 
 julia> print_layout(zipped_divide(raked_prod, subtile))
+((2, 2), (3, 4)):((1, 2), (16, 4))
+       1    2    3    4    5    6    7    8    9   10   11   12
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 2  |  2 | 18 | 34 |  6 | 22 | 38 | 10 | 26 | 42 | 14 | 30 | 46 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 3  |  3 | 19 | 35 |  7 | 23 | 39 | 11 | 27 | 43 | 15 | 31 | 47 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
 
 ```
 """

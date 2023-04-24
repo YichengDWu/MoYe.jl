@@ -36,6 +36,8 @@ LD_U32x4_N()
 julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
+!!! note 
+    Would not work with LLVM 14
 """
 function load end
 
