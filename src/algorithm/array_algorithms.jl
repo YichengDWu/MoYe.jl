@@ -96,6 +96,9 @@ end
 @inline function local_partition(@nospecialize(x::CuTeArray), tile::Tile, coord, proj)
     return local_partition(x, dice(tile, proj), dice(coord, proj))
 end
+@inline function local_partition(@nospecialize(x::CuTeArray), tile::Layout, index::Integer, proj)
+    return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
+end
 
 """
     local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple)
