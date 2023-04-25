@@ -31,7 +31,7 @@ export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compac
        GenColMajor, GenRowMajor, @Layout
 export Layout, make_layout, shape, rank, depth, cosize, complement, logical_product,
        blocked_product, raked_product, zipped_product, logical_divide, zipped_divide,
-       tiled_divide
+       tiled_divide, local_partition, local_tile
 export print_layout
 export ArrayEngine, ViewEngine, CuTeArray, make_fragment_like
 export axpby!
