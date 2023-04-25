@@ -163,7 +163,7 @@ end
     end
 end
 @inline function Base.view(x::CuTeArray{T},
-                           coord::Union{Integer, StaticInt, IntTuple, Colon}...) where {T}
+                           coord...) where {T}
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
         sliced_layout, offset = slice_and_offset(layout(x), coord)

@@ -12,10 +12,9 @@ struct Layout{N, Shape, Stride}
 end
 
 """
-A tuple of `Layout`s or `Colon`s.
+A tuple of `Layout`s, `Colon`s or integers.
 """
-const Tile{N} = Tuple{Vararg{Union{Colon, Layout}, N}}
-const GenIntTuple = Union{Int, StaticInt, IntTuple}
+const Tile{N} = Tuple{Vararg{Union{Colon, Layout, Int, StaticInt}, N}}
 const StaticLayout{N} = Layout{N, <:Union{StaticInt, StaticIntTuple{N}}, <:Union{StaticInt,StaticIntTuple{N}}}
 
 shape(l::Layout) = getfield(l, :shape)
@@ -43,15 +42,20 @@ function (l::Layout)(c1, c2, c3...)
 end
 
 # map 1D index to a hier coordinate
-function get_hier_coord(l::Layout, @nospecialize index::IntType)
+function get_hier_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
     return index_to_coord(index, l.shape, l.stride)
 end
 
-function get_congr_coord(l::Layout{N}, @nospecialize index::IntType) where {N}
+"""
+    get_congr_coord(l::Layout, index::Integer)
+
+Get the flat congruent coordinate from the physical index `index`.
+"""
+function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
     return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
 end
 
-function get_linear_coord(l::Layout, @nospecialize index::IntType)
+function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
@@ -659,8 +663,8 @@ end
 """
     zipped_divide(layout::Layout, tile::Tile)
 
-Compute the logical division of `layout` by `tile`, then flatten the blocks into single
-mode and the rest into another mode.
+Compute the logical division of `layout` by `tile`, then flatten the blocks into the first
+mode and the rest into the second mode.
 
 ```julia
 julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));

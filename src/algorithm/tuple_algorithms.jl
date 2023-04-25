@@ -62,7 +62,7 @@ function group(@nospecialize(t::Tuple), b, e)
 end
 
 # append x to extend t to rank N
-function append(@nospecialize(t::Tuple), x, N::IntType)
+function append(@nospecialize(t::Union{Tuple, IntType}), x, N::IntType)
     return (t..., ntuple(_ -> x, N - length(t))...)
 end
 function append(@nospecialize(t::Tuple), x)
@@ -74,7 +74,7 @@ function append(t::IntType, x::IntType)
     return (t, x)
 end
 
-function prepend(@nospecialize(t::Tuple), x, I)
+function prepend(@nospecialize(t::Union{Tuple, IntType}), x, I)
     return (ntuple(_ -> x, I - length(t))..., t...)
 end
 function prepend(@nospecialize(t::Tuple), x)

@@ -6,10 +6,6 @@ function coord_to_index0(coord::Tuple{IntType}, shape::IntType, stride::IntType)
     @inline
     return first(coord) * stride
 end
-function coord_to_index0(coord::Colon, shape::IntType, stride::IntType)
-    @inline
-    return zero(stride)
-end
 function coord_to_index0(coord::IntType, shape::Tuple{}, stride::Tuple{})
     @inline
     return zero(coord)
@@ -26,7 +22,7 @@ function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
-@inline _offset(x::Colon) = x  # don't touch colons
+@inline _offset(::Colon) = static(0)
 @inline _offset(x) = x - one(x)
 function coord_to_index(coord, shape, stride)
     return coord_to_index0(emap(_offset, coord), shape, stride) + static(1)
