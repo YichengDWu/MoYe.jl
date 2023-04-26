@@ -8,6 +8,7 @@ end
     return make_cutearray_like(T, x)
 end
 
+
 @inline function make_fragment_like(::Type{T}, @nospecialize(layout::Layout)) where {T}
     return CuTeArray{T}(undef, make_fragment_like(layout))
 end
@@ -47,11 +48,11 @@ end
     local_partition(x::CuTeArray, tile::Tile, coord::Tuple)
     local_partition(x::CuTeArray, thread_layout::Layout, thread_id::Integer)
 
-Partition a `CuTeArray`[@ref] `x` into tiles that are parallised over.
+Partition a [`CuTeArray`](@ref) `x` into tiles that are parallised over.
 
 ## Examples
 
-Say we have a `CuTeArray`[@ref] `x` of shape `(6, 8)` and 4 threads of shape (2, 2). We would
+Say we have a [`CuTeArray`](@ref) `x` of shape `(6, 8)` and 4 threads of shape (2, 2). We would
 like to  partition `x` with the 4 threads and get a view of the entries that the first thread
 will work on. We can do this by calling `local_partition(x, (2, 2), 1)`.
 
@@ -96,11 +97,14 @@ end
 @inline function local_partition(@nospecialize(x::CuTeArray), tile::Tile, coord, proj)
     return local_partition(x, dice(tile, proj), dice(coord, proj))
 end
+@inline function local_partition(@nospecialize(x::CuTeArray), tile::Layout, index::Integer, proj)
+    return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
+end
 
 """
     local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple)
 
-Partition a `CuTeArray`[@ref] `x` into tiles. This is similar to `local_partition`[@ref] but
+Partition a [`CuTeArray`](@ref) `x` into tiles. This is similar to [`local_partition`](@ref) but
 tiles are not parallelised.
 
 ```julia

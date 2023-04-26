@@ -26,9 +26,9 @@ function gemme_kernel(M, N, K,
     threadtile_a = local_partition(a, threadlayoutA, threadIdx().x) # (THR_M,THR_K）
     threadtile_b = local_partition(b, threadlayoutB, threadIdx().x) # (THR_N,THR_K）
 
-    tCsA = local_partition(a, threadlayoutC, threadIdx().x, (staitc(1), :))
-    tCsB = local_partition(b, threadlayoutC, threadIdx().x)
-    tCgC = local_partition(blocktileC, threadlayoutC, threadIdx().x)
+    tCsA = local_partition(a, threadlayoutC, threadIdx().x, (static(1), :))  # (16,8)
+    tCsB = local_partition(b, threadlayoutC, threadIdx().x)                  # (16,8)
+    tCgC = local_partition(blocktileC, threadlayoutC, threadIdx().x)         # (16,16)
 
     frag_c = make_fragment_like(tCgC)
 
@@ -39,7 +39,7 @@ function gemme_kernel(M, N, K,
         copyto!(threadtile_a, view(threadtileA, (:, :, k)))
         copyto!(threadtile_b, view(threadtileB, (:, :, k)))
         sync_threads()
-        gemm(tCsA, tCsB, frag_c)
+        mma(tCsA, tCsB, frag_c)
         sync_threads()
     end
 end
