@@ -109,10 +109,10 @@ Construct a compact layout with the given shape and the stride is following the 
 ## Examples
 
 ```julia
-julia> CuTe.make_ordered_layout((3, 5), (2, 6))
+julia> Shambles.make_ordered_layout((3, 5), (2, 6))
 (3, 5):(static(1), 3)
 
-julia> CuTe.make_ordered_layout((3, 5), (10, 2))
+julia> Shambles.make_ordered_layout((3, 5), (10, 2))
 (3, 5):(5, static(1))
 ```
 """

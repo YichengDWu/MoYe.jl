@@ -1,4 +1,4 @@
-using CuTe, Test, CUDA
+using Shambles, Test, CUDA
 
 if CUDA.functional()
     @testset "Global Memory" begin
@@ -8,7 +8,7 @@ if CUDA.functional()
     end
 
     @testset "Shared Memory" begin
-        ptr = CuTe.SharedMemory(Float32, static(10))
+        ptr = Shambles.SharedMemory(Float32, static(10))
         CuTeArray(ptr, static((2, 5)))
     end
 

@@ -1,4 +1,4 @@
-using CuTe, Test, JET
+using Shambles, Test, JET
 
 @testset "Capacity" begin
     @test capacity(((2, 3, (1, 1)), 4)) == 24
@@ -6,25 +6,25 @@ using CuTe, Test, JET
 end
 
 @testset "Shape Division" begin
-    @test CuTe.shape_div((12, 3), (2, 3)) == (6, 1)
-    @test_opt CuTe.shape_div((12, 3), (2, 3))
+    @test Shambles.shape_div((12, 3), (2, 3)) == (6, 1)
+    @test_opt Shambles.shape_div((12, 3), (2, 3))
 
-    @test CuTe.shape_div((12, 3), 3) == (4, 3)
-    @test_opt CuTe.shape_div((12, 3), 3)
+    @test Shambles.shape_div((12, 3), 3) == (4, 3)
+    @test_opt Shambles.shape_div((12, 3), 3)
 
-    @test CuTe.shape_div(12, (3, 4)) == 1
-    @test_opt CuTe.shape_div(12, (3, 4))
+    @test Shambles.shape_div(12, (3, 4)) == 1
+    @test_opt Shambles.shape_div(12, (3, 4))
 end
 
 @testset "Slice" begin
-    @test CuTe.slice((3, 4), (2, :)) == (4,)
-    @test_opt CuTe.slice((3, 4), (2, :))
+    @test Shambles.slice((3, 4), (2, :)) == (4,)
+    @test_opt Shambles.slice((3, 4), (2, :))
 
-    @test CuTe.slice((3, (4, 5)), (:, (2, :))) == (3, 5)
-    @test_opt CuTe.slice((3, (4, 5)), (:, (2, :)))
+    @test Shambles.slice((3, (4, 5)), (:, (2, :))) == (3, 5)
+    @test_opt Shambles.slice((3, (4, 5)), (:, (2, :)))
 
-    @test CuTe.slice(((2, 4), (4, 2)), (:, (:, :))) == ((2, 4), 4, 2)
-    @test_opt CuTe.slice(((2, 4), (4, 2)), (:, (:, :)))
+    @test Shambles.slice(((2, 4), (4, 2)), (:, (:, :))) == ((2, 4), 4, 2)
+    @test_opt Shambles.slice(((2, 4), (4, 2)), (:, (:, :)))
 end
 
 @testset "Elementwise Comparison" begin

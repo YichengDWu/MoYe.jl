@@ -1,4 +1,4 @@
-using CuTe, Test
+using Shambles, Test
 
 function test_alloc()
     x = ArrayEngine{Float32}(one, static(10))

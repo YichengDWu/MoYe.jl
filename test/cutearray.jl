@@ -1,4 +1,4 @@
-using CuTe, Test
+using Shambles, Test
 
 function test_alloc()
     slayout = @Layout (2, 3)

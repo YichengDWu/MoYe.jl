@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = CuTe
+CurrentModule = Shambles
 ```
 
-# CuTe
+# Shambles
 
-Documentation for [CuTe](https://github.com/YichengDWu/CuTe.jl).
+Documentation for [Shambles](https://github.com/YichengDWu/Shambles.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [CuTe]
+Modules = [Shambles]
 ```

@@ -1,4 +1,4 @@
-using CuTe, Test, JET
+using Shambles, Test, JET
 
 @testset "Coordinate to Index" begin
     @testset "1-D Coordinate" begin

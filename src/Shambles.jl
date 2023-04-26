@@ -1,4 +1,4 @@
-module CuTe
+module Shambles
 
 using Reexport
 using Static: StaticInt, IntType, static

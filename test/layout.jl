@@ -1,6 +1,6 @@
-using CuTe, Test, JET
+using Shambles, Test, JET
 
-CuTe.static(l::Layout) = Layout(static(shape(l)), static(stride(l)))
+Shambles.static(l::Layout) = Layout(static(shape(l)), static(stride(l)))
 
 @testset "Macro" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
@@ -57,7 +57,7 @@ end
         @test size(result) ≤ cosize(result)
         @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
 
-        if CuTe.Static.dynamic(is_static(stride(make_layout(l, result))))
+        if Shambles.Static.dynamic(is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
         end
     end
@@ -145,7 +145,7 @@ end
         function test_logical_product(A,B)
             C = logical_product(A,B)
             @test rank(C) == 2
-            @test CuTe.iscompatible(A, first(C))
+            @test Shambles.iscompatible(A, first(C))
         end
 
         let vec = @Layout(1,0), tile = @Layout(1,0)
@@ -234,7 +234,7 @@ end
         function test_logical_divide(A,B)
             C = logical_divide(A,B)
             @test rank(C) == 2
-            @test CuTe.iscompatible(B, first(C))
+            @test Shambles.iscompatible(B, first(C))
         end
 
         let vec = @Layout(1,0), tile = @Layout(1,0)

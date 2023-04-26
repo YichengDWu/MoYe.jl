@@ -1,15 +1,15 @@
-using CuTe
+using Shambles
 using Documenter
 
-DocMeta.setdocmeta!(CuTe, :DocTestSetup, :(using CuTe); recursive=true)
+DocMeta.setdocmeta!(Shambles, :DocTestSetup, :(using Shambles); recursive=true)
 
-makedocs(; modules=[CuTe],
+makedocs(; modules=[Shambles],
          authors="MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors",
-         repo="https://github.com/YichengDWu/CuTe.jl/blob/{commit}{path}#{line}",
-         sitename="CuTe.jl",
+         repo="https://github.com/YichengDWu/Shambles.jl/blob/{commit}{path}#{line}",
+         sitename="Shambles.jl",
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", "false") == "true",
-                                canonical="https://YichengDWu.github.io/CuTe.jl",
+                                canonical="https://YichengDWu.github.io/Shambles.jl",
                                 edit_link="main", assets=String[]),
          pages=["Home" => "index.md"])
 
-deploydocs(; repo="github.com/YichengDWu/CuTe.jl", devbranch="main")
+deploydocs(; repo="github.com/YichengDWu/Shambles.jl", devbranch="main")
