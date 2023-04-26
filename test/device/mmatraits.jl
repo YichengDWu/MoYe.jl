@@ -1,4 +1,4 @@
-using Test, CuTe
+using Test, Shambles
 
 @testset "Size of MMATraits" begin
     for mmaop in [MMAOP_16x8x8_F16F16F16F16_TN,
