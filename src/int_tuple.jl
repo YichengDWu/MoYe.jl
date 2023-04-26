@@ -238,3 +238,12 @@ function Base.iterate(x::ForwardCoordOneTo, state)
     new_state = increment(state, stop)
     return (new_state, new_state)
 end
+
+@generated make_tuple(::Type{StaticInt{N}}) where {N} = static(N)
+@generated function make_tuple(::Type{S}) where {S<:StaticIntTuple}
+    expr = Expr(:tuple)
+    for p in S.parameters
+        push!(expr.args, make_tuple(p))
+    end
+    return expr
+end

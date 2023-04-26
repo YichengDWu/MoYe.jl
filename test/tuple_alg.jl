@@ -61,3 +61,17 @@ end
           (('A', ('B', 'C')), ('a', ('b', 'c'), 'd'))
     @test_opt Shambles.zip2_by((('A', 'a'), (('B', 'b'), ('C', 'c')), 'd'), (0, (0, 0)))
 end
+
+@testset "Make Tuple" begin
+    t = typeof(static((1,2,3)))
+    t2 = make_tuple(t)
+    @test t2 === static((1,2,3))
+
+    t3 = typeof(static((1,2,(3,4))))
+    t4 = make_tuple(t3)
+    @test t4 === static((1,2,(3,4)))
+
+    t5 = typeof(static((1,2,(3,4),5)))
+    t6 = make_tuple(t5)
+    @test t6 === static((1,2,(3,4),5))
+end

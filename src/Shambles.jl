@@ -15,7 +15,9 @@ include("stride.jl")
 include("layout.jl")
 include("print.jl")
 include("container/engine.jl")
+
 include("cutearray.jl")
+include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 include("algorithm/blas.jl")
 
@@ -35,7 +37,7 @@ include("atom/copy/copy_traits.jl")
 export flatten
 export colex_less, elem_less, increment, capacity
 export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compact_row_major,
-       GenColMajor, GenRowMajor, @Layout
+       GenColMajor, GenRowMajor, @Layout, make_tuple
 
 # layout
 export Layout, make_layout, shape, rank, depth, cosize, complement, logical_product,
