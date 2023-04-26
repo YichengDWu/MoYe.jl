@@ -12,4 +12,5 @@ using Test, SafeTestsets
     @safetestset "Memory" begin include("device/memory.jl") end
     @safetestset "MMA" begin include("device/mmaop.jl") end
     @safetestset "MMATraits" begin include("device/mmatraits.jl") end
+    @safetestset "Pointer" begin include("device/pointer.jl") end
 end
