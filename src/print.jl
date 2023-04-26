@@ -1,4 +1,4 @@
-@inline Base.ndigits(@nospecialize ::StaticInt{N}) where {N} = ndigits(N)
+@inline Base.ndigits(@nospecialize x::StaticInt{N}) where {N} = ndigits(N)
 
 function print_layout(layout::Layout{2})
     idx_width = ndigits(cosize(layout)) + 2
