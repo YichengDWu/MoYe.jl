@@ -5,9 +5,7 @@
 [![Build Status](https://github.com/YichengDWu/CuTe.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/YichengDWu/CuTe.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/YichengDWu/CuTe.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/YichengDWu/CuTe.jl)
 
-`CuTe.jl` is hugely inspire by NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cute/00_quickstart.md) and
-provide similar apis for doing Layout Algebra.
-
+The `CuTe.jl` library draws significant inspiration from NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cute/00_quickstart.md) and offers a similar set of APIs for performing Layout Algebra.
 ## Layout
 
 Mathematically, a `Layout` represents a function that maps logical coordinates to physical 1-D index spaces. It consists of a `Shape` and a `Stride`, wherein the `Shape` determines the domain, and the `Stride` establishes the mapping through an inner product.
