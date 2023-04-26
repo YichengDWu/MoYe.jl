@@ -30,6 +30,9 @@ function Base.getproperty(obj::MMAOP{DRegisters, ARegisters,
     end
 end
 
+function Base.propertynames(::MMAOP)
+    return (:DRegisters, :ARegisters, :BRegisters, :CRegisters)
+end
 
 """
     mma(A, B, C, ::MMAOP)

@@ -725,7 +725,8 @@ function tile(l1::Layout, l2::Layout, l3::Layout...)
 end
 
 """
-    make_fragment_like(::Layout)
+    make_fragment_like(::Layout) -> Layout
+    make_fragment_like(T, ::CuTeArray) -> CuTeArray
 
 Make a compact layout of the same shape with the first mode being col-major, and with the rest
 following the given order.

@@ -14,6 +14,10 @@ function Base.getproperty(obj::LdMatrix{SRegisters, DRegisters},
     end
 end
 
+function Base.propertynames(::LdMatrix)
+    return (:SRegisters, :DRegisters)
+end
+
 """
     load(src_addr::LLVMPtr, ::LdMatrix) where {T}
 
@@ -36,7 +40,7 @@ LD_U32x4_N()
 julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
-!!! note 
+!!! note
     Would not work with LLVM 14
 """
 function load end

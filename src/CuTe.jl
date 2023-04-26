@@ -23,7 +23,7 @@ include("device/array.jl")
 include("arch/mma.jl")
 include("arch/ldmatrix.jl")
 
-include("atom/mma.jl")
+include("atom/mma_traits.jl")
 
 export flatten
 export colex_less, elem_less, increment, capacity
