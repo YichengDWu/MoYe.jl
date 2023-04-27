@@ -249,8 +249,8 @@ end
 end
 
 
-Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
-Base.:(==)(::StaticInt{N}, ::StaticInt{M}) where {N, M} = false
+@inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
+@inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
 
 function Base.getindex(x::StaticInt, i::Integer)
     @inline
