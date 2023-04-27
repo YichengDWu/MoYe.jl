@@ -104,23 +104,12 @@ layout(x::CuTeArray) = getfield(x, :layout)
     return ManualMemory.preserve_buffer(engine(A))
 end
 
-# owning -> non-owning
 @inline function Base.unsafe_convert(::Type{Ptr{T}},
-                                     A::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
-    return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
-end
-
-@inline function Base.pointer(A::CuTeArray{T, N, <:ArrayEngine}) where {N, T}
-    return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
-end
-
-
-@inline function Base.unsafe_convert(::Type{Ptr{T}},
-                                     A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
+                                     A::CuTeArray{T}) where {T}
     return Base.unsafe_convert(Ptr{T}, engine(A))
 end
 
-@inline function Base.pointer(A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
+@inline function Base.pointer(A::CuTeArray)
     return pointer(engine(A))
 end
 
