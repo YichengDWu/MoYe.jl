@@ -1,7 +1,7 @@
 struct TrivialMask end
 @inline Base.getindex(::TrivialMask, i) = true
 
-@inline function maksed_copyto!(dest::CuTeArray, src::CuTeArray, mask)
+@inline function masked_copyto!(dest::CuTeArray, src::CuTeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     for i in static(1):size(src.layout)
         if mask[i]
@@ -15,9 +15,9 @@ end
         src_v = recast(TV, src)
         dest_v = recast(TV, dest)
         #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV))\n bytes")
-        maksed_copyto!(dest_v, src_v, TrivialMask())
+        masked_copyto!(dest_v, src_v, TrivialMask())
     else
-        maksed_copyto!(dest, src, TrivialMask())
+        masked_copyto!(dest, src, TrivialMask())
     end
 end
 
