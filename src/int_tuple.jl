@@ -252,7 +252,7 @@ end
 Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
 Base.:(==)(::StaticInt{N}, ::StaticInt{M}) where {N, M} = false
 
-function getindex(x::StaticInt, i::Integer)
+function Base.getindex(x::StaticInt, i::Integer)
     @inline
     @boundscheck i == 1 || throw(BoundsError(x, i))
     x
