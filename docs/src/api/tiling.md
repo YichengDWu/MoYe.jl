@@ -7,7 +7,7 @@ CurrentModule = Shambles
 Pages = ["tiling.md"]
 ```
 
-```docs
+```@docs
 Tile
 local_tile
 local_partition

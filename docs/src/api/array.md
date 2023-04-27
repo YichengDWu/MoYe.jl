@@ -10,7 +10,7 @@ Pages = ["array.md"]
 ```
 
 
-```docs
+```@docs
 ViewEngine
 ArrayEngine
 CuTeArray

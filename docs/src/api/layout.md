@@ -10,21 +10,21 @@ Pages = ["layout.md"]
 ```
 
 ## Constructors
-```docs
+```@docs
 @Layout
 make_ordered_layout
 make_fragment_like
 ```
 
 ## Product
-```docs
+```@docs
 logical_product
 blocked_product
 raked_product
 ```
 
 ## Division 
-```docs
+```@docs
 logical_divide
 zipped_divide
 tiled_divide
