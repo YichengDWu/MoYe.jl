@@ -51,6 +51,21 @@ end
         @test ca4.engine isa ArrayEngine
         @test ca4 == ca3
     end
+
+    @testset "similar" begin
+        ca = CuTeArray{Float32}(undef, static((2, 3)))
+        ca2 = similar(ca)
+        @test ca2 isa CuTeArray
+        @test ca2.engine isa ArrayEngine
+        @test ca2.layout == ca.layout
+
+        A = ones(6)
+        ca3 = CuTeArray(pointer(A), static(6))
+        ca4 = similar(ca3)
+        @test ca4 isa CuTeArray
+        @test ca4.engine isa ArrayEngine
+        @test ca4.layout == ca3.layout
+    end
 end
 
 @testset "BLAS" begin

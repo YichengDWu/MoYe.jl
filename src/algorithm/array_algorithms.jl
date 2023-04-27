@@ -124,3 +124,30 @@ end
 @inline function local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
 end
+
+
+
+@inline function Base.fill!(x::CuTeArray{T, N, <:ArrayEngine}, val) where {T, N}
+    b = ManualMemory.preserve_buffer(x)
+    vb = ViewEngine(engine(x))
+    GC.@preserve b begin
+        for i in 1:length(vb)
+            vb[i] = val
+        end
+    end
+    return x
+end
+
+@inline function Base.sum(x::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
+    b = ManualMemory.preserve_buffer(x)
+    vx = ViewEngine(engine(x))
+    GC.@preserve b begin
+        tmp = zero(T)
+        for i in 1:length(vx)
+            tmp += vx[i]
+        end
+        return tmp
+    end
+end
+
+@inline zeros!(x::CuTeArray) = fill!(x, zero(eltype(x)))

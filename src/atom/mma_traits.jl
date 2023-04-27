@@ -1,5 +1,5 @@
-struct MMATraits{M <: MMAOP, DEltype, AEltype, BEltype, CEltype, DFrgtype, AFrgtype,
-                 BFrgtype, CFrgtype, S, T, A, B, C}
+struct MMATraits{M <: MMAOP, DElType, AElType, BElType, CElType, DFrgType, AFrgType,
+                 BFrgType, CFrgType, S, T, A, B, C}
     mnk::S
     threadid::T
     Alayout::A
@@ -7,65 +7,65 @@ struct MMATraits{M <: MMAOP, DEltype, AEltype, BEltype, CEltype, DFrgtype, AFrgt
     Clayout::C
 end
 
-# For Hooper, Frgtype and Eltype are not the same
-@inline function MMATraits{M, DEltype, AEltype, BEltype, CEltype}(mnk, threadid, Alayout,
+# For Hooper, FrgType and ElTypeare not the same
+@inline function MMATraits{M, DElType, AElType, BElType, CElType}(mnk, threadid, Alayout,
                                                                   Blayout,
                                                                   Clayout) where {M,
-                                                                                  DEltype,
-                                                                                  AEltype,
-                                                                                  BEltype,
-                                                                                  CEltype}
-    return MMATraits{M, DEltype, AEltype, BEltype, CEltype, DEltype, AEltype, BEltype,
-                     CEltype, typeof(mnk), typeof(threadid), typeof(Alayout),
+                                                                                  DElType,
+                                                                                  AElType,
+                                                                                  BElType,
+                                                                                  CElType}
+    return MMATraits{M, DElType, AElType, BElType, CElType, DElType, AElType, BElType,
+                     CElType, typeof(mnk), typeof(threadid), typeof(Alayout),
                      typeof(Blayout), typeof(Clayout)}(mnk, threadid, Alayout, Blayout,
                                                        Clayout)
 end
 
 export MMATraits
 
-@inline function fragtype_d(::MMATraits{M, DEltype, AEltype, BEltype, CEltype, DFrgtype,
-                                        AFrgtype, BFrgtype, CFrgtype}) where {M, DEltype,
-                                                                              AEltype,
-                                                                              BEltype,
-                                                                              CEltype,
-                                                                              DFrgtype,
-                                                                              AFrgtype,
-                                                                              BFrgtype,
-                                                                              CFrgtype}
-    return DFrgtype
+@inline function fragtype_d(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
+                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
+                                                                              AElType,
+                                                                              BElType,
+                                                                              CElType,
+                                                                              DFrgType,
+                                                                              AFrgType,
+                                                                              BFrgType,
+                                                                              CFrgType}
+    return DFrgType
 end
-@inline function fragtype_a(::MMATraits{M, DEltype, AEltype, BEltype, CEltype, DFrgtype,
-                                        AFrgtype, BFrgtype, CFrgtype}) where {M, DEltype,
-                                                                              AEltype,
-                                                                              BEltype,
-                                                                              CEltype,
-                                                                              DFrgtype,
-                                                                              AFrgtype,
-                                                                              BFrgtype,
-                                                                              CFrgtype}
-    return AFrgtype
+@inline function fragtype_a(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
+                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
+                                                                              AElType,
+                                                                              BElType,
+                                                                              CElType,
+                                                                              DFrgType,
+                                                                              AFrgType,
+                                                                              BFrgType,
+                                                                              CFrgType}
+    return AFrgType
 end
-@inline function fragtype_b(::MMATraits{M, DEltype, AEltype, BEltype, CEltype, DFrgtype,
-                                        AFrgtype, BFrgtype, CFrgtype}) where {M, DEltype,
-                                                                              AEltype,
-                                                                              BEltype,
-                                                                              CEltype,
-                                                                              DFrgtype,
-                                                                              AFrgtype,
-                                                                              BFrgtype,
-                                                                              CFrgtype}
-    return BFrgtype
+@inline function fragtype_b(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
+                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
+                                                                              AElType,
+                                                                              BElType,
+                                                                              CElType,
+                                                                              DFrgType,
+                                                                              AFrgType,
+                                                                              BFrgType,
+                                                                              CFrgType}
+    return BFrgType
 end
-@inline function fragtype_c(::MMATraits{M, DEltype, AEltype, BEltype, CEltype, DFrgtype,
-                                        AFrgtype, BFrgtype, CFrgtype}) where {M, DEltype,
-                                                                              AEltype,
-                                                                              BEltype,
-                                                                              CEltype,
-                                                                              DFrgtype,
-                                                                              AFrgtype,
-                                                                              BFrgtype,
-                                                                              CFrgtype}
-    return CFrgtype
+@inline function fragtype_c(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
+                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
+                                                                              AElType,
+                                                                              BElType,
+                                                                              CElType,
+                                                                              DFrgType,
+                                                                              AFrgType,
+                                                                              BFrgType,
+                                                                              CFrgType}
+    return CFrgType
 end
 
 function mmaop_to_layoutargs(s::String)
@@ -84,7 +84,7 @@ function mmaop_to_layoutargs(s::String)
 end
 
 function _get_layouts(::Tuple{StaticInt{16}, StaticInt{8}, StaticInt{8}},
-                      AEltype::Type{<:Union{Float16, BFloat16}},
+                      AElType::Type{<:Union{Float16, BFloat16}},
                       CEltyp::Type{<:Union{Float16, Float32}}, ::Val{:TN})
     threadid = @Layout(32)
     Alayout = @Layout ((4, 8), (2, 2)) ((32, 1), (16, 8))
@@ -95,8 +95,8 @@ function _get_layouts(::Tuple{StaticInt{16}, StaticInt{8}, StaticInt{8}},
 end
 
 function _get_layouts(::Tuple{StaticInt{16}, StaticInt{8}, StaticInt{16}},
-                      AEltype::Type{<:Union{Float16, BFloat16}},
-                      CEltype::Type{<:Union{Float16, Float32}}, ::Val{:TN})
+                      AElType::Type{<:Union{Float16, BFloat16}},
+                      CElType::Type{<:Union{Float16, Float32}}, ::Val{:TN})
     threadid = @Layout(32)
     Alayout = @Layout ((4, 8), (2, 2, 2)) ((32, 1), (16, 8, 128))
     Blayout = @Layout ((4, 8), (2, 2)) ((16, 1), (8, 64))
@@ -108,10 +108,10 @@ end
 function make_mmatraits(mmaops)
     for mmaop in mmaops
         mnk, eltypes, major = mmaop_to_layoutargs(mmaop)
-        DEltype, AEltype, BEltype, CEltype = eltypes
-        layouts = _get_layouts(mnk, AEltype, CEltype, major)
+        DElType, AElType, BElType, CElType= eltypes
+        layouts = _get_layouts(mnk, AElType, CElType, major)
         @eval @inline function MMATraits{$(Symbol(mmaop))}()
-            return MMATraits{$(Symbol(mmaop)), $DEltype, $AEltype, $BEltype, $CEltype}($mnk,
+            return MMATraits{$(Symbol(mmaop)), $DElType, $AElType, $BElType, $CElType}($mnk,
                                                                                        $(layouts...))
         end
     end
