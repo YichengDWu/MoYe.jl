@@ -1,6 +1,8 @@
-function copyto_maksed!(dest::CuTeArray, src::CuTeArray, mask::CuTeArray)
-    copy_op = select_elementwise_copy(src, dest)
+struct TrivialMask end
+@inline Base.getindex(::TrivialMask, i) = true
 
+@inline function maksed_copyto!(dest::CuTeArray, src::CuTeArray, mask)
+    copy_op = select_elementwise_copy(src, dest)
     for i in eachindex(dest)
         if mask[i]
             apply(copy_op, pointer(dest, i), pointer(src, i))
@@ -16,9 +18,9 @@ end
         if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
             src_v = recast(TV, src)
             dest_v = recast(TV, dest)
-            copyto_maksed!(dest_v, src_v)
+            maksed_copyto!(dest_v, src_v, TrivialMask())
         else
-            copyto_maksed!(dest, src)
+            maksed_copyto!(dest, src, TrivialMask())
         end
     end
 end
