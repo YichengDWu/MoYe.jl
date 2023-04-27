@@ -19,4 +19,4 @@ makedocs(; modules=[Shambles],
                 ],
          ])
 
-deploydocs(; repo="github.com/YichengDWu/Shambles.jl", devbranch="main")
+deploydocs(; repo="github.com/YichengDWu/Shambles.jl", push_preview=true, devbranch="main")
