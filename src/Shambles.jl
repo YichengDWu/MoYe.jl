@@ -21,10 +21,10 @@ include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 include("algorithm/blas.jl")
 
-include("device/array.jl")
-include("device/pointer.jl")
-include("arch/mma.jl")
+include("pointer.jl")
+include("device/memory.jl")
 
+include("arch/mma.jl")
 include("arch/copy/copy.jl")
 include("arch/copy/copy_async.jl")
 include("arch/copy/ldmatrix.jl")
