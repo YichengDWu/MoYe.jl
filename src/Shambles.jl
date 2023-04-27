@@ -49,7 +49,7 @@ export print_layout
 export ArrayEngine, ViewEngine, CuTeArray, make_fragment_like
 
 # pointer
-export isgmem, issmem
+export isgmem, issmem, isrmem
 
 # blas
 export axpby!

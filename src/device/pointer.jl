@@ -3,3 +3,5 @@
 
 @inline issmem(::CuTeArray{T, N, ViewEngine{T, LLVMPtr{M, AS.Shared}}}) where {T, N, M} = true
 @inline issmem(::CuTeArray) = false
+
+@inline isrmem(::CuTeArray) = !isgmem(x) && !issmem(x)
