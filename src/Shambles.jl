@@ -32,6 +32,8 @@ include("arch/copy/ldmatrix.jl")
 include("atom/mma_traits.jl")
 include("atom/copy/copy_traits.jl")
 
+include("algorithm/copy.jl")
+
 
 # tuple algorithms
 export flatten

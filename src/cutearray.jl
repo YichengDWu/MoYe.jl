@@ -109,14 +109,17 @@ end
                                      A::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
 end
+
 @inline function Base.pointer(A::CuTeArray{T, N, <:ArrayEngine}) where {N, T}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
 end
+
 
 @inline function Base.unsafe_convert(::Type{Ptr{T}},
                                      A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
     return Base.unsafe_convert(Ptr{T}, engine(A))
 end
+
 @inline function Base.pointer(A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
     return pointer(engine(A))
 end

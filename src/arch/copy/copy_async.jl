@@ -14,28 +14,28 @@ struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: CPOP_ASYNC{TS,TD}
     end
 end
 
-function _unsafe_copyto!(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{4}, ::CPOP_ASYNC_CACHEALWAYS{TS, TD}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{4}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.4", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function _unsafe_copyto!(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{8}, ::CPOP_ASYNC_CACHEALWAYS{TS, TD}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{8}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.8", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function _unsafe_copyto!(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}, ::CPOP_ASYNC_CACHEALWAYS{TS, TD}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.16", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function _unsafe_copyto!(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}, ::CPOP_ASYNC_CACHEGLOBAL{TS, TD}) where {TS, TD}
+function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TS, TD}
     @inline
     ccall("llvm.nvvm.cp.async.cg.shared.global.16", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
 
-function _unsafe_copyto!(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, cpop::CPOP_ASYNC{TS,TD}) where {TS, TD}
+function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     @inline
     @assert sizeof(TS) == sizeof(TD)
     _unsafe_copyto!(dst, src, static(sizeof(TS)), cpop)
