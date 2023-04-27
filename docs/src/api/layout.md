@@ -12,6 +12,7 @@ Pages = ["layout.md"]
 ## Constructors
 ```@docs
 @Layout
+make_layout
 make_ordered_layout
 make_fragment_like
 ```

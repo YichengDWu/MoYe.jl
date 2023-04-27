@@ -12,6 +12,9 @@ makedocs(; modules=[Shambles],
                                 edit_link="main", assets=String[]),
          pages=[
             "Home" => "index.md",
+            "Manual" => [
+                "Layout" => "manual/layout.md",
+            ],
             "API Reference" => [
                     "Layout" => "api/layout.md",
                     "CuTeArray" => "api/array.md",
