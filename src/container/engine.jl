@@ -26,7 +26,10 @@ end
 end
 
 @inline Base.pointer(A::ViewEngine) = getfield(A, :ptr)
-@inline function Base.unsafe_convert(p::Type{<:Ref{T}}, A::ViewEngine{T}) where {T}
+@inline function Base.unsafe_convert(p::Type{Ptr{T}}, A::ViewEngine{T}) where {T}
+    return Base.unsafe_convert(p, pointer(A))
+end
+@inline function Base.unsafe_convert(p::Type{LLVMPtr{T, AS}}, A::ViewEngine{T}) where {T, AS}
     return Base.unsafe_convert(p, pointer(A))
 end
 

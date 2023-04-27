@@ -90,6 +90,8 @@ end
     return CuTeArray(ptr, make_layout(shape, args...))
 end
 
+const BitCuTeArray{N, E, L} = CuTeArray{Bool, N, E, L}
+
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
@@ -112,6 +114,18 @@ end
 @inline function Base.pointer(A::CuTeArray)
     return pointer(engine(A))
 end
+
+"""
+    pointer(A::CuTeArray, i::Integer)
+
+Return a pointer to the element at the logical index `i` in `A`, not the physical index.
+"""
+@inline function Base.pointer(x::CuTeArray{T}, i::Integer) where {T}
+    idx = x.layout(convert(Int, i))
+    return pointer(x) + (idx-one(idx))*sizeof(T)
+end
+
+Base.IndexStyle(::Type{<:CuTeArray}) = IndexLinear()
 
 Base.@propagate_inbounds function Base.getindex(x::CuTeArray{T, N, <:ArrayEngine},
                                                 ids::Union{Integer, StaticInt, IntTuple}...) where {

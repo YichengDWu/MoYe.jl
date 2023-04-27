@@ -1,4 +1,5 @@
 abstract type CPOP_ASYNC{TS,TD} <: CPOP{Registers{TS, 1}, Registers{TD, 1}} end
+const CP_SYNC_ENABLED = true # TODO: make this configurable. >=SM_80
 
 struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: CPOP_ASYNC{TS,TD}
     function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
