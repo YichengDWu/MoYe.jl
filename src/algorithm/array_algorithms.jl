@@ -125,8 +125,6 @@ end
     return local_tile(x, dice(tile, proj), dice(coord, proj))
 end
 
-
-
 @inline function Base.fill!(x::CuTeArray{T, N, <:ArrayEngine}, val) where {T, N}
     b = ManualMemory.preserve_buffer(x)
     vb = ViewEngine(engine(x))
@@ -151,3 +149,11 @@ end
 end
 
 @inline zeros!(x::CuTeArray) = fill!(x, zero(eltype(x)))
+
+function max_common_vector(src::CuTeArray{TS}, dst::CuTeArray{TD}) where {TS, TD}
+    if sizeof(TS) == sizeof(TD) && isbitstype(TS) && isbitstype(TD)
+        return max_common_vector(src.layout, dst.layout)
+    else
+        return static(0)
+    end
+end

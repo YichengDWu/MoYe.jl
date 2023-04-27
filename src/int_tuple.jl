@@ -247,3 +247,15 @@ end
     end
     return expr
 end
+
+
+Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
+Base.:(==)(::StaticInt{N}, ::StaticInt{M}) where {N, M} = false
+
+function getindex(x::StaticInt, i::Integer)
+    @inline
+    @boundscheck i == 1 || throw(BoundsError(x, i))
+    x
+end
+@inline Base.getindex(x::StaticInt, ::StaticInt{1}) = x
+@inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))

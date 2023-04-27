@@ -60,7 +60,7 @@ behaves like a `StaticStrideArray` with from `StrideArrays` package.
 ```julia
 function test_alloc()
     x = ArrayEngine{Float32}(one, static(10))
-    GC.@preserve x begin sum(ViewEngine(x)) end
+    @gc_preserve sum(x)
 end
 
 @test @allocated(test_alloc()) == 0
@@ -100,6 +100,8 @@ end
 @inline function ManualMemory.preserve_buffer(A::ArrayEngine)
     return ManualMemory.preserve_buffer(getfield(A, :data))
 end
+
+@inline StrideArraysCore.maybe_ptr_array(A::ArrayEngine{T, L}) where {T, L} = ViewEngine(pointer(A), L)
 
 Base.@propagate_inbounds function Base.getindex(A::ArrayEngine,
                                                 i::Union{Integer, StaticInt})

@@ -167,6 +167,8 @@ function Adapt.adapt_storage(::Type{CuTeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
+@inline StrideArraysCore.maybe_ptr_array(A::CuTeArray) = CuTeArray(pointer(A), layout(A))
+
 # Array operations
 # Currently don't support directly slicing, but we could make a view and then copy the view
 @inline function Base.view(x::CuTeArray{T, N}, coord::Vararg{Colon, N}) where {T, N}
@@ -187,6 +189,7 @@ end
 @inline function Base.similar(x::CuTeArray{S,N,E,<:StaticLayout}, ::Type{T}) where {S,N,E,T}
     return CuTeArray{T}(undef, layout(x))
 end
+
 
 """
     recast(::Type{NewType}, x::CuTeArray{OldType}) -> CuTeArray{NewType}

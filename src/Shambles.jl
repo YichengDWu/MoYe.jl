@@ -1,10 +1,10 @@
 module Shambles
 
-using Reexport
-using Static: StaticInt, IntType, static
+using Static: StaticInt, IntType, static, is_static
 import Static
-@reexport using Static: static, is_static
-using ManualMemory, LayoutPointers
+import ManualMemory, LayoutPointers
+import StrideArraysCore
+using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
 using Core: LLVMPtr
 import Adapt
@@ -34,6 +34,8 @@ include("atom/copy/copy_traits.jl")
 
 include("algorithm/copy.jl")
 
+# rexport
+export static, @gc_preserve
 
 # tuple algorithms
 export flatten

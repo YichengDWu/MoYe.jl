@@ -57,7 +57,7 @@ end
         @test size(result) ≤ cosize(result)
         @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
 
-        if Shambles.Static.dynamic(is_static(stride(make_layout(l, result))))
+        if Shambles.Static.dynamic(Shambles.Static.is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
         end
     end

@@ -20,7 +20,10 @@ const StaticLayout{N,S,R} = Layout{N, S, R} where {S<:Union{StaticInt, StaticInt
 @inline StaticLayout{N,S,R}() where {N, S <:StaticIntTuple{N}, R<:StaticIntTuple{N}} = Layout(make_tuple(S), make_tuple(R))
 
 shape(l::Layout) = getfield(l, :shape)
+shape(l, i::IntType) = getindex(shape(l), i)
 Base.stride(l::Layout) = getfield(l, :stride)
+Base.stride(l::Layout, i::IntType) = getindex(stride(l), i)
+
 
 function Base.show(io::IO, l::Layout)
     return print(io, shape(l), ":", stride(l))
@@ -427,11 +430,55 @@ function complement(l::Layout)
     return _complement(shape(filter_layout), stride(filter_layout), cosize(filter_layout))
 end
 
-# inverse_seq
+function inverse_seq(shape, stride, I::StaticInt, Is::Vararg{StaticInt, N}) where {N}
+    if length(rank(stride)) < I
+        return Is
+    else
+        @inbounds next_stride = stride[I] * shape[I]
+        if Static.known(is_static(next_stride))
+            next_idx = findfirst(==(next_stride), stride)
+            isnothing(next_idx) && return Is
+            return inverse_seq(shape, stride, next_idx, append(Is, I)...)
+        else
+            return append(Is, I)
+        end
+    end
+end
 
-# right_inverse
+@inline right_inverse(x::Colon) = x
+function right_inverse(layout::Layout)
+    flat_layout = coalesce(layout)
+    astride = emap(abs, flat_layout.stride)
+    next_I = findfirst(Base.Fix1(===, static(1)), astride)
+    isnothing(next_I) && return @Layout(1, 0)
+
+    iseq = inverse_seq(flat_layout.shape, astride, static(next_I))
+    isempty(iseq) && return @Layout(1, 0)
+
+    rstride = compact_col_major(flat_layout.shape)
+    return make_layout(unwrap(map(Base.Fix1(shape, flat_layout), iseq)),
+                       unwrap(map(i-> Base.Fix1(stride, flat_layout)(i) * Base.Fix1(getindex, rstride)(i), iseq)))
+end
+
 # left_inverse
-# max_common_vector
+
+function max_common_layout(a::StaticLayout, b::StaticLayout)
+    inv_b = right_inverse(b)
+    common = coalesce(composition(a, inv_b))
+
+    if stride(common, 1) == static(1)
+        return composition(inv_b, common[1])
+    else
+        return @Layout 1 0 # no vectorization
+    end
+end
+
+function max_common_layout(::Layout, ::Layout)
+    @inline
+    return @Layout 1 0 # no vectorization
+end
+
+@inline max_common_vector(a::Layout, b::Layout) = size(max_common_layout(a, b))
 
 # this is equivalent to make_layout(map(make_layout, l1, l2)...)
 function _transpose(layoutA::Layout, layoutB::Layout)
@@ -550,7 +597,7 @@ function blocked_product(block::Layout{N}, layout::Layout{M},
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    result = _transpose(result[1], result[2])
+    @inbounds result = _transpose(result[1], result[2])
     coalesce_result && return coalesce(result, repeat(static(1), R))
     return result
 end
@@ -589,7 +636,7 @@ function raked_product(block::Layout{N}, layout::Layout{M},
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    result = _transpose(result[2], result[1])
+    @inbounds result = _transpose(result[2], result[1])
     coalesce_result && return coalesce(result, repeat(static(1), R))
     return result
 end

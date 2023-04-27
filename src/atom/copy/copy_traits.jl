@@ -6,7 +6,7 @@ struct CopyTraits{C <: CPOP, TS, TD, LT, LS, LD, LR}
 end
 
 function CopyTraits{CPOP_UNIVERSAL{S,D}}() where {S,D}
-    threadid = make_layout(static(1))  # 1 thread copies 1 element
+    threadid = make_layout(static(1))  # 1 thread per operation
     srclayout = make_layout((static(1), static(sizeof(S) * 8)))
     dstlayout = make_layout((static(1), static(sizeof(D) * 8)))
     reflayout = srclayout
@@ -14,7 +14,7 @@ function CopyTraits{CPOP_UNIVERSAL{S,D}}() where {S,D}
 end
 
 function CopyTraits{CPOP_ASYNC_CACHEALWAYS{S,D}}() where {S,D}
-    threadid = make_layout(static(1)) # 1 thread copies 1 element
+    threadid = make_layout(static(1)) # 1 thread per operation
     srclayout = make_layout((static(1), static(sizeof(S)*8)))
     dstlayout = make_layout((static(1), static(sizeof(D)*8)))
     reflayout = srclayout
@@ -22,7 +22,7 @@ function CopyTraits{CPOP_ASYNC_CACHEALWAYS{S,D}}() where {S,D}
 end
 
 function CopyTraits{CPOP_ASYNC_CACHEGLOBAL{S,D}}() where {S,D}
-    threadid = make_layout(static(1)) # 1 thread copies 1 element
+    threadid = make_layout(static(1)) # 1 thread per operation
     srclayout = make_layout((static(1), static(sizeof(S)*8)))
     dstlayout = make_layout((static(1), static(sizeof(D)*8)))
     reflayout = srclayout
