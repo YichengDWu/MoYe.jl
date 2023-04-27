@@ -4,7 +4,7 @@ using Reexport
 using Static: StaticInt, IntType, static
 import Static
 @reexport using Static: static, is_static
-using ManualMemory, LayoutPointers, LoopVectorization
+using ManualMemory, LayoutPointers
 using CUDA, BFloat16s, LLVM
 using Core: LLVMPtr
 import Adapt
