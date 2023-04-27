@@ -22,7 +22,7 @@ end
 end
 
 # should be used with @gc_preserve if dest or src is powered by an ArrayEngine!
-@inline function Base.copyto!(dest::CuTeArray{TD}, src::CuTeArray{TS}) where {TD,TS}
+@inline function cucopyto!(dest::CuTeArray{TD}, src::CuTeArray{TS}) where {TD,TS}
 
     N = max_common_vector(src, dest)
     if N ≤ 1
