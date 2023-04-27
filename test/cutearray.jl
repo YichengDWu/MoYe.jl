@@ -76,3 +76,20 @@ end
         @test sum(ca) == 6.0f0
     end
 end
+
+@testset "Recast" begin
+    x = CuTeArray{Float32}(undef, static((4, 3)))
+    @testset "Upcast" begin
+        x2 = recast(Float64, x)
+        @test x2 isa CuTeArray{Float64}
+        @test x2.layout == @Layout (2, 3)
+        @test x == recast(Float32, x2)
+    end
+
+    @testset "Downcast" begin
+        x2 = recast(Float16, x)
+        @test x2 isa CuTeArray{Float16}
+        @test x2.layout == @Layout (8, 3)
+        @test x == recast(Float32, x2)
+    end
+end

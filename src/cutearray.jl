@@ -82,6 +82,13 @@ end
     l = make_layout(shape, args...)
     return CuTeArray(ptr, l)
 end
+@inline function CuTeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
+    engine = ViewEngine(ptr, cosize(layout))
+    return CuTeArray(engine, layout)
+end
+@inline function CuTeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
+    return CuTeArray(ptr, make_layout(shape, args...))
+end
 
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
@@ -173,4 +180,45 @@ end
 
 @inline function Base.similar(x::CuTeArray{S,N,E,<:StaticLayout}, ::Type{T}) where {S,N,E,T}
     return CuTeArray{T}(undef, layout(x))
+end
+
+"""
+    recast(::Type{NewType}, x::CuTeArray{OldType}) -> CuTeArray{NewType}
+
+Recast the element type of a CuTeArray. This is similar to `Base.reinterpret`, but dose all
+the computation at compile time, if possible.
+
+## Examples
+```julia
+julia> x = CuTeArray{Int32}(undef, @Layout((2,3)))
+2×3 CuTeArray{Int32, 2, ArrayEngine{Int32, 6}, Layout{2, Tuple{Static.StaticInt{2}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{2}}}}:
+ -1948408944           0  2
+         514  -268435456  0
+
+julia> x2 = recast(Int16, x)
+4×3 CuTeArray{Int16, 2, ViewEngine{Int16, Ptr{Int16}}, Layout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}}:
+ -23664      0  2
+ -29731      0  0
+    514      0  0
+      0  -4096  0
+
+julia> x3 = recast(Int64, x)
+1×3 CuTeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{1}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{1}}}}:
+ 2209959748496  -1152921504606846976  2
+```
+"""
+@inline function recast(::Type{NewType}, x::CuTeArray{OldType}) where {NewType, OldType}
+    b = ManualMemory.preserve_buffer(x)
+    GC.@preserve b begin
+        old_layout = layout(x)
+        new_layout = recast(old_layout, NewType, OldType)
+        if sizeof(OldType) < sizeof(NewType) # TODO: handle composed layout
+            shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
+            extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
+            offset = foldl((i,a)->i+min(a, static(0)), extent_diff; init=static(0))
+            return CuTeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
+        else
+            return CuTeArray(recast(NewType, pointer(x)), new_layout)
+        end
+    end
 end
