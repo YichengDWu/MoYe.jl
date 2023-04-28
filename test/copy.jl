@@ -60,8 +60,10 @@ using Core: LLVMPtr
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
             y = CuTeArray(pb, @Layout((4,2)))
 
-            cucopyto!(y, x)
-            @test y == x
+            GC.@preserve b a begin
+                cucopyto!(y, x) # should recast to UInt128
+                @test y == x
+            end
         end
 
         @testset "Parallized Copy" begin
@@ -70,7 +72,7 @@ using Core: LLVMPtr
                     thread_tile_a = local_partition(a, thread_layout, i)
                     thread_tile_b = local_partition(b, thread_layout, i)
                     display(thread_tile_a)
-                    cucopyto!(thread_tile_b, thread_tile_a) # should recast to UInt128
+                    cucopyto!(thread_tile_b, thread_tile_a)
                 end
             end
 
