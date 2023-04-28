@@ -1,4 +1,5 @@
 using Shambles, Test, CUDA
+using Static: One
 
 if CUDA.functional()
     @testset "Global Memory" begin

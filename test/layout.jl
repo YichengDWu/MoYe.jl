@@ -478,78 +478,100 @@ end
 end
 
 @testset "Division" begin
-    tile = make_layout((2, 2), (1, 2))
-    matrix_of_tiles = make_layout((3, 4), (4, 1))
+    tile = @Layout((2, 2), (1, 2))
+    matrix_of_tiles = @Layout((3, 4), (4, 1))
     raked_prod = raked_product(tile, matrix_of_tiles)
-    subtile = (Layout(2, 3), Layout(2, 4))
+    subtile = (@Layout(2, 3), @Layout(2, 4))
 
     @testset "Logical division" begin
-        @test logical_divide(Layout(16, 3), Layout(4, 1)) == Layout((4, 4), (3, 12))
-        @test logical_divide(Layout(16, 3), Layout(4, 4)) == Layout((4, 4), (12, 3))
-        @test logical_divide(Layout(16, 3), Layout(4, 2)) ==
-              Layout((4, (2, 2)), (6, (3, 24)))
-        @test logical_divide(Layout(16, 3), Layout((2, 2), (4, 1))) ==
-              Layout(tuple((2, 2), (2, 2)), tuple((12, 3), (6, 24)))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 1)) == @Layout((4, 4), (3, 12))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 4)) == @Layout((4, 4), (12, 3))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 2)) ==
+              @Layout((4, (2, 2)), (6, (3, 24)))
+        @test logical_divide(@Layout(16, 3), @Layout((2, 2), (4, 1))) ==
+              @Layout(tuple((2, 2), (2, 2)), tuple((12, 3), (6, 24)))
         @test logical_divide(raked_prod, subtile) ==
-              make_layout(((2, 3), (2, 4)), ((1, 16), (2, 4)))
+              @Layout(((2, 3), (2, 4)), ((1, 16), (2, 4)))
 
         @test_opt logical_divide(raked_prod, subtile)
         @test_call logical_divide(raked_prod, subtile)
 
-        function test_logical_divide(A,B)
+        function test_logical_divide(A, B)
             C = logical_divide(A,B)
             @test rank(C) == 2
             @test Shambles.iscompatible(B, first(C))
         end
 
-        let vec = @Layout(1,0), tile = @Layout(1,0)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 0),
+            tile   = @Layout(1, 0)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(1,0), tile = @Layout(1,1)
-            test_logical_divide(tile, vec)
+        let layout = @Layout(1, 0),
+            tile   = @Layout(1, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(1,1), tile = @Layout(1,0)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 1),
+            tile   = @Layout(1, 0)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout(2,1)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 1),
+            tile   = @Layout(1, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout(2,3)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(6, 1),
+            tile   = @Layout(2, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout((2,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout(6, 1),
+            tile   = @Layout(2, 3)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout(2,1)
-            test_logical_divide(vec, tile)
+        let layout = @Layout((6, 6), (1, 12)),
+            tile   = @Layout((6, 3), (3, 1))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout(2,3)
-            test_logical_divide(vec, tile)
+        let layout = @Layout((6, 6), (12, 1)),
+            tile   = @Layout((6, 3), (3, 1))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout((2,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout(32),
+            tile   = @Layout((2, 8))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout((6,6),(1,12)), tile = @Layout((6,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout((4, 1), (1, 1)),
+            tile   = @Layout(2, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout((6,6),(12,1)), tile = @Layout((6,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout((4, 1), (1, 1)),
+            tile   = @Layout(2, 2)
+            test_logical_divide(layout, tile)
         end
+
+        let layout = @Layout((8, 8), (1, 8)),
+            tile   = @Layout((32, 2))
+            test_logical_divide(layout, tile)
+        end
+
+        let layout = @Layout((8, 8), (8, 1)),
+            tile   = @Layout((32, 2))
+            test_logical_divide(layout, tile)
+        end
+
     end
 
     @testset "Zipped division" begin
         @test zipped_divide(raked_prod, subtile) ==
-              make_layout(((2, 2), (3, 4)), ((1, 2), (16, 4)))
+              @Layout(((2, 2), (3, 4)), ((1, 2), (16, 4)))
         @test_opt zipped_divide(static(raked_prod), static(subtile))
     end
 end
