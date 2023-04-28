@@ -114,8 +114,9 @@ julia> print(coalesce(layout))
 
 ## Composition
 
+Layouts are functions and thus can possibly be composed.
 ```julia
-julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4)) # as function composition
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4)) 
 (4, 5):(2, 8)
 
 julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))

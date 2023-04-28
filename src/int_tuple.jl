@@ -259,3 +259,14 @@ function Base.getindex(x::StaticInt, i::Integer)
 end
 @inline Base.getindex(x::StaticInt, ::StaticInt{1}) = x
 @inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))
+
+
+# static findfirst, returns StaticInt, returns N+1 if not found, specialized on `f`
+function static_findfirst(f::Function, t::IntSequence, I::IntSequence)
+    return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
+end
+@inline function static_findfirst(::Function, t::IntSequence{N}, ::Tuple{}) where {N}
+    return static(N+1)
+end
+static_findfirst(f::G, t::IntSequence{N}) where {G,N} = static_findfirst(f, t, ntuple(static, N))
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), static(1), static(2))

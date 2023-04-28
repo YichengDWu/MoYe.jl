@@ -8,7 +8,6 @@ end
     return make_cutearray_like(T, x)
 end
 
-
 @inline function make_fragment_like(::Type{T}, @nospecialize(layout::Layout)) where {T}
     return CuTeArray{T}(undef, make_fragment_like(layout))
 end
@@ -73,7 +72,7 @@ julia> local_partition(a, (static(2), static(2)), (static(1), static(1)))
  5  17  29  41
 ```
 
-You can also use a thread layout and index with the thread id to get the tile:
+You can also pass in a thread layout and a thread id to get the tile:
 ```julia
 julia> local_partition(a, @Layout((2,2), (1, 2)), 2)
 3×4 CuTeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{3}, StaticInt{4}}, Tuple{StaticInt{2}, StaticInt{12}}}}:
@@ -104,8 +103,8 @@ end
 """
     local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple)
 
-Partition a [`CuTeArray`](@ref) `x` into tiles. This is similar to [`local_partition`](@ref) but
-tiles are not parallelised.
+Partition a [`CuTeArray`](@ref) `x` into tiles. This is similar to [`local_partition`](@ref)
+but not parallelised.
 
 ```julia
 julia> a = CuTeArray(pointer([i for i in 1:48]), @Layout((6,8)))

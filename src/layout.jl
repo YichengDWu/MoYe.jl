@@ -258,14 +258,20 @@ function transform_layout(f::Function, t1, t2)
     return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
 end
 
+function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
+    return Layout(one(new_shape), zero(new_shape))
+end
+function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape::StaticInt{N}, new_stride) where N
+    return Layout(new_shape, new_stride)
+end
 function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape, new_stride)
     new_shape == 1 && return Layout(one(new_shape), zero(new_shape))
     return Layout(new_shape, new_stride)
 end
 function bw_coalesce(::Val{I}, old_shape, old_stride, new_shape, new_stride) where {I}
-    if old_shape[I] == 1
+    if old_shape[I] == static(1)
         return bw_coalesce(Val(I - 1), old_shape, old_stride, new_shape, new_stride)
-    elseif new_shape == 1
+    elseif new_shape == static(1)
         return bw_coalesce(Val(I - 1), old_shape, old_stride, old_shape[I], old_stride[I])
     elseif old_shape[I] * old_stride[I] == new_stride[1]
         return bw_coalesce(Val(I - 1), old_shape, old_stride,
@@ -430,25 +436,32 @@ function complement(l::Layout)
     return _complement(shape(filter_layout), stride(filter_layout), cosize(filter_layout))
 end
 
-function inverse_seq(shape, stride, I::StaticInt, Is::Vararg{StaticInt, N}) where {N}
-    if length(rank(stride)) < I
-        return Is
+# need this specialization to avoid type instability
+function inverse_seq(shape, stride, I::StaticInt)
+    length(shape) < I && return ()
+    @inbounds next_stride = stride[I] * shape[I]
+    if Static.known(is_static(next_stride))
+        next_idx = static_findfirst(==(next_stride), stride)
+        return inverse_seq(shape, stride, next_idx, I)
     else
-        @inbounds next_stride = stride[I] * shape[I]
-        if Static.known(is_static(next_stride))
-            next_idx = findfirst(==(next_stride), stride)
-            isnothing(next_idx) && return Is
-            return inverse_seq(shape, stride, next_idx, append(Is, I)...)
-        else
-            return append(Is, I)
-        end
+        return tuple(I)
+    end
+end
+function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt, Is::Vararg{StaticInt, N}) where {N}
+    length(shape) < I && return (I′, Is...)
+    @inbounds next_stride = stride[I] * shape[I]
+    if Static.known(is_static(next_stride))
+        next_idx = static_findfirst(==(next_stride), stride)
+        return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
+    else
+        return (I′, Is..., I)
     end
 end
 
 @inline right_inverse(x::Colon) = x
 function right_inverse(layout::Layout)
     flat_layout = coalesce(layout)
-    astride = emap(abs, flat_layout.stride)
+    astride = map(abs, flat_layout.stride)
     next_I = findfirst(Base.Fix1(===, static(1)), astride)
     isnothing(next_I) && return @Layout(1, 0)
 
@@ -457,10 +470,10 @@ function right_inverse(layout::Layout)
 
     rstride = compact_col_major(flat_layout.shape)
     return make_layout(unwrap(map(Base.Fix1(shape, flat_layout), iseq)),
-                       unwrap(map(i-> Base.Fix1(stride, flat_layout)(i) * Base.Fix1(getindex, rstride)(i), iseq)))
+                       unwrap(map(i-> sign(Base.Fix1(stride, flat_layout)(i)) * Base.Fix1(getindex, rstride)(i), iseq)))
 end
 
-# left_inverse
+left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
 
 function max_common_layout(a::StaticLayout, b::StaticLayout)
     inv_b = right_inverse(b)

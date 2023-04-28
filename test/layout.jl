@@ -288,3 +288,36 @@ end
         @test_opt zipped_divide(static(raked_prod), static(subtile))
     end
 end
+
+@tesetset "Inverse" begin
+    @testset "Right Inverse" begin
+        function test_right_inverse(l)
+            inv_l = right_inverse(l)
+
+            @test_opt right_inverse(l)
+            @test_call right_inverse(l)
+
+            for i in 1:size(inv_l)
+                @test l(inv_l(i)) == i
+            end
+        end
+
+        test_right_inverse(@Layout(1, 0))
+        test_right_inverse(@Layout(1, 1))
+        test_right_inverse(@Layout((4,), (0,)))
+        test_right_inverse(@Layout((4,), (1,)))
+        test_right_inverse(@Layout((4,), (2,)))
+
+        test_right_inverse(@Layout((1,1), (0,0)))
+        test_right_inverse(@Layout((3,7), (0,0)))
+        test_right_inverse(@Layout((1,), (1,)))
+        test_right_inverse(@Layout((2,4), (0,2)))
+        test_right_inverse(@Layout((8,4)))
+        test_right_inverse(@Layout((8,4), (4,1)))
+        test_right_inverse(@Layout((2,4,6)))
+        test_right_inverse(@Layout((2,4,6), (4,1,8)))
+        # test_right_inverse(@Layout((2,4,4,6), (4,1,0,8))) failed to optimize due to recursion
+        test_right_inverse(@Layout((4,2), (1,16)))
+        test_right_inverse(@Layout((4,2), (1,5)))
+    end
+end
