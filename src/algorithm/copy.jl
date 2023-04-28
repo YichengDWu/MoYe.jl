@@ -3,7 +3,7 @@ struct TrivialMask end
 
 @inline function masked_copyto!(dest::CuTeArray, src::CuTeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
-    for i in static(1):size(src.layout)
+    for i in One():size(src.layout)
         if mask[i]
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
@@ -21,7 +21,16 @@ end
     end
 end
 
-# should be used with @gc_preserve if dest or src is powered by an ArrayEngine!
+"""
+    cucopyto!(dest::CuTeArray, src::CuTeArray)
+
+Copy the contents of `src` to `dest`. The function automatically carries out potential
+vectorization. In particular, while transferring data from global memory to shared memory,
+it automatically initiates asynchronous copying, if your device supports so.
+
+!!! note
+    It should be used with @gc_preserve if `dest` or `src` is powered by an ArrayEngine.
+"""
 @inline function cucopyto!(dest::CuTeArray{TD}, src::CuTeArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
     if N ≤ 1
