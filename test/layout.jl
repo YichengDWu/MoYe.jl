@@ -289,7 +289,7 @@ end
     end
 end
 
-@tesetset "Inverse" begin
+@testset "Inverse" begin
     @testset "Right Inverse" begin
         function test_right_inverse(l)
             inv_l = right_inverse(l)
