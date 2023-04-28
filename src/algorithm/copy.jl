@@ -23,13 +23,12 @@ end
 
 # should be used with @gc_preserve if dest or src is powered by an ArrayEngine!
 @inline function cucopyto!(dest::CuTeArray{TD}, src::CuTeArray{TS}) where {TD,TS}
-
     N = max_common_vector(src, dest)
     if N ≤ 1
         return masked_copyto!(dest, src, TrivialMask())
     else
         vec_bits = N * sizeof(TS) * 8
-        TV = uint_bit_t(min(128, vec_bits))
+        TV = uint_bit(static(min(128, vec_bits)))
         return copyto_vec!(dest, src, TV)
     end
 end

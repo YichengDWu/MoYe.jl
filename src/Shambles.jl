@@ -9,6 +9,7 @@ using CUDA, BFloat16s, LLVM
 using Core: LLVMPtr
 import Adapt
 
+include("utilities.jl")
 include("algorithm/tuple_algorithms.jl")
 include("int_tuple.jl")
 include("stride.jl")
@@ -57,5 +58,8 @@ export isgmem, issmem, isrmem
 
 # blas
 export axpby!
+
+# data movement
+export cucopyto!
 
 end
