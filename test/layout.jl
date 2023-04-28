@@ -25,6 +25,98 @@ end
     @test coalesce(@Layout((2, (1, 6)), (1, (6, 2)))) == @Layout(12, 1)
     @test_opt coalesce(@Layout((2, (1, 6)), (1, (6, 2))))
     @test_opt Shambles.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
+
+    function test_coalesce(layout)
+        coalesce_layout = coalesce(layout)
+        @test depth(coalesce_layout) <= One()
+        @test size(coalesce_layout) == size(layout)
+
+        for i in One():size(layout)
+            @test coalesce_layout(i) == layout(i)
+        end
+    end
+
+    let layout = make_layout(static(1), Int(0))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(static(1), static(1))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(1), static(6), static(2)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(1), 7, static(2)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(4), 7, static(8)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(2, static(4), static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 4, static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), 6))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(2, static(4), static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 4, static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), 6), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(3)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), tuple(static(2), 4, static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), tuple(static(2), Int(0), static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = Layout(tuple(tuple(static(2), static(2)), tuple(static(2), static(2))),
+                       tuple(tuple(static(1), static(4)), tuple(static(8), static(32))))
+        test_coalesce(layout)
+    end
+
 end
 
 @testset "Composition" begin
@@ -203,7 +295,7 @@ end
             test_composition(a, b)
         end
 
-        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(480, Int(32))
+        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(480, static(32))
             test_composition(a, b)
         end
     end
