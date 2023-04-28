@@ -21,7 +21,7 @@ using Core: LLVMPtr
 
         @testset "Parallized Copy" begin
             function parallelized_copy(a, b, thread_layout)
-                for i in static(1):size(thread_layout) # on gpu this is parallelized instead of sequential
+                for i in One():size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = local_partition(a, thread_layout, i)
                     thread_tile_b = local_partition(b, thread_layout, i)
                     display(thread_tile_a)
@@ -68,7 +68,7 @@ using Core: LLVMPtr
 
         @testset "Parallized Copy" begin
             function parallelized_copy(a, b, thread_layout)
-                for i in static(1):size(thread_layout) # on gpu this is parallelized instead of sequential
+                for i in One():size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = local_partition(a, thread_layout, i)
                     thread_tile_b = local_partition(b, thread_layout, i)
                     display(thread_tile_a)

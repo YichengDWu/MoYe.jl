@@ -22,21 +22,21 @@ function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
-@inline _offset(x::Colon) = StaticInt{0}()
+@inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
 @inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
-@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> StaticInt{0}(), N)
-@inline _offset(x::Tuple{Colon, IntType}) =  (StaticInt{0}(), _offset(x[2]))
-@inline _offset(x::Tuple{IntType, Colon}) =  (_offset(x[1]), StaticInt{0}())
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> Zero(), N)
+@inline _offset(x::Tuple{Colon, IntType}) =  (Zero(), _offset(x[2]))
+@inline _offset(x::Tuple{IntType, Colon}) =  (_offset(x[1]), Zero())
 @inline _offset(x::Tuple{NTuple{N, Colon}, NTuple{M, IntType}}) where {N, M} = (_offset(x[1]), _offset(x[2]))
 @inline _offset(x::IntTuple{N}) where {N} = ntuple(i -> _offset(x[i]), N)
 @inline _offset(x::Tuple) = map(_offset, x)
 
 function coord_to_index(coord::IntType, shape, stride)
-    coord_to_index0(coord - static(1), shape, stride) + static(1)
+    coord_to_index0(coord - One(), shape, stride) + One()
 end
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(_offset(coord), shape, stride) + static(1)
+    return coord_to_index0(_offset(coord), shape, stride) + One()
 end
 
 # defaul stride, compact + column major
@@ -46,7 +46,7 @@ function coord_to_index0_horner(coord::IntType, shape::IntType)
 end
 function coord_to_index0_horner(coord::Tuple{}, shape::Tuple{})
     @inline
-    return static(0)
+    return Zero()
 end
 function coord_to_index0_horner(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple))
     c, s = first(coord), first(shape)
@@ -60,10 +60,10 @@ function coord_to_index0(coord, shape)
 end
 
 function coord_to_index(coord::IntType, shape)
-    return coord_to_index0(coord - static(1), shape) + static(1)
+    return coord_to_index0(coord - One(), shape) + One()
 end
 function coord_to_index(coord, shape)
-    return coord_to_index0(_offset(coord), shape) + static(1)
+    return coord_to_index0(_offset(coord), shape) + One()
 end
 
 ### index_to_coord
@@ -97,7 +97,7 @@ function index_to_coord(index::IntType, shape::IntType)
     return index
 end
 function index_to_coord(index::IntType, @nospecialize(shape::Tuple))
-    return index_to_coord(index, shape, compact_col_major(shape, static(1)))
+    return index_to_coord(index, shape, compact_col_major(shape, One()))
 end
 function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple))
     length(index) == length(shape) ||
@@ -133,7 +133,7 @@ function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
     return foldl(CompactLambda{LayoutRight}(), reverse(shape); init=((), current))
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
-    return ifelse(isone(shape), (static(0), current), (current, current * shape))
+    return ifelse(isone(shape), (Zero(), current), (current, current * shape))
 end
 
 function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
@@ -154,8 +154,8 @@ function (::CompactLambda{LayoutRight})(init, si)
     return (prepend(init[1], result[1]), result[2])
 end
 
-compact_col_major(shape, current=static(1)) = compact_major(shape, current, LayoutLeft)
-compact_row_major(shape, current=static(1)) = compact_major(shape, current, LayoutRight)
+compact_col_major(shape, current=One()) = compact_major(shape, current, LayoutLeft)
+compact_row_major(shape, current=One()) = compact_major(shape, current, LayoutRight)
 
 function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
     return let old_shape = old_shape, old_order = old_order
@@ -164,7 +164,7 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
 end
 function compact_order(shape, order::IntType, old_shape, old_order)
     d = let order = order
-        product(map((s, o) -> ifelse(o < order, product(s), static(1)), old_shape,
+        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape,
                     old_order))
     end
     return compact_col_major(shape, d)

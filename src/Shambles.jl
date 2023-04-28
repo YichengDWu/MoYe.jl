@@ -1,6 +1,6 @@
 module Shambles
 
-using Static: StaticInt, IntType, static, is_static
+using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
 import Static
 import ManualMemory, LayoutPointers
 import StrideArraysCore

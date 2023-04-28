@@ -65,7 +65,7 @@ julia> a = CuTeArray(pointer([i for i in 1:48]), @Layout((6,8)))
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
 
-julia> local_partition(a, (static(2), static(2)), (static(1), static(1)))
+julia> local_partition(a, (static(2), static(2)), (One(), One()))
 3×4 CuTeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{4}}, Tuple{Static.StaticInt{2}, Static.StaticInt{12}}}}:
  1  13  25  37
  3  15  27  39
@@ -109,7 +109,7 @@ but not parallelised.
 ```julia
 julia> a = CuTeArray(pointer([i for i in 1:48]), @Layout((6,8)))
 
-julia> local_tile(a, (static(2), static(2)), (static(1), static(1)))
+julia> local_tile(a, (static(2), static(2)), (One(), One()))
 2×2 CuTeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{2}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{6}}}}:
  1  7
  2  8
@@ -153,6 +153,6 @@ function max_common_vector(src::CuTeArray{TS}, dst::CuTeArray{TD}) where {TS, TD
     if sizeof(TS) == sizeof(TD) && isbitstype(TS) && isbitstype(TD)
         return max_common_vector(src.layout, dst.layout)
     else
-        return static(0)
+        return Zero()
     end
 end

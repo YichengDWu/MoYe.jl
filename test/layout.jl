@@ -1,6 +1,5 @@
 using Shambles, Test, JET
-
-Shambles.static(l::Layout) = Layout(static(shape(l)), static(stride(l)))
+using Static: One
 
 @testset "Macro" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
@@ -23,8 +22,9 @@ end
     @test_opt flatten(make_layout(((4, 3), 1), ((3, 1), 0)))
 end
 @testset "Coalesce" begin
-    @test coalesce(make_layout((2, (1, 6)), (1, (6, 2)))) == make_layout(12, 1)
-    @test_opt coalesce(make_layout((2, (1, 6)), (1, (6, 2))))
+    @test coalesce(@Layout((2, (1, 6)), (1, (6, 2)))) == @Layout(12, 1)
+    @test_opt coalesce(@Layout((2, (1, 6)), (1, (6, 2))))
+    @test_opt Shambles.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
 end
 
 @testset "Composition" begin
@@ -33,14 +33,26 @@ end
 
     @test_opt make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
     @test_opt make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+
+    function test_composition(A,B)
+        C = A ∘ B
+        @test Shambles.iscompatible(B,C)
+        for i in static(1):size(C)
+            @test C(i) == A(B(i))
+        end
+    end
+
+    let a = @Layout(1,0), b = @Layout(1,0)
+        test_composition(a, b)
+    end
 end
 
 @testset "Complement" begin
-    @test complement(make_layout(4, 1), 24) == make_layout(6, 4)
-    @test complement(make_layout(6, 4), 24) == make_layout(4, 1)
+    @test complement(@Layout(4, 1), static(24)) == @Layout(6, 4)
+    @test complement(@Layout(6, 4), static(24)) == @Layout(4, 1)
 
-    @test_opt complement(make_layout(4, 1), 24)
-    @test_opt complement(make_layout(6, 4), 24)
+    @test_opt complement(@Layout(4, 1), static(24))
+    @test_opt complement(@Layout(6, 4), static(24))
 
     function test_complement(l, cosize_hi)
         result = complement(l, cosize_hi)
@@ -75,31 +87,31 @@ end
     end
 
     let layout = @Layout(1,2)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,0)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,1)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,2)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout)
         test_complement(layout, static(16))
     end
 
     let layout = @Layout(4,4)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout)
         test_complement(layout, static(17))
     end
@@ -228,7 +240,7 @@ end
         @test logical_divide(raked_prod, subtile) ==
               make_layout(((2, 3), (2, 4)), ((1, 16), (2, 4)))
 
-        @test_opt logical_divide(static(raked_prod), static(subtile))
+        @test_opt logical_divide(raked_prod, subtile)
         @test_call logical_divide(raked_prod, subtile)
 
         function test_logical_divide(A,B)

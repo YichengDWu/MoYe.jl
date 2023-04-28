@@ -42,7 +42,7 @@ You can also use static integers:
 
 ```julia
 julia> static_layout = @Layout (2, (2, 2)) (4, (1, 2))
-(static(2), (static(2), static(2))):(static(4), (static(1), static(2)))
+(static(2), (static(2), static(2))):(static(4), (One(), static(2)))
 
 julia> typeof(static_layout)
 Layout{2, Tuple{StaticInt{2}, Tuple{StaticInt{2}, StaticInt{2}}}, Tuple{StaticInt{4}, Tuple{StaticInt{1}, StaticInt{2}}}}
@@ -126,11 +126,11 @@ julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 ## Complement
 
 ```julia
-julia> complement(make_layout(4, 1), 24)
-6:4
+julia> complement(@Layout(4, 1), static(24))
+static(6):static(4)
 
-julia> complement(make_layout(6, 4), 24)
-4:1
+julia> complement(@Layout(6, 4), static(24))
+static(4):static(1)
 ```
 
 ## Product
