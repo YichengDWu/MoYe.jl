@@ -4,7 +4,7 @@ Mathematically, a `Layout` represents a function that maps logical coordinates t
 
 ## Constructing a `Layout`
 
-```@repl
+```@repl layout
 layout_2x4 = make_layout((2, (2, 2)), (4, (1, 2)))
 print("Shape: ", shape(layout_2x4))
 print("Stride: ", stride(layout_2x4))
@@ -19,7 +19,7 @@ print("Cosize: ", cosize(layout_2x4))
 
 You can also use static integers:
 
-```@repl
+```@repl layout
 static_layout = @Layout (2, (2, 2)) (4, (1, 2))
 typeof(static_layout)
 sizeof(static_layout)
@@ -33,7 +33,7 @@ The coordinate space of a `Layout` is determined by its `Shape`. This coordinate
  2. 1-D coordinate space: This can be visualized as the colexicographically flattening of the coordinate space into a one-dimensional space.
  3. R-D coordinate space: In this space, each element has the same rank as the Shape, but each mode (top-level axis) of the `Shape` is colexicographically flattened into a one-dimensional space. Here `R` stands for the rank of the layout.
 
-```@repl
+```@repl layout
 layout_2x4(2, (1, 2)) # h-D coordinate
 layout_2x4(2, 3) # R-D coordinate
 layout_2x4(6) # 1-D coordinate
@@ -44,7 +44,7 @@ layout_2x4(6) # 1-D coordinate
 
 A `layout` can be expressed as the concatenation of its sublayouts.
 
-```@repl
+```@repl layout
 layout_2x4[2] # get the second sublayout
 tuple(layout_2x4...) # splatting a layout into sublayouts
 make_layout(layout_2x4...) # concatenating sublayouts
@@ -56,14 +56,14 @@ end
 
 ## Flatten
 
-```@repl
+```@repl layout
 layout = make_layout(((4, 3), 1), ((3, 1), 0))
 print(flatten(layout))
 ```
 
 ### Coalesce
 
-```@repl
+```@repl layout
 layout = @Layout (2, (1, 6)) (1, (6, 2)) # layout has to be static
 print(coalesce(layout))
 ```
@@ -71,14 +71,14 @@ print(coalesce(layout))
 ## Composition
 
 Layouts are functions and thus can possibly be composed.
-```@repl
+```@repl layout
 make_layout(20, 2) ∘ make_layout((4, 5), (1, 4)) 
 make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 ```
 
 ## Complement
 
-```@repl
+```@repl layout
 complement(@Layout(4, 1), static(24))
 complement(@Layout(6, 4), static(24))
 ```
@@ -87,7 +87,7 @@ complement(@Layout(6, 4), static(24))
 
 ### Logical product
 
-```@repl
+```@repl layout
 tile = make_layout((2,2), (1,2));
 print_layout(tile)
 matrix_of_tiles = make_layout((3,4), (4,1));
@@ -97,13 +97,13 @@ print_layout(logical_product(tile, matrix_of_tiles))
 
 ### Blocked product
 
-```@repl
+```@repl layout
 print_layout(blocked_product(tile, matrix_of_tiles))
 ```
 
 ### Raked product
 
-```@repl
+```@repl layout
 print_layout(raked_product(tile, matrix_of_tiles))
 ```
 
@@ -111,7 +111,7 @@ print_layout(raked_product(tile, matrix_of_tiles))
 
 ### Logical division
 
-```@repl
+```@repl layout
 raked_prod = raked_product(tile, matrix_of_tiles);
 subtile = (Layout(2,3), Layout(2,4));
 print_layout(logical_divide(raked_prod, subtile))
@@ -119,6 +119,6 @@ print_layout(logical_divide(raked_prod, subtile))
 
 ### Zipped division
 
-```@repl
+```@repl layout
 print_layout(zipped_divide(raked_prod, subtile))
 ```
