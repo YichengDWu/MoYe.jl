@@ -28,7 +28,7 @@ julia&gt; print_layout(layout_2x4) # this can be viewed as a row-major matrix
     +---+---+---+---+
  2  | 5 | 6 | 7 | 8 |
     +---+---+---+---+</code></pre><h3 id="Compile-time-ness-of-values"><a class="docs-heading-anchor" href="#Compile-time-ness-of-values">Compile-time-ness of values</a><a id="Compile-time-ness-of-values-1"></a><a class="docs-heading-anchor-permalink" href="#Compile-time-ness-of-values" title="Permalink"></a></h3><p>You can also use static integers:</p><pre><code class="language-julia hljs">julia&gt; static_layout = @Layout (2, (2, 2)) (4, (1, 2))
-(static(2), (static(2), static(2))):(static(4), (static(1), static(2)))
+(static(2), (static(2), static(2))):(static(4), (One(), static(2)))
 
 julia&gt; typeof(static_layout)
 Layout{2, Tuple{StaticInt{2}, Tuple{StaticInt{2}, StaticInt{2}}}, Tuple{StaticInt{4}, Tuple{StaticInt{1}, StaticInt{2}}}}
@@ -66,11 +66,11 @@ julia&gt; print(coalesce(layout))
 (4, 5):(2, 8)
 
 julia&gt; make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
-(4, 5):(10, 2)</code></pre><h2 id="Complement"><a class="docs-heading-anchor" href="#Complement">Complement</a><a id="Complement-1"></a><a class="docs-heading-anchor-permalink" href="#Complement" title="Permalink"></a></h2><pre><code class="language-julia hljs">julia&gt; complement(make_layout(4, 1), 24)
-6:4
+(4, 5):(10, 2)</code></pre><h2 id="Complement"><a class="docs-heading-anchor" href="#Complement">Complement</a><a id="Complement-1"></a><a class="docs-heading-anchor-permalink" href="#Complement" title="Permalink"></a></h2><pre><code class="language-julia hljs">julia&gt; complement(@Layout(4, 1), static(24))
+static(6):static(4)
 
-julia&gt; complement(make_layout(6, 4), 24)
-4:1</code></pre><h2 id="Product"><a class="docs-heading-anchor" href="#Product">Product</a><a id="Product-1"></a><a class="docs-heading-anchor-permalink" href="#Product" title="Permalink"></a></h2><h3 id="Logical-product"><a class="docs-heading-anchor" href="#Logical-product">Logical product</a><a id="Logical-product-1"></a><a class="docs-heading-anchor-permalink" href="#Logical-product" title="Permalink"></a></h3><pre><code class="language-julia hljs">julia&gt; tile = make_layout((2,2), (1,2));
+julia&gt; complement(@Layout(6, 4), static(24))
+static(4):static(1)</code></pre><h2 id="Product"><a class="docs-heading-anchor" href="#Product">Product</a><a id="Product-1"></a><a class="docs-heading-anchor-permalink" href="#Product" title="Permalink"></a></h2><h3 id="Logical-product"><a class="docs-heading-anchor" href="#Logical-product">Logical product</a><a id="Logical-product-1"></a><a class="docs-heading-anchor-permalink" href="#Logical-product" title="Permalink"></a></h3><pre><code class="language-julia hljs">julia&gt; tile = make_layout((2,2), (1,2));
 julia&gt; print_layout(tile)
 (2, 2):(1, 2)
       1   2
@@ -161,4 +161,4 @@ julia&gt; print_layout(logical_divide(raked_prod, subtile))
  3  |  3 | 19 | 35 |  7 | 23 | 39 | 11 | 27 | 43 | 15 | 31 | 47 |
     +----+----+----+----+----+----+----+----+----+----+----+----+
  4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
-    +----+----+----+----+----+----+----+----+----+----+----+----+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Friday 28 April 2023 04:05">Friday 28 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    +----+----+----+----+----+----+----+----+----+----+----+----+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Friday 28 April 2023 20:42">Friday 28 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
