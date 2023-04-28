@@ -45,6 +45,168 @@ end
     let a = @Layout(1,0), b = @Layout(1,0)
         test_composition(a, b)
     end
+
+    let a = @Layout(1,0), b = @Layout(1,1)
+        test_composition(a, b)
+    end
+
+    let a = @Layout(1,1), b = @Layout(1,0)
+        test_composition(a, b)
+    end
+
+    let a = @Layout(1,1), b = @Layout(1,1)
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (0,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((4,), (0,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((1,), (0,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((2,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((2,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((12,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,), (2,)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((4,3), (3,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,), (2,)), b = @Layout((4,3), (3,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((2,3), (2,4))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((6,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((6,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((12,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((6,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((6,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((8,8)), b = @Layout(((2,2,2),(2,2,2)), ((1,16,4),(8,2,32)))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((8,8), (8,1)), b = @Layout(((2,2,2),(2,2,2)), ((1,16,4),(8,2,32)))
+        test_composition(a, b)
+    end
+
+    let a = @Layout(((4,2),), ((1,16),)), b = @Layout((4,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((2,2), (2,1)), b = @Layout((2,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2)), b = @Layout((2,2,2), (2,8,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2), (2,8,1)), b = @Layout((2,2,2), (1,8,2))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2), (2,8,1)), b = @Layout((4,2,2), (2,8,1))
+        test_composition(a, b)
+    end
+
+    @testset "Dynamic" begin
+        let a = make_layout(12, 1), b = make_layout(static(4), static(1))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, 1), b = make_layout(static(4), 1)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, static(1)), b = make_layout(static(4), 1)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, static(1)), b = make_layout(static(4), static(1))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(12, 3), tuple(1, 24)), b = make_layout(tuple(static(4)), tuple(static(1)))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(16, 2), b = make_layout(4, 2)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(64, 2)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(480, Int(32))
+            test_composition(a, b)
+        end
+    end
 end
 
 @testset "Complement" begin
@@ -140,7 +302,6 @@ end
     let layout = @Layout(((2,2), (2,2)), ((1,4), (8,32)))
         test_complement(layout)
     end
-
 end
 
 @testset "Product" begin

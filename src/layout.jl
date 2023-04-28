@@ -302,68 +302,61 @@ function Base.filter(l::Layout)
     return coalesce(filter_zeros(l))
 end
 
+
+# shortcuts
+function composition(lhs_shape::IntType, lhs_stride::IntType, rhs_shape::IntType, rhs_stride::StaticInt{0})
+    return Layout(rhs_shape, rhs_stride)
+end
 # Base case a:b ∘ c:d = c:(b*d)
-function composition(lhs::Layout{1, IntType, IntType}, rhs_shape::IntType,
-                     rhs_stride::IntType)
-    return Layout(rhs_shape, rhs_stride * stride(lhs))
+function composition(lhs_shape::IntType, lhs_stride::IntType, rhs_shape::IntType, rhs_stride::IntType)
+    result_stride = lhs_stride * rhs_stride
+    return Layout(rhs_shape, result_stride)
 end
 
-# distributivity with concatenation
-function composition(lhs::Layout, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where {N}
-    return let lhs = lhs
-        make_layout(map((s, d) -> composition(lhs, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
-    end                                                                             # we assume rank(lhs) == rank(rhs)
-end
-
-function composition(lhs::Layout, rhs_shape::StaticInt{1}, rhs_stride::StaticInt{0})
-    return Layout(rhs_shape, rhs_stride)
-end
-function composition(lhs::Layout, rhs_shape::IntType, rhs_stride::StaticInt{0})
-    return Layout(rhs_shape, rhs_stride)
-end
-function composition(lhs::Layout, rhs_shape::StaticInt{1}, rhs_stride::IntType)
-    flat_shape = flatten(shape(lhs))
-    flat_stride = flatten(stride(lhs))
-
-    result_shape_0 = flat_shape[1:(end - 1)]
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{1})
+    result_shape_0 = lhs_shape[1:(end - 1)]
     result_shape_1, rest_shape = foldl((init, si) -> (append(init[1],
                                                                 min(abs(si), init[2])),
                                                         shape_div(init[2], abs(si))),
                                         result_shape_0; init=((), rhs_shape))
-    return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_1, flat_stride,
-                        rest_shape, last(flat_stride))
+    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_1, lhs_stride,
+                        rest_shape, last(lhs_stride))
 end
-function composition(lhs::Layout, rhs_shape::IntType, rhs_stride::IntType)
-    flat_shape = flatten(shape(lhs))
-    flat_stride = flatten(stride(lhs))
 
-    if flat_shape isa IntType
-        result_stride = flat_stride * rhs_stride
-        return Layout(rhs_shape, result_stride)
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{0})
+    return Layout(rhs_shape, rhs_stride)
+end
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::IntType)
+    result_shape_0 = lhs_shape[1:(end - 1)]
+    result_stride_0 = lhs_stride[1:(end - 1)]
 
-    else
-        result_shape_0 = flat_shape[1:(end - 1)]
-        result_stride_0 = flat_stride[1:(end - 1)]
+    result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
+                                                                shape_div(di, init[2])),
+                                                        shape_div(init[2], di)),
+                                        result_shape_0; init=((), rhs_stride))
 
-        result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
-                                                                  shape_div(di, init[2])),
-                                                           shape_div(init[2], di)),
-                                            result_shape_0; init=((), rhs_stride))
+    result_stride_1 = elem_scale(result_stride_0,
+                                    shape_div(result_shape_0, result_shape_1))
 
-        result_stride_1 = elem_scale(result_stride_0,
-                                     shape_div(result_shape_0, result_shape_1))
+    result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
+                                                                min(abs(si), init[2])),
+                                                        shape_div(init[2], abs(si))),
+                                        result_shape_1; init=((), rhs_shape))
+    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_2, result_stride_1,
+                        rest_shape, rest_stride * last(lhs_stride))
+end
 
-        result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
-                                                                 min(abs(si), init[2])),
-                                                          shape_div(init[2], abs(si))),
-                                           result_shape_1; init=((), rhs_shape))
-        return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_2, result_stride_1,
-                           rest_shape, rest_stride * last(flat_stride))
-    end
+# distributivity with concatenation
+function composition(lhs_shape, lhs_stride, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where {N}
+    return let lhs_shape = lhs_shape, lhs_stride = lhs_stride
+        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
+    end                                                                             # we assume rank(lhs) == rank(rhs)
 end
 
 function composition(lhs::Layout, rhs::Layout)
-    return composition(lhs, shape(rhs), stride(rhs))
+    flat_shape = flatten(shape(lhs))
+    flat_stride = flatten(stride(lhs))
+    return composition(flat_shape, flat_stride, shape(rhs), stride(rhs))
 end
 function composition(lhs::Layout, @nospecialize rhs::Tuple{Vararg{Layout}})
     @assert rank(rhs) <= length(lhs)
