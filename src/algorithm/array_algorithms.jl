@@ -115,12 +115,12 @@ julia> local_tile(a, (static(2), static(2)), (One(), One()))
  2  8
 ```
 """
-@inline function local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple)
+@inline function local_tile(x::CuTeArray, tile::Tile, coord::Tuple)
     R1 = length(tile)
     R2 = rank(x)
     return view(zipped_divide(x, tile), repeat(:, R1), append(coord, :, R2))
 end
-@inline function local_tile(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple, proj)
+@inline function local_tile(x::CuTeArray, tile::Tile, coord::Tuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
 end
 
