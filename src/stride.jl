@@ -22,10 +22,21 @@ function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
-@inline _offset(::Colon) = static(0)
-@inline _offset(x) = x - one(x)
+@inline _offset(x::Colon) = StaticInt{0}()
+@inline _offset(x::Int) = x - one(x)
+@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> StaticInt{0}(), N)
+@inline _offset(x::Tuple{Colon, IntType}) =  (StaticInt{0}(), _offset(x[2]))
+@inline _offset(x::Tuple{IntType, Colon}) =  (_offset(x[1]), StaticInt{0}())
+@inline _offset(x::Tuple{NTuple{N, Colon}, NTuple{M, IntType}}) where {N, M} = (_offset(x[1]), _offset(x[2]))
+@inline _offset(x::IntTuple{N}) where {N} = ntuple(i -> _offset(x[i]), N)
+@inline _offset(x::Tuple) = map(_offset, x)
+
+function coord_to_index(coord::IntType, shape, stride)
+    coord_to_index0(coord - static(1), shape, stride) + static(1)
+end
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(emap(_offset, coord), shape, stride) + static(1)
+    return coord_to_index0(_offset(coord), shape, stride) + static(1)
 end
 
 # defaul stride, compact + column major
@@ -48,8 +59,11 @@ function coord_to_index0(coord, shape)
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
+function coord_to_index(coord::IntType, shape)
+    return coord_to_index0(coord - static(1), shape) + static(1)
+end
 function coord_to_index(coord, shape)
-    return coord_to_index0(emap(_offset, coord), shape) + static(1)
+    return coord_to_index0(_offset(coord), shape) + static(1)
 end
 
 ### index_to_coord
