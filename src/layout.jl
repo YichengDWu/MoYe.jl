@@ -512,10 +512,10 @@ corresponds to indexing through `A` and indexing through the second mode corresp
 through `B`.
 
 ```julia
-julia> tile = make_layout((2,2), (1,2));
+julia> tile = @Layout((2,2), (1,2));
 
 julia> print_layout(tile)
-(2, 2):(1, 2)
+(static(2), static(2)):(static(1), static(2))
       1   2
     +---+---+
  1  | 1 | 3 |
@@ -523,10 +523,10 @@ julia> print_layout(tile)
  2  | 2 | 4 |
     +---+---+
 
-julia> matrix_of_tiles = make_layout((3,4), (4,1));
+julia> matrix_of_tiles = @Layout((3,4), (4,1));
 
 julia> print_layout(matrix_of_tiles)
-(3, 4):(4, 1)
+(static(3), static(4)):(static(4), static(1))
        1    2    3    4
     +----+----+----+----+
  1  |  1 |  2 |  3 |  4 |
@@ -536,8 +536,21 @@ julia> print_layout(matrix_of_tiles)
  3  |  9 | 10 | 11 | 12 |
     +----+----+----+----+
 
+julia> print_layout(logical_product(tile, matrix_of_tiles))
+((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
+       1    2    3    4    5    6    7    8    9   10   11   12
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 2  |  2 | 18 | 34 |  6 | 22 | 38 | 10 | 26 | 42 | 14 | 30 | 46 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 3  |  3 | 19 | 35 |  7 | 23 | 39 | 11 | 27 | 43 | 15 | 31 | 47 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+ 4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
+    +----+----+----+----+----+----+----+----+----+----+----+----+
+
 julia> print_layout(logical_product(tile, matrix_of_tiles));
-((2, 2), (3, 4)):((1, 2), (16, 4))
+((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
        1    2    3    4    5    6    7    8    9   10   11   12
     +----+----+----+----+----+----+----+----+----+----+----+----+
  1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |

@@ -397,8 +397,8 @@ end
 end
 
 @testset "Product" begin
-    tile = make_layout((2, 2), (1, 2))
-    matrix_of_tiles = make_layout((3, 4), (4, 1))
+    tile = @Layout((2, 2), (1, 2))
+    matrix_of_tiles = @Layout((3, 4), (4, 1))
 
     @testset "Logical product" begin
         result = logical_product(tile, matrix_of_tiles)
