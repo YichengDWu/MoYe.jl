@@ -74,7 +74,7 @@ function make_layout(shape::GenIntTuple)
     return Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
-    return make_layout(shape.(layouts), stride.(layouts)) # concatenation
+    return make_layout(map(shape, layouts), map(stride, layouts)) # concatenation
 end
 function make_layout(shape::GenIntTuple, ::Type{GenColMajor})
     return make_layout(shape, compact_col_major(shape))
