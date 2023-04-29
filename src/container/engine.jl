@@ -19,6 +19,12 @@ end
 @inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::Int) where {T, AS}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
+@inline function ViewEngine(ptr::Ptr{T}, len::StaticInt{N}) where {T, N}
+    return ViewEngine{T, typeof(ptr)}(ptr, N)
+end
+@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::StaticInt{N}) where {T, N, AS}
+    return ViewEngine{T, typeof(ptr)}(ptr, N)
+end
 
 @inline function ViewEngine(A::AbstractArray)
     p = LayoutPointers.memory_reference(A)[1] # not sure what this does
