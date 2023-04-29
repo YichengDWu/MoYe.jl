@@ -1,4 +1,4 @@
-## CuTeArray
+## MoyeArray
 
 ```@meta
 CurrentModule = Moye
@@ -13,7 +13,7 @@ Pages = ["array.md"]
 ```@docs
 ViewEngine
 ArrayEngine
-CuTeArray
+MoyeArray
 recast
 ```
 

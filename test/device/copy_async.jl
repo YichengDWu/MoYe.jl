@@ -2,10 +2,10 @@ using Moye, Test, CUDA
 
 function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
     smem = Moye.SharedMemory(eltype(dest), cosize(blocklayout))
-    cute_smem = CuTeArray(smem, blocklayout)
+    cute_smem = MoyeArray(smem, blocklayout)
 
-    cute_dest = CuTeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    cute_src = CuTeArray(pointer(src), Layout((M, N), (static(1), M)))
+    cute_dest = MoyeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    cute_src = MoyeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)

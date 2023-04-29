@@ -16,7 +16,7 @@ In this tutorial, we will use the following configuration:
 The device function follows these steps:
 
 1. Allocate shared memory using Moye.SharedMemory.
-2. Wrap the shared memory with [`CuTeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
+2. Wrap the shared memory with [`MoyeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
 3. Compute the size of each block in the grid (bM and bN).
 4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
 5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
@@ -37,10 +37,10 @@ using Moye, Test, CUDA
 
 function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
     smem = Moye.SharedMemory(eltype(dest), cosize(blocklayout))
-    cute_smem = CuTeArray(smem, blocklayout)
+    cute_smem = MoyeArray(smem, blocklayout)
 
-    cute_dest = CuTeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    cute_src = CuTeArray(pointer(src), Layout((M, N), (static(1), M)))
+    cute_dest = MoyeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    cute_src = MoyeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)

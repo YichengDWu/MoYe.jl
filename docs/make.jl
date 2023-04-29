@@ -20,7 +20,7 @@ makedocs(; modules=[Moye],
             ],
             "API Reference" => [
                     "Layout" => "api/layout.md",
-                    "CuTeArray" => "api/array.md",
+                    "MoyeArray" => "api/array.md",
                     "Tiling" => "api/tiling.md",
                 ],
          ])

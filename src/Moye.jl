@@ -18,7 +18,7 @@ include("layout.jl")
 include("print.jl")
 include("container/engine.jl")
 
-include("cutearray.jl")
+include("MoyeArray.jl")
 include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 include("algorithm/blas.jl")
@@ -51,8 +51,8 @@ export Layout, make_layout, shape, rank, depth, cosize, complement, logical_prod
        tiled_divide, local_partition, local_tile, zeros!, recast, right_inverse
 export print_layout
 
-# cutearray
-export ArrayEngine, ViewEngine, CuTeArray, make_fragment_like
+# MoyeArray
+export ArrayEngine, ViewEngine, MoyeArray, make_fragment_like
 
 # pointer
 export isgmem, issmem, isrmem

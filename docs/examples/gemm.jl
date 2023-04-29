@@ -5,12 +5,12 @@ function gemme_kernel(M, N, K,
 
     shmemA = Moye.SharedMemory(eltype(A), cosize(blocklayoutA))
     shmemB = Moye.SharedMemory(eltype(B), cosize(blocklayoutB))
-    a = CuTeArray(shmemA, blocklayoutA)
-    b = CuTeArray(shmemB, blocklayoutB)
+    a = MoyeArray(shmemA, blocklayoutA)
+    b = MoyeArray(shmemB, blocklayoutB)
 
-    cuteA = CuTeArray(pointer(A), (M, K), strideA)
-    cuteB = CuTeArray(pointer(B), (N, K), strideB)
-    cuteC = CuTeArray(pointer(C), (M, N), strideC)
+    cuteA = MoyeArray(pointer(A), (M, K), strideA)
+    cuteB = MoyeArray(pointer(B), (N, K), strideB)
+    cuteC = MoyeArray(pointer(C), (M, N), strideC)
 
     bM = size(blocklayoutA, 1)
     bN = size(blocklayoutB, 1)

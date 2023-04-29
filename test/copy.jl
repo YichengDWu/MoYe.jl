@@ -7,11 +7,11 @@ using Core: LLVMPtr
             # single thread
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = CuTeArray(pa, @Layout((4,2)))
+            x = MoyeArray(pa, @Layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = CuTeArray(pb, @Layout((4,2)))
+            y = MoyeArray(pb, @Layout((4,2)))
 
             GC.@preserve a b begin
                 Moye.copyto_vec!(y, x, Int128)
@@ -38,11 +38,11 @@ using Core: LLVMPtr
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
-                a = CuTeArray(pa, layout)
+                a = MoyeArray(pa, layout)
 
                 pb = pointer(b_data)
                 pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pb)
-                b = CuTeArray(pb, layout)
+                b = MoyeArray(pb, layout)
                 parallelized_copy(a, b, thread_layout)
             end
 
@@ -54,11 +54,11 @@ using Core: LLVMPtr
         @testset "Sequential Copy" begin
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = CuTeArray(pa, @Layout((4,2)))
+            x = MoyeArray(pa, @Layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = CuTeArray(pb, @Layout((4,2)))
+            y = MoyeArray(pb, @Layout((4,2)))
 
             GC.@preserve b a begin
                 cucopyto!(y, x) # should recast to UInt128
@@ -85,11 +85,11 @@ using Core: LLVMPtr
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
-                a = CuTeArray(pa, layout)
+                a = MoyeArray(pa, layout)
 
                 pb = pointer(b_data)
                 pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pb)
-                b = CuTeArray(pb, layout)
+                b = MoyeArray(pb, layout)
                 parallelized_copy(a, b, thread_layout)
             end
 
