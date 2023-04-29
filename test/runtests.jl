@@ -7,7 +7,7 @@ using Test, SafeTestsets
 @safetestset "Static" begin include("static.jl") end
 @safetestset "Engine" begin include("engine.jl") end
 @testset "MoYeArray" begin
-    @safetestset "MoYeArray" begin include("MoYeArray.jl") end
+    @safetestset "MoYeArray" begin include("array.jl") end
     @safetestset "Broadcast" begin include("broadcast.jl") end
 end
 
