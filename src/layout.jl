@@ -47,7 +47,7 @@ function (l::Layout)(c1, c2, c3...)
 end
 
 # map 1D index to a hier coordinate
-function get_hier_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
+function get_hier_coord(l::Layout, index::Union{Integer, StaticInt})
     return index_to_coord(index, l.shape, l.stride)
 end
 
@@ -56,8 +56,8 @@ end
 
 Get the flat congruent coordinate from the physical index `index`.
 """
-function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
-    return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
+function get_congr_coord(l::Layout{N}, @nospecialize index::IntType) where {N}
+    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(i -> One(), Val(N)))
 end
 
 function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
@@ -136,9 +136,9 @@ function Base.getindex(layout::Layout, Is::IntType...)
     @inline
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
 end
-function Base.getindex(@nospecialize(t::Layout), r::AbstractUnitRange)
+function Base.getindex(t::Layout{N}, r::AbstractUnitRange) where N
     @inline
-    return ntuple(i -> t[i + first(r) - 1], length(r))
+    return ntuple(i -> t[i + first(r) - 1], Val(N))
 end
 
 # Layout as iterator
@@ -217,7 +217,8 @@ function slice(layout::Layout, coord)
 end
 
 function slice_and_offset(layout::Layout, coord)
-    return slice(layout, coord), coord_to_index(layout, coord) - One()
+    idx = coord_to_index(layout, coord)
+    return slice(layout, coord), idx - one(idx)
 end
 
 function dice(layout::Layout, coord)
@@ -418,7 +419,7 @@ function _complement(shape, stride, cosize_hi)
                 append(init[4], curr_shape * curr_stride))
     end
 
-    result = foldl(f, ntuple(x -> x + 1, R - 2); init=result)
+    result = foldl(f, ntuple(x -> x + 1, Val(R - 2)); init=result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
