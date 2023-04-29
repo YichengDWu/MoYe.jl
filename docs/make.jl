@@ -14,8 +14,9 @@ makedocs(; modules=[Shambles],
             "Home" => "index.md",
             "Manual" => [
                 "Layout" => "manual/layout.md",
-                "Data Movement" =>
-                "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
+                "Data Movement" => [
+                    "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
+                ]
             ],
             "API Reference" => [
                     "Layout" => "api/layout.md",
