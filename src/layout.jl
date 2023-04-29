@@ -458,7 +458,7 @@ end
 function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt, Is::Vararg{StaticInt, N}) where {N}
     length(shape) < I && return (I′, Is...)
     @inbounds next_stride = stride[I] * shape[I]
-    if Static.known(is_static(next_stride))
+    if dynamic(is_static(next_stride))
         next_idx = static_findfirst(==(next_stride), stride)
         return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
     else
