@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>CuTeArray · Moye.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://YichengDWu.github.io/Moye.jl/api/array/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Moye.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../../manual/layout/">Layout</a></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Data Movement</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../manual/datamovement/gs/">Global Memory &amp; Shared Memory</a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li class="is-active"><a class="tocitem" href>CuTeArray</a><ul class="internal"><li><a class="tocitem" href="#CuTeArray"><span>CuTeArray</span></a></li><li><a class="tocitem" href="#Index"><span>Index</span></a></li></ul></li><li><a class="tocitem" href="../tiling/">Tiling</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">API Reference</a></li><li class="is-active"><a href>CuTeArray</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>CuTeArray</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/YichengDWu/Moye.jl/blob/main/docs/src/api/array.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h2 id="CuTeArray"><a class="docs-heading-anchor" href="#CuTeArray">CuTeArray</a><a id="CuTeArray-1"></a><a class="docs-heading-anchor-permalink" href="#CuTeArray" title="Permalink"></a></h2><h2 id="Index"><a class="docs-heading-anchor" href="#Index">Index</a><a id="Index-1"></a><a class="docs-heading-anchor-permalink" href="#Index" title="Permalink"></a></h2><ul><li><a href="#Moye.ArrayEngine"><code>Moye.ArrayEngine</code></a></li><li><a href="#Moye.CuTeArray"><code>Moye.CuTeArray</code></a></li><li><a href="#Moye.ViewEngine"><code>Moye.ViewEngine</code></a></li><li><a href="#Moye.recast"><code>Moye.recast</code></a></li></ul><article class="docstring"><header><a class="docstring-binding" id="Moye.ViewEngine" href="#Moye.ViewEngine"><code>Moye.ViewEngine</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">ViewEngine{T, P} &lt;: Engine{T} &lt;: DenseVector{T}</code></pre><p>A non-owning view of a memory buffer. <code>P</code> is the type of the pointer.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/YichengDWu/Moye.jl/blob/7fac5b24b710feac8ce2a202fd22d94fcc866616/src/container/engine.jl#L6-L10">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Moye.ArrayEngine" href="#Moye.ArrayEngine"><code>Moye.ArrayEngine</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">ArrayEngine{T, L} &lt;: Engine{T} &lt;: DenseVector{T}</code></pre><p>A owning vector of type <code>T</code> with length <code>L</code>. It is stack-allocated and mutable. It should behaves like a <code>StaticStrideArray</code> with from <code>StrideArrays</code> package.</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">function test_alloc()
+    x = ArrayEngine{Float32}(one, static(10))
+    @gc_preserve sum(x)
+end
+
+@test @allocated(test_alloc()) == 0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/YichengDWu/Moye.jl/blob/7fac5b24b710feac8ce2a202fd22d94fcc866616/src/container/engine.jl#L58-L74">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Moye.CuTeArray" href="#Moye.CuTeArray"><code>Moye.CuTeArray</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">CuTeArray(engine::DenseVector, layout::Layout)
+CuTeArray{T}(::UndefInitializer, layout::StaticLayout)
+CuTeArray(ptr::Ptr{T}, layout::StaticLayout)</code></pre><p>Create a CuTeArray from an engine and a layout. See also <a href="#Moye.ArrayEngine"><code>ArrayEngine</code></a> and <a href="#Moye.ViewEngine"><code>ViewEngine</code></a>.</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; slayout = @Layout (5, 2);
+
+julia&gt; array_engine = ArrayEngine{Float32}(one, cosize(slayout));
+
+julia&gt; CuTeArray(array_engine, slayout)
+5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+
+ julia&gt; slayout = @Layout (5,3,2)
+(static(5), static(3), static(2)):(static(1), static(5), static(15))
+
+julia&gt; CuTeArray{Float32}(undef, slayout) # uninitialized owning array
+5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
+ -9.73642f-16   8.09f-43
+  8.09f-43     -1.64739f13
+  3.47644f36    8.09f-43
+  4.5914f-41    0.0
+ -9.15084f-21   0.0
+
+julia&gt; A = ones(10);
+
+julia&gt; CuTeArray(pointer(A), slayout) # create a non-owning array
+5×2 CuTeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+ 1.0  1.0
+
+julia&gt; function test_alloc()  # when powered by a ArrayEngine, CuTeArray is stack-allocated
+    slayout = @Layout (2, 3)          # and mutable
+    x = CuTeArray{Float32}(undef, slayout)
+    fill!(x, 1.0f0)
+    return sum(x)
+end
+test_alloc (generic function with 2 methods)
+
+julia&gt; @allocated(test_alloc())
+0
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/YichengDWu/Moye.jl/blob/7fac5b24b710feac8ce2a202fd22d94fcc866616/src/cutearray.jl#L1-L56">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Moye.recast" href="#Moye.recast"><code>Moye.recast</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">recast(::Type{NewType}, x::CuTeArray{OldType}) -&gt; CuTeArray{NewType}</code></pre><p>Recast the element type of a CuTeArray. This is similar to <code>Base.reinterpret</code>, but dose all the computation at compile time, if possible.</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; x = CuTeArray{Int32}(undef, @Layout((2,3)))
+2×3 CuTeArray{Int32, 2, ArrayEngine{Int32, 6}, Layout{2, Tuple{Static.StaticInt{2}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{2}}}}:
+ -1948408944           0  2
+         514  -268435456  0
+
+julia&gt; x2 = recast(Int16, x)
+4×3 CuTeArray{Int16, 2, ViewEngine{Int16, Ptr{Int16}}, Layout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}}:
+ -23664      0  2
+ -29731      0  0
+    514      0  0
+      0  -4096  0
+
+julia&gt; x3 = recast(Int64, x)
+1×3 CuTeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{1}, Static.StaticInt{3}}, Tuple{Static.StaticInt{1}, Static.StaticInt{1}}}}:
+ 2209959748496  -1152921504606846976  2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/YichengDWu/Moye.jl/blob/7fac5b24b710feac8ce2a202fd22d94fcc866616/src/cutearray.jl#L194-L218">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../layout/">« Layout</a><a class="docs-footer-nextpage" href="../tiling/">Tiling »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 29 April 2023 22:11">Saturday 29 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
