@@ -75,7 +75,7 @@ end
     return CuTeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
 @inline function CuTeArray(ptr::Ptr{T}, layout::Layout) where {T}
-    engine = ViewEngine(ptr, dynamic(cosize(layout))) # this differs from the first constructor since we recompute the length
+    engine = ViewEngine(ptr, cosize(layout)) # this differs from the first constructor since we recompute the length
     return CuTeArray(engine, layout)
 end
 @inline function CuTeArray(ptr::Ptr{T}, shape::GenIntTuple, args...) where {T <: Number}
@@ -83,7 +83,7 @@ end
     return CuTeArray(ptr, l)
 end
 @inline function CuTeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
-    engine = ViewEngine(ptr, dynamic(cosize(layout)))
+    engine = ViewEngine(ptr, cosize(layout))
     return CuTeArray(engine, layout)
 end
 @inline function CuTeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
