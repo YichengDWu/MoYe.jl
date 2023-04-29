@@ -55,6 +55,6 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using Shambles
-            DocMeta.setdocmeta!(Shambles, :DocTestSetup, :(using Shambles); recursive=true)
-            doctest(Shambles)'
+            using Moye
+            DocMeta.setdocmeta!(Moye, :DocTestSetup, :(using Moye); recursive=true)
+            doctest(Moye)'

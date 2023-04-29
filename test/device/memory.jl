@@ -1,4 +1,4 @@
-using Shambles, Test, CUDA
+using Moye, Test, CUDA
 using Static: One
 
 if CUDA.functional()
@@ -9,7 +9,7 @@ if CUDA.functional()
     end
 
     @testset "Shared Memory" begin
-        ptr = Shambles.SharedMemory(Float32, static(10))
+        ptr = Moye.SharedMemory(Float32, static(10))
         CuTeArray(ptr, static((2, 5)))
     end
 

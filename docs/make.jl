@@ -1,14 +1,14 @@
-using Shambles
+using Moye
 using Documenter
 
-DocMeta.setdocmeta!(Shambles, :DocTestSetup, :(using Shambles); recursive=true)
+DocMeta.setdocmeta!(Moye, :DocTestSetup, :(using Moye); recursive=true)
 
-makedocs(; modules=[Shambles],
+makedocs(; modules=[Moye],
          authors="MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors",
-         repo="https://github.com/YichengDWu/Shambles.jl/blob/{commit}{path}#{line}",
-         sitename="Shambles.jl",
+         repo="https://github.com/YichengDWu/Moye.jl/blob/{commit}{path}#{line}",
+         sitename="Moye.jl",
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", "false") == "true",
-                                canonical="https://YichengDWu.github.io/Shambles.jl",
+                                canonical="https://YichengDWu.github.io/Moye.jl",
                                 edit_link="main", assets=String[]),
          pages=[
             "Home" => "index.md",
@@ -25,4 +25,4 @@ makedocs(; modules=[Shambles],
                 ],
          ])
 
-deploydocs(; repo="github.com/YichengDWu/Shambles.jl", push_preview=true, devbranch="main")
+deploydocs(; repo="github.com/YichengDWu/Moye.jl", push_preview=true, devbranch="main")

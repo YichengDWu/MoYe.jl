@@ -3,8 +3,8 @@ function gemme_kernel(M, N, K,
                       B, strideB, blocklayoutB, threadlayoutB,
                       C, strideC, blocklayoutC, threadlayoutC)
 
-    shmemA = Shambles.SharedMemory(eltype(A), cosize(blocklayoutA))
-    shmemB = Shambles.SharedMemory(eltype(B), cosize(blocklayoutB))
+    shmemA = Moye.SharedMemory(eltype(A), cosize(blocklayoutA))
+    shmemB = Moye.SharedMemory(eltype(B), cosize(blocklayoutB))
     a = CuTeArray(shmemA, blocklayoutA)
     b = CuTeArray(shmemB, blocklayoutB)
 

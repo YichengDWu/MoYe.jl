@@ -1,4 +1,4 @@
-using Shambles, Test, CUDA
+using Moye, Test, CUDA
 
 p = reinterpret(Core.LLVMPtr{Int32, AS.Global}, 0)
 p2 = reinterpret(Core.LLVMPtr{Int32, AS.Shared}, 0)

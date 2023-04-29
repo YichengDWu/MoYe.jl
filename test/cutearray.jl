@@ -1,4 +1,4 @@
-using Shambles, Test
+using Moye, Test
 
 function test_alloc()
     slayout = @Layout (2, 3)

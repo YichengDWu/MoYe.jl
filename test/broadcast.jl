@@ -1,4 +1,4 @@
-using Shambles, Test
+using Moye, Test
 
 x = CuTeArray{Float32}(undef, @Layout((3,2)))
 x2 = x .+ x

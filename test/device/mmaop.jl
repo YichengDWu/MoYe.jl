@@ -1,7 +1,7 @@
-using Test, Shambles, CUDA
+using Test, Moye, CUDA
 
 if CUDA.functional()
-    @inline Shambles.Registers{T,S}() where {T, S} = ArrayEngine{T}(undef, static(S))
+    @inline Moye.Registers{T,S}() where {T, S} = ArrayEngine{T}(undef, static(S))
     @inline _tofloat32(x::VecElement) = convert(Float32, x.value)
     @inline _tofloat32(x::Number) = convert(Float32, x)
 
@@ -16,7 +16,7 @@ if CUDA.functional()
             return
         end
 
-        op_to_intrinsic = Dict(Shambles.get_mma_ops())
+        op_to_intrinsic = Dict(Moye.get_mma_ops())
         for op in Base.subtypes(MMAOP)
             buf = IOBuffer()
             @device_code_llvm io = buf @cuda threads=32 kernel(op())

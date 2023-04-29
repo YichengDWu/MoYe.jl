@@ -1,4 +1,4 @@
-using Shambles, Test, CUDA
+using Moye, Test, CUDA
 using Core: LLVMPtr
 
 @testset "Universal Copy" begin
@@ -14,7 +14,7 @@ using Core: LLVMPtr
             y = CuTeArray(pb, @Layout((4,2)))
 
             GC.@preserve a b begin
-                Shambles.copyto_vec!(y, x, Int128)
+                Moye.copyto_vec!(y, x, Int128)
                 @test y == x
             end
         end
@@ -25,7 +25,7 @@ using Core: LLVMPtr
                     thread_tile_a = local_partition(a, thread_layout, i)
                     thread_tile_b = local_partition(b, thread_layout, i)
                     display(thread_tile_a)
-                    Shambles.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
+                    Moye.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
             end
 

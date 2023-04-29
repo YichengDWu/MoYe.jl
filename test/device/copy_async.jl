@@ -1,7 +1,7 @@
-using Shambles, Test, CUDA
+using Moye, Test, CUDA
 
 function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
-    smem = Shambles.SharedMemory(eltype(dest), cosize(blocklayout))
+    smem = Moye.SharedMemory(eltype(dest), cosize(blocklayout))
     cute_smem = CuTeArray(smem, blocklayout)
 
     cute_dest = CuTeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
@@ -38,7 +38,7 @@ function test_copy_async()
     bN = size(blocklayout, 2)
 
     blocks = (cld(M, bM), cld(N, bN))
-    threads = Shambles.Static.dynamic(size(threadlayout))
+    threads = Moye.Static.dynamic(size(threadlayout))
 
     @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, blocklayout, threadlayout)
     @test a == b
