@@ -29,7 +29,7 @@ function CopyTraits{CPOP_ASYNC_CACHEGLOBAL{S,D}}() where {S,D}
     return CopyTraits{CPOP_ASYNC_CACHEALWAYS{S,D}, typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(threadid, srclayout, dstlayout, reflayout)
 end
 
-function select_elementwise_copy(src::CuTeArray{TS}, dest::CuTeArray{TD}) where {TS, TD}
+function select_elementwise_copy(src::MoYeArray{TS}, dest::MoYeArray{TD}) where {TS, TD}
     @static if CP_SYNC_ENABLED
         if isgmem(src) && issmem(dest) && sizeof(TS) == sizeof(TD)
             return CPOP_ASYNC_CACHEALWAYS{TS,TD}()

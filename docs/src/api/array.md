@@ -1,7 +1,7 @@
-## CuTeArray
+## MoYeArray
 
 ```@meta
-CurrentModule = Shambles
+CurrentModule = MoYe
 ```
 ## Index
 
@@ -13,7 +13,7 @@ Pages = ["array.md"]
 ```@docs
 ViewEngine
 ArrayEngine
-CuTeArray
+MoYeArray
 recast
 ```
 

@@ -1,4 +1,4 @@
-using Shambles, Test, CUDA
+using MoYe, Test, CUDA
 using Core: LLVMPtr
 
 @testset "Universal Copy" begin
@@ -7,14 +7,14 @@ using Core: LLVMPtr
             # single thread
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = CuTeArray(pa, @Layout((4,2)))
+            x = MoYeArray(pa, @Layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = CuTeArray(pb, @Layout((4,2)))
+            y = MoYeArray(pb, @Layout((4,2)))
 
             GC.@preserve a b begin
-                Shambles.copyto_vec!(y, x, Int128)
+                MoYe.copyto_vec!(y, x, Int128)
                 @test y == x
             end
         end
@@ -25,7 +25,7 @@ using Core: LLVMPtr
                     thread_tile_a = local_partition(a, thread_layout, i)
                     thread_tile_b = local_partition(b, thread_layout, i)
                     display(thread_tile_a)
-                    Shambles.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
+                    MoYe.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
             end
 
@@ -38,11 +38,11 @@ using Core: LLVMPtr
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
-                a = CuTeArray(pa, layout)
+                a = MoYeArray(pa, layout)
 
                 pb = pointer(b_data)
                 pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pb)
-                b = CuTeArray(pb, layout)
+                b = MoYeArray(pb, layout)
                 parallelized_copy(a, b, thread_layout)
             end
 
@@ -54,11 +54,11 @@ using Core: LLVMPtr
         @testset "Sequential Copy" begin
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = CuTeArray(pa, @Layout((4,2)))
+            x = MoYeArray(pa, @Layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = CuTeArray(pb, @Layout((4,2)))
+            y = MoYeArray(pb, @Layout((4,2)))
 
             GC.@preserve b a begin
                 cucopyto!(y, x) # should recast to UInt128
@@ -85,11 +85,11 @@ using Core: LLVMPtr
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
-                a = CuTeArray(pa, layout)
+                a = MoYeArray(pa, layout)
 
                 pb = pointer(b_data)
                 pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pb)
-                b = CuTeArray(pb, layout)
+                b = MoYeArray(pb, layout)
                 parallelized_copy(a, b, thread_layout)
             end
 

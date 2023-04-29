@@ -3,14 +3,14 @@ function gemme_kernel(M, N, K,
                       B, strideB, blocklayoutB, threadlayoutB,
                       C, strideC, blocklayoutC, threadlayoutC)
 
-    shmemA = Shambles.SharedMemory(eltype(A), cosize(blocklayoutA))
-    shmemB = Shambles.SharedMemory(eltype(B), cosize(blocklayoutB))
-    a = CuTeArray(shmemA, blocklayoutA)
-    b = CuTeArray(shmemB, blocklayoutB)
+    shmemA = MoYe.SharedMemory(eltype(A), cosize(blocklayoutA))
+    shmemB = MoYe.SharedMemory(eltype(B), cosize(blocklayoutB))
+    a = MoYeArray(shmemA, blocklayoutA)
+    b = MoYeArray(shmemB, blocklayoutB)
 
-    cuteA = CuTeArray(pointer(A), (M, K), strideA)
-    cuteB = CuTeArray(pointer(B), (N, K), strideB)
-    cuteC = CuTeArray(pointer(C), (M, N), strideC)
+    cuteA = MoYeArray(pointer(A), (M, K), strideA)
+    cuteB = MoYeArray(pointer(B), (N, K), strideB)
+    cuteC = MoYeArray(pointer(C), (M, N), strideC)
 
     bM = size(blocklayoutA, 1)
     bN = size(blocklayoutB, 1)

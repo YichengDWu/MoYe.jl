@@ -1,7 +1,7 @@
 ```@meta
-CurrentModule = Shambles
+CurrentModule = MoYe
 ```
 
-# Shambles
+# MoYe
 
-Documentation for [Shambles](https://github.com/YichengDWu/Shambles.jl).
+Documentation for [MoYe](https://github.com/YichengDWu/MoYe.jl).

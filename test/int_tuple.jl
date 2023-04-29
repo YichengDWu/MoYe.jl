@@ -1,4 +1,4 @@
-using Shambles, Test, JET
+using MoYe, Test, JET
 
 @testset "Capacity" begin
     @test capacity(((2, 3, (1, 1)), 4)) == 24
@@ -6,25 +6,25 @@ using Shambles, Test, JET
 end
 
 @testset "Shape Division" begin
-    @test Shambles.shape_div((12, 3), (2, 3)) == (6, 1)
-    @test_opt Shambles.shape_div((12, 3), (2, 3))
+    @test MoYe.shape_div((12, 3), (2, 3)) == (6, 1)
+    @test_opt MoYe.shape_div((12, 3), (2, 3))
 
-    @test Shambles.shape_div((12, 3), 3) == (4, 3)
-    @test_opt Shambles.shape_div((12, 3), 3)
+    @test MoYe.shape_div((12, 3), 3) == (4, 3)
+    @test_opt MoYe.shape_div((12, 3), 3)
 
-    @test Shambles.shape_div(12, (3, 4)) == 1
-    @test_opt Shambles.shape_div(12, (3, 4))
+    @test MoYe.shape_div(12, (3, 4)) == 1
+    @test_opt MoYe.shape_div(12, (3, 4))
 end
 
 @testset "Slice" begin
-    @test Shambles.slice((3, 4), (2, :)) == (4,)
-    @test_opt Shambles.slice((3, 4), (2, :))
+    @test MoYe.slice((3, 4), (2, :)) == (4,)
+    @test_opt MoYe.slice((3, 4), (2, :))
 
-    @test Shambles.slice((3, (4, 5)), (:, (2, :))) == (3, 5)
-    @test_opt Shambles.slice((3, (4, 5)), (:, (2, :)))
+    @test MoYe.slice((3, (4, 5)), (:, (2, :))) == (3, 5)
+    @test_opt MoYe.slice((3, (4, 5)), (:, (2, :)))
 
-    @test Shambles.slice(((2, 4), (4, 2)), (:, (:, :))) == ((2, 4), 4, 2)
-    @test_opt Shambles.slice(((2, 4), (4, 2)), (:, (:, :)))
+    @test MoYe.slice(((2, 4), (4, 2)), (:, (:, :))) == ((2, 4), 4, 2)
+    @test_opt MoYe.slice(((2, 4), (4, 2)), (:, (:, :)))
 end
 
 @testset "Elementwise Comparison" begin
