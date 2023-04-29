@@ -8,6 +8,7 @@ struct TrivialMask end
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
     end
+    return nothing
 end
 
 @inline function copyto_vec!(dest::CuTeArray{TD}, src::CuTeArray{TS}, ::Type{TV}) where {TD,TS,TV}
@@ -19,6 +20,7 @@ end
     else
         masked_copyto!(dest, src, TrivialMask())
     end
+    return nothing
 end
 
 """
@@ -40,4 +42,5 @@ it automatically initiates asynchronous copying, if your device supports so.
         TV = uint_bit(static(min(128, vec_bits)))
         return copyto_vec!(dest, src, TV)
     end
+    return nothing
 end
