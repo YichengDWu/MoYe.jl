@@ -16,23 +16,20 @@ function coord_to_index0(coord::IntType, shape::Tuple, stride::Tuple)
     return coord_to_index0(r, s, d) +
            coord_to_index0(q, Base.tail(shape), Base.tail(stride))
 end
-function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple),
-                         @nospecialize(stride::Tuple))
+function coord_to_index0(coord::Tuple, shape::Tuple, stride::Tuple)
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
 @inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
 @inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
-@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> Zero(), N)
-@inline _offset(x::Tuple{Colon, IntType}) =  (Zero(), _offset(x[2]))
-@inline _offset(x::Tuple{IntType, Colon}) =  (_offset(x[1]), Zero())
-@inline _offset(x::Tuple{NTuple{N, Colon}, NTuple{M, IntType}}) where {N, M} = (_offset(x[1]), _offset(x[2]))
-@inline _offset(x::IntTuple{N}) where {N} = ntuple(i -> _offset(x[i]), N)
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> Zero(), Val(N))
+@inline _offset(x::NTuple{N, Int}) where {N} = ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
 @inline _offset(x::Tuple) = map(_offset, x)
 
 function coord_to_index(coord::IntType, shape, stride)
-    coord_to_index0(coord - one(coord), shape, stride) + one(coord)
+    idx = coord_to_index0(coord - one(coord), shape, stride)
+    return idx + one(idx)
 end
 function coord_to_index(coord, shape, stride)
     idx = coord_to_index0(_offset(coord), shape, stride)
