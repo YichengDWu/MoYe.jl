@@ -89,7 +89,7 @@ complement(@Layout(6, 4), static(24))
 ### Logical product
 
 ```@repl layout
-tile = @layout((2,2), (1,2));
+tile = @Layout((2,2), (1,2));
 print_layout(tile)
 matrix_of_tiles = @Layout((3,4), (4,1));
 print_layout(matrix_of_tiles)
