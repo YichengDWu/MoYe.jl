@@ -1,11 +1,11 @@
-@inline function make_MoYeArray_like(::Type{T}, @nospecialize(layout::StaticLayout)) where {T <: Number}
+@inline function make_moyearray_like(::Type{T}, @nospecialize(layout::StaticLayout)) where {T <: Number}
     return MoYeArray{T}(undef, make_ordered_layout(layout)) # make the layout compact, hence not the same as `similar`
 end
-@inline function make_MoYeArray_like(::Type{T}, @nospecialize(x::MoYeArray)) where {T}
-    return make_MoYeArray_like(T, layout(x))
+@inline function make_moyearray_like(::Type{T}, @nospecialize(x::MoYeArray)) where {T}
+    return make_moyearray_like(T, layout(x))
 end
-@inline function make_MoYeArray_like(@nospecialize x::MoYeArray{T}) where {T}
-    return make_MoYeArray_like(T, x)
+@inline function make_moyearray_like(@nospecialize x::MoYeArray{T}) where {T}
+    return make_moyearray_like(T, x)
 end
 
 @inline function make_fragment_like(::Type{T}, @nospecialize(layout::Layout)) where {T}
