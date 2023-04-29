@@ -64,40 +64,40 @@ function coord_to_index(coord, shape)
     return idx + one(idx)
 end
 
-### index_to_coord
-function index_to_coord(index::IntType, shape::IntType, stride::IntType)
-    @inline
-    return ifelse(isone(shape), zero(stride),
-                  ((index - one(index)) ÷ stride) % shape + one(index))
+function index_to_coord(index::IntType, shape::StaticInt{1}, stride::IntType)
+    return Zero()
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple),
-                        @nospecialize(stride::Tuple))
+function index_to_coord(index::IntType, shape::IntType, stride::IntType)
+    crd = ((index - one(index)) ÷ stride) % shape
+    return crd + one(crd)
+end
+function index_to_coord(index::IntType, shape::Tuple, stride::Tuple)
     length(shape) == length(stride) ||
         throw(DimensionMismatch("shape, and stride must have the same rank"))
-    return tuple((index_to_coord(index, s, d) for (s, d) in zip(shape, stride))...)
+    return let index = index
+        map((s, d) -> index_to_coord(index, s, d), shape, stride)
+    end
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple), stride::IntType)
-    return tuple((index_to_coord(index, s, d) for (s, d) in zip(shape,
-                                                                compact_col_major(shape,
-                                                                                  stride)))...)
+function index_to_coord(index::IntType, shape::Tuple, stride::IntType)
+    return let index = index
+        map((s,d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
+    end
 end
-function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple),
-                        stride::Tuple)
+function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
     length(index) == length(shape) == length(stride) ||
         throw(DimensionMismatch("index, shape, and stride must have the same rank"))
     return map(index_to_coord, index, shape, stride)
 end
 
 # default stride, compact + column major
-
 function index_to_coord(index::IntType, shape::IntType)
     @inline
     return index
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple))
+function index_to_coord(index::IntType, shape::Tuple)
     return index_to_coord(index, shape, compact_col_major(shape, One()))
 end
-function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple))
+function index_to_coord(index::Tuple, shape::Tuple)
     length(index) == length(shape) ||
         throw(DimensionMismatch("index and shape must have the same rank"))
     return map(index_to_coord, index, shape)
