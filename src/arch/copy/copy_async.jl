@@ -40,6 +40,7 @@ function apply(cpop::CPOP_ASYNC{TS,TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPt
     @inline
     @assert sizeof(TS) == sizeof(TD)
     apply(cpop, dst, src, static(sizeof(TS)))
+    return nothing
 end
 
 @inline cp_async_wait(i::Int32) = ccall("llvm.nvvm.cp.async.wait.group", llvmcall, Cvoid, (Int32,), i)
