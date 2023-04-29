@@ -6,12 +6,12 @@ if CUDA.functional()
     @inline _tofloat32(x::Number) = convert(Float32, x)
 
     @testset "Compile to LLVM" begin
-        function kernel(op)
-            a_frag = op.ARegisters()
-            b_frag = op.BRegisters()
-            c_frag = op.CRegisters()
+        function kernel(mma_op)
+            a_frag = mma_op.ARegisters()
+            b_frag = mma_op.BRegisters()
+            c_frag = mma_op.CRegisters()
 
-            d_frag = mma(a_frag, b_frag, c_frag, op) # this should be a ArrayEngine in the future
+            d_frag = mma_op(a_frag, b_frag, c_frag) # this should be a ArrayEngine in the future
             @cushow _tofloat32(d_frag[1][1])
             return
         end

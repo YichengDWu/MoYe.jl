@@ -1,6 +1,5 @@
 using Shambles, Test, JET
-
-Shambles.static(l::Layout) = Layout(static(shape(l)), static(stride(l)))
+using Static: One
 
 @testset "Macro" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
@@ -23,8 +22,101 @@ end
     @test_opt flatten(make_layout(((4, 3), 1), ((3, 1), 0)))
 end
 @testset "Coalesce" begin
-    @test coalesce(make_layout((2, (1, 6)), (1, (6, 2)))) == make_layout(12, 1)
-    @test_opt coalesce(make_layout((2, (1, 6)), (1, (6, 2))))
+    @test coalesce(@Layout((2, (1, 6)), (1, (6, 2)))) == @Layout(12, 1)
+    @test_opt coalesce(@Layout((2, (1, 6)), (1, (6, 2))))
+    @test_opt Shambles.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
+
+    function test_coalesce(layout)
+        coalesce_layout = coalesce(layout)
+        @test depth(coalesce_layout) <= One()
+        @test size(coalesce_layout) == size(layout)
+
+        for i in One():size(layout)
+            @test coalesce_layout(i) == layout(i)
+        end
+    end
+
+    let layout = make_layout(static(1), Int(0))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(static(1), static(1))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(1), static(6), static(2)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(1), 7, static(2)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(6)), tuple(static(4), 7, static(8)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(2, static(4), static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 4, static(6)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), 6))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(2, static(4), static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 4, static(6)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(4), 6), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), static(1), static(3)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), GenRowMajor)
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), tuple(static(2), 4, static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = make_layout(tuple(static(2), 1, static(3)), tuple(static(2), Int(0), static(4)))
+        test_coalesce(layout)
+    end
+
+    let layout = Layout(tuple(tuple(static(2), static(2)), tuple(static(2), static(2))),
+                       tuple(tuple(static(1), static(4)), tuple(static(8), static(32))))
+        test_coalesce(layout)
+    end
+
 end
 
 @testset "Composition" begin
@@ -33,14 +125,188 @@ end
 
     @test_opt make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
     @test_opt make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+
+    function test_composition(A,B)
+        C = A ∘ B
+        @test Shambles.iscompatible(B,C)
+        for i in static(1):size(C)
+            @test C(i) == A(B(i))
+        end
+    end
+
+    let a = @Layout(1,0), b = @Layout(1,0)
+        test_composition(a, b)
+    end
+
+    let a = @Layout(1,0), b = @Layout(1,1)
+        test_composition(a, b)
+    end
+
+    let a = @Layout(1,1), b = @Layout(1,0)
+        test_composition(a, b)
+    end
+
+    let a = @Layout(1,1), b = @Layout(1,1)
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (0,)), b = @Layout((4,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((4,), (0,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((1,), (0,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,)), b = @Layout((2,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,), (2,)), b = @Layout((2,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((12,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,), (2,)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((4,3), (3,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,), (2,)), b = @Layout((4,3), (3,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((12,)), b = @Layout((2,3), (2,4))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((6,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3)), b = @Layout((6,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((4,3))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((12,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((6,), (2,))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,3), (3,1)), b = @Layout((6,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((8,8)), b = @Layout(((2,2,2),(2,2,2)), ((1,16,4),(8,2,32)))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((8,8), (8,1)), b = @Layout(((2,2,2),(2,2,2)), ((1,16,4),(8,2,32)))
+        test_composition(a, b)
+    end
+
+    let a = @Layout(((4,2),), ((1,16),)), b = @Layout((4,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((2,2), (2,1)), b = @Layout((2,2), (2,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2)), b = @Layout((2,2,2), (2,8,1))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2), (2,8,1)), b = @Layout((2,2,2), (1,8,2))
+        test_composition(a, b)
+    end
+
+    let a = @Layout((4,8,2), (2,8,1)), b = @Layout((4,2,2), (2,8,1))
+        test_composition(a, b)
+    end
+
+    @testset "Dynamic" begin
+        let a = make_layout(12, 1), b = make_layout(static(4), static(1))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, 1), b = make_layout(static(4), 1)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, static(1)), b = make_layout(static(4), 1)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(12, static(1)), b = make_layout(static(4), static(1))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(12, 3), tuple(1, 24)), b = make_layout(tuple(static(4)), tuple(static(1)))
+            test_composition(a, b)
+        end
+
+        let a = make_layout(16, 2), b = make_layout(4, 2)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(64, 2)
+            test_composition(a, b)
+        end
+
+        let a = make_layout(tuple(128, 24, 5), tuple(1, 128, 3072)), b = make_layout(480, static(32))
+            test_composition(a, b)
+        end
+    end
 end
 
 @testset "Complement" begin
-    @test complement(make_layout(4, 1), 24) == make_layout(6, 4)
-    @test complement(make_layout(6, 4), 24) == make_layout(4, 1)
+    @test complement(@Layout(4, 1), static(24)) == @Layout(6, 4)
+    @test complement(@Layout(6, 4), static(24)) == @Layout(4, 1)
 
-    @test_opt complement(make_layout(4, 1), 24)
-    @test_opt complement(make_layout(6, 4), 24)
+    @test_opt complement(@Layout(4, 1), static(24))
+    @test_opt complement(@Layout(6, 4), static(24))
 
     function test_complement(l, cosize_hi)
         result = complement(l, cosize_hi)
@@ -57,7 +323,7 @@ end
         @test size(result) ≤ cosize(result)
         @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
 
-        if Shambles.Static.dynamic(is_static(stride(make_layout(l, result))))
+        if Shambles.Static.dynamic(Shambles.Static.is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
         end
     end
@@ -75,31 +341,31 @@ end
     end
 
     let layout = @Layout(1,2)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,0)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,1)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout, static(2))
         test_complement(layout, static(8))
     end
 
     let layout = @Layout(4,2)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout)
         test_complement(layout, static(16))
     end
 
     let layout = @Layout(4,4)
-        test_complement(layout, static(1))
+        test_complement(layout, One())
         test_complement(layout)
         test_complement(layout, static(17))
     end
@@ -128,12 +394,11 @@ end
     let layout = @Layout(((2,2), (2,2)), ((1,4), (8,32)))
         test_complement(layout)
     end
-
 end
 
 @testset "Product" begin
-    tile = make_layout((2, 2), (1, 2))
-    matrix_of_tiles = make_layout((3, 4), (4, 1))
+    tile = @Layout((2, 2), (1, 2))
+    matrix_of_tiles = @Layout((3, 4), (4, 1))
 
     @testset "Logical product" begin
         result = logical_product(tile, matrix_of_tiles)
@@ -213,78 +478,133 @@ end
 end
 
 @testset "Division" begin
-    tile = make_layout((2, 2), (1, 2))
-    matrix_of_tiles = make_layout((3, 4), (4, 1))
+    tile = @Layout((2, 2), (1, 2))
+    matrix_of_tiles = @Layout((3, 4), (4, 1))
     raked_prod = raked_product(tile, matrix_of_tiles)
-    subtile = (Layout(2, 3), Layout(2, 4))
+    subtile = (@Layout(2, 3), @Layout(2, 4))
 
     @testset "Logical division" begin
-        @test logical_divide(Layout(16, 3), Layout(4, 1)) == Layout((4, 4), (3, 12))
-        @test logical_divide(Layout(16, 3), Layout(4, 4)) == Layout((4, 4), (12, 3))
-        @test logical_divide(Layout(16, 3), Layout(4, 2)) ==
-              Layout((4, (2, 2)), (6, (3, 24)))
-        @test logical_divide(Layout(16, 3), Layout((2, 2), (4, 1))) ==
-              Layout(tuple((2, 2), (2, 2)), tuple((12, 3), (6, 24)))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 1)) == @Layout((4, 4), (3, 12))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 4)) == @Layout((4, 4), (12, 3))
+        @test logical_divide(@Layout(16, 3), @Layout(4, 2)) ==
+              @Layout((4, (2, 2)), (6, (3, 24)))
+        @test logical_divide(@Layout(16, 3), @Layout((2, 2), (4, 1))) ==
+              @Layout(tuple((2, 2), (2, 2)), tuple((12, 3), (6, 24)))
         @test logical_divide(raked_prod, subtile) ==
-              make_layout(((2, 3), (2, 4)), ((1, 16), (2, 4)))
+              @Layout(((2, 3), (2, 4)), ((1, 16), (2, 4)))
 
-        @test_opt logical_divide(static(raked_prod), static(subtile))
+        @test_opt logical_divide(raked_prod, subtile)
         @test_call logical_divide(raked_prod, subtile)
 
-        function test_logical_divide(A,B)
+        function test_logical_divide(A, B)
             C = logical_divide(A,B)
             @test rank(C) == 2
             @test Shambles.iscompatible(B, first(C))
         end
 
-        let vec = @Layout(1,0), tile = @Layout(1,0)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 0),
+            tile   = @Layout(1, 0)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(1,0), tile = @Layout(1,1)
-            test_logical_divide(tile, vec)
+        let layout = @Layout(1, 0),
+            tile   = @Layout(1, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(1,1), tile = @Layout(1,0)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 1),
+            tile   = @Layout(1, 0)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout(2,1)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(1, 1),
+            tile   = @Layout(1, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout(2,3)
-            test_logical_divide(vec, tile)
+        let layout = @Layout(6, 1),
+            tile   = @Layout(2, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,1), tile = @Layout((2,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout(6, 1),
+            tile   = @Layout(2, 3)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout(2,1)
-            test_logical_divide(vec, tile)
+        let layout = @Layout((6, 6), (1, 12)),
+            tile   = @Layout((6, 3), (3, 1))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout(2,3)
-            test_logical_divide(vec, tile)
+        let layout = @Layout((6, 6), (12, 1)),
+            tile   = @Layout((6, 3), (3, 1))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout(6,2), tile = @Layout((2,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout(32),
+            tile   = @Layout((2, 8))
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout((6,6),(1,12)), tile = @Layout((6,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout((4, 1), (1, 1)),
+            tile   = @Layout(2, 1)
+            test_logical_divide(layout, tile)
         end
 
-        let vec = @Layout((6,6),(12,1)), tile = @Layout((6,3),(3,1))
-            test_logical_divide(vec, tile)
+        let layout = @Layout((4, 1), (1, 1)),
+            tile   = @Layout(2, 2)
+            test_logical_divide(layout, tile)
         end
+
+        let layout = @Layout((8, 8), (1, 8)),
+            tile   = @Layout((32, 2))
+            test_logical_divide(layout, tile)
+        end
+
+        let layout = @Layout((8, 8), (8, 1)),
+            tile   = @Layout((32, 2))
+            test_logical_divide(layout, tile)
+        end
+
     end
 
     @testset "Zipped division" begin
         @test zipped_divide(raked_prod, subtile) ==
-              make_layout(((2, 2), (3, 4)), ((1, 2), (16, 4)))
+              @Layout(((2, 2), (3, 4)), ((1, 2), (16, 4)))
         @test_opt zipped_divide(static(raked_prod), static(subtile))
+    end
+end
+
+@testset "Inverse" begin
+    @testset "Right Inverse" begin
+        function test_right_inverse(l)
+            inv_l = right_inverse(l)
+
+            @test_opt right_inverse(l)
+            @test_call right_inverse(l)
+
+            for i in 1:size(inv_l)
+                @test l(inv_l(i)) == i
+            end
+        end
+
+        test_right_inverse(@Layout(1, 0))
+        test_right_inverse(@Layout(1, 1))
+        test_right_inverse(@Layout((4,), (0,)))
+        test_right_inverse(@Layout((4,), (1,)))
+        test_right_inverse(@Layout((4,), (2,)))
+
+        test_right_inverse(@Layout((1,1), (0,0)))
+        test_right_inverse(@Layout((3,7), (0,0)))
+        test_right_inverse(@Layout((1,), (1,)))
+        test_right_inverse(@Layout((2,4), (0,2)))
+        test_right_inverse(@Layout((8,4)))
+        test_right_inverse(@Layout((8,4), (4,1)))
+        test_right_inverse(@Layout((2,4,6)))
+        test_right_inverse(@Layout((2,4,6), (4,1,8)))
+        # test_right_inverse(@Layout((2,4,4,6), (4,1,0,8))) failed to optimize due to recursion
+        test_right_inverse(@Layout((4,2), (1,16)))
+        test_right_inverse(@Layout((4,2), (1,5)))
     end
 end

@@ -10,14 +10,20 @@ A non-owning view of a memory buffer. `P` is the type of the pointer.
 """
 struct ViewEngine{T, P} <: Engine{T}
     ptr::P
-    len::IntType
+    len::Int
 end
 
-@inline function ViewEngine(ptr::Ptr{T}, len::IntType) where {T}
+@inline function ViewEngine(ptr::Ptr{T}, len::Int) where {T}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
-@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::IntType) where {T, AS}
+@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::Int) where {T, AS}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
+end
+@inline function ViewEngine(ptr::Ptr{T}, len::StaticInt{N}) where {T, N}
+    return ViewEngine{T, typeof(ptr)}(ptr, N)
+end
+@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::StaticInt{N}) where {T, N, AS}
+    return ViewEngine{T, typeof(ptr)}(ptr, N)
 end
 
 @inline function ViewEngine(A::AbstractArray)
@@ -26,7 +32,10 @@ end
 end
 
 @inline Base.pointer(A::ViewEngine) = getfield(A, :ptr)
-@inline function Base.unsafe_convert(p::Type{<:Ref{T}}, A::ViewEngine{T}) where {T}
+@inline function Base.unsafe_convert(p::Type{Ptr{T}}, A::ViewEngine{T}) where {T}
+    return Base.unsafe_convert(p, pointer(A))
+end
+@inline function Base.unsafe_convert(p::Type{LLVMPtr{T, AS}}, A::ViewEngine{T}) where {T, AS}
     return Base.unsafe_convert(p, pointer(A))
 end
 
@@ -57,7 +66,7 @@ behaves like a `StaticStrideArray` with from `StrideArrays` package.
 ```julia
 function test_alloc()
     x = ArrayEngine{Float32}(one, static(10))
-    GC.@preserve x begin sum(ViewEngine(x)) end
+    @gc_preserve sum(x)
 end
 
 @test @allocated(test_alloc()) == 0
@@ -97,6 +106,8 @@ end
 @inline function ManualMemory.preserve_buffer(A::ArrayEngine)
     return ManualMemory.preserve_buffer(getfield(A, :data))
 end
+
+@inline StrideArraysCore.maybe_ptr_array(A::ArrayEngine{T, L}) where {T, L} = ViewEngine(pointer(A), L)
 
 Base.@propagate_inbounds function Base.getindex(A::ArrayEngine,
                                                 i::Union{Integer, StaticInt})

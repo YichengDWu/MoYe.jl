@@ -20,13 +20,16 @@ const StaticLayout{N,S,R} = Layout{N, S, R} where {S<:Union{StaticInt, StaticInt
 @inline StaticLayout{N,S,R}() where {N, S <:StaticIntTuple{N}, R<:StaticIntTuple{N}} = Layout(make_tuple(S), make_tuple(R))
 
 shape(l::Layout) = getfield(l, :shape)
+shape(l, i::IntType) = getindex(shape(l), i)
 Base.stride(l::Layout) = getfield(l, :stride)
+Base.stride(l::Layout, i::IntType) = getindex(stride(l), i)
+Static.static(l::Layout) = make_layout(static(shape(l)), static(stride(l)))
 
 function Base.show(io::IO, l::Layout)
     return print(io, shape(l), ":", stride(l))
 end
 
-Static.is_static(l::Layout) = is_static(shape(l)) && is_static(stride(l))
+Static.is_static(l::Layout) = dynamic(is_static(shape(l))) && dynamic(is_static(stride(l)))
 
 # map a logical coordinate to a linear index
 function (l::Layout)(@nospecialize coord::IntType)
@@ -45,6 +48,7 @@ end
 
 # map 1D index to a hier coordinate
 function get_hier_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
+    @inline
     return index_to_coord(index, l.shape, l.stride)
 end
 
@@ -54,24 +58,29 @@ end
 Get the flat congruent coordinate from the physical index `index`.
 """
 function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
-    return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
+    @inline
+    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(_ -> One(), Val(N)))
 end
 
 function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
+    @inline
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
 function make_layout(@nospecialize(shape::IntTuple), @nospecialize(stride::IntTuple))
+    @inline
     return Layout(shape, stride)
 end
 function make_layout(shape::IntType, stride::IntType)
+    @inline
     return Layout(shape, stride)
 end
 function make_layout(shape::GenIntTuple)
+    @inline
     return Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
-    return make_layout(shape.(layouts), stride.(layouts)) # concatenation
+    return make_layout(map(shape, layouts), map(stride, layouts)) # concatenation
 end
 function make_layout(shape::GenIntTuple, ::Type{GenColMajor})
     return make_layout(shape, compact_col_major(shape))
@@ -214,7 +223,8 @@ function slice(layout::Layout, coord)
 end
 
 function slice_and_offset(layout::Layout, coord)
-    return slice(layout, coord), coord_to_index(layout, coord) - static(1)
+    idx = coord_to_index(layout, coord)
+    return slice(layout, coord), (idx - one(idx))
 end
 
 function dice(layout::Layout, coord)
@@ -248,23 +258,25 @@ function group(layout::Layout, B::IntType, E::IntType)
     return make_layout(group(shape(layout), B, E), group(stride(layout), B, E))
 end
 
-function transform_layout(f::Function, t1, t2)
+function transform_layout(f::G, t1, t2) where {G}
     R1 = length(t1)
     R2 = length(t2)
     R = (R1 < R2) ? R1 : R2
     return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
 end
 
+function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
+    return Layout(one(new_shape), zero(new_shape))
+end
 function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape, new_stride)
-    new_shape == 1 && return Layout(one(new_shape), zero(new_shape))
     return Layout(new_shape, new_stride)
 end
 function bw_coalesce(::Val{I}, old_shape, old_stride, new_shape, new_stride) where {I}
-    if old_shape[I] == 1
+    if old_shape[I] === One()
         return bw_coalesce(Val(I - 1), old_shape, old_stride, new_shape, new_stride)
-    elseif new_shape == 1
+    elseif new_shape === One()
         return bw_coalesce(Val(I - 1), old_shape, old_stride, old_shape[I], old_stride[I])
-    elseif old_shape[I] * old_stride[I] == new_stride[1]
+    elseif old_shape[I] * old_stride[I] === new_stride[1]
         return bw_coalesce(Val(I - 1), old_shape, old_stride,
                            replace_front(new_shape, old_shape[I] * new_shape[1]),
                            replace_front(new_stride, old_stride[I]))
@@ -297,58 +309,61 @@ function Base.filter(l::Layout)
     return coalesce(filter_zeros(l))
 end
 
+
+# shortcuts
+function composition(lhs_shape::IntType, lhs_stride::IntType, rhs_shape::IntType, rhs_stride::StaticInt{0})
+    return Layout(rhs_shape, rhs_stride)
+end
 # Base case a:b ∘ c:d = c:(b*d)
-function composition(lhs::Layout{1, IntType, IntType}, rhs_shape::IntType,
-                     rhs_stride::IntType)
-    return Layout(rhs_shape, rhs_stride * stride(lhs))
+function composition(lhs_shape::IntType, lhs_stride::IntType, rhs_shape::IntType, rhs_stride::IntType)
+    result_stride = lhs_stride * rhs_stride
+    return Layout(rhs_shape, result_stride)
+end
+
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{1})
+    result_shape_0 = lhs_shape[1:(end - 1)]
+    result_shape_1, rest_shape = foldl((init, si) -> (append(init[1],
+                                                                min(abs(si), init[2])),
+                                                        shape_div(init[2], abs(si))),
+                                        result_shape_0; init=((), rhs_shape))
+    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_1, lhs_stride,
+                        rest_shape, last(lhs_stride))
+end
+
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{0})
+    return Layout(rhs_shape, rhs_stride)
+end
+function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::IntType)
+    result_shape_0 = lhs_shape[1:(end - 1)]
+    result_stride_0 = lhs_stride[1:(end - 1)]
+
+    result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
+                                                                shape_div(di, init[2])),
+                                                        shape_div(init[2], di)),
+                                        result_shape_0; init=((), rhs_stride))
+
+    result_stride_1 = elem_scale(result_stride_0,
+                                    shape_div(result_shape_0, result_shape_1))
+
+    result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
+                                                                min(abs(si), init[2])),
+                                                        shape_div(init[2], abs(si))),
+                                        result_shape_1; init=((), rhs_shape))
+    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_2, result_stride_1,
+                        rest_shape, rest_stride * last(lhs_stride))
 end
 
 # distributivity with concatenation
-function composition(lhs::Layout, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where {N}
-    return let lhs = lhs
-        make_layout(map((s, d) -> composition(lhs, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
+function composition(lhs_shape, lhs_stride, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where {N}
+    return let lhs_shape = lhs_shape, lhs_stride = lhs_stride
+        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
     end                                                                             # we assume rank(lhs) == rank(rhs)
 end
 
-function composition(lhs::Layout, rhs_shape::IntType, rhs_stride::IntType)
+function composition(lhs::Layout, rhs::Layout)
     flat_shape = flatten(shape(lhs))
     flat_stride = flatten(stride(lhs))
-    if iszero(rhs_stride)
-        return Layout(rhs_shape, rhs_stride)
-    elseif flat_shape isa IntType
-        result_stride = flat_stride * rhs_stride
-        return Layout(rhs_shape, result_stride)
-    elseif isone(rhs_shape)
-        result_shape_0 = flat_shape[1:(end - 1)]
-        result_shape_1, rest_shape = foldl((init, si) -> (append(init[1],
-                                                                 min(abs(si), init[2])),
-                                                          shape_div(init[2], abs(si))),
-                                           result_shape_0; init=((), rhs_shape))
-        return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_1, flat_stride,
-                           rest_shape, last(flat_stride))
-    else
-        result_shape_0 = flat_shape[1:(end - 1)]
-        result_stride_0 = flat_stride[1:(end - 1)]
-
-        result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
-                                                                  shape_div(di, init[2])),
-                                                           shape_div(init[2], di)),
-                                            result_shape_0; init=((), rhs_stride))
-
-        result_stride_1 = elem_scale(result_stride_0,
-                                     shape_div(result_shape_0, result_shape_1))
-
-        result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
-                                                                 min(abs(si), init[2])),
-                                                          shape_div(init[2], abs(si))),
-                                           result_shape_1; init=((), rhs_shape))
-        return bw_coalesce(Val(rank(flat_shape) - 1), result_shape_2, result_stride_1,
-                           rest_shape, rest_stride * last(flat_stride))
-    end
-end
-
-function composition(lhs::Layout, rhs::Layout)
-    return composition(lhs, shape(rhs), stride(rhs))
+    return composition(flat_shape, flat_stride, shape(rhs), stride(rhs))
 end
 function composition(lhs::Layout, @nospecialize rhs::Tuple{Vararg{Layout}})
     @assert rank(rhs) <= length(lhs)
@@ -382,22 +397,24 @@ function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
 
+function _complement(shape::IntType, stride::StaticInt{0}, cosize_hi::IntType)
+    return make_layout(cosize_hi)
+end
 function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
-    stride == 0 && return make_layout(cosize_hi)
+    #stride == 0 && return make_layout(cosize_hi)
     rest_stride = shape * stride
-    return bw_coalesce(Val(1), (stride,), (one(shape),), cld(cosize_hi, rest_stride),
+    return bw_coalesce(Val(1), (stride,), (One(),), cld(cosize_hi, rest_stride),
                        rest_stride)
 end
-function _complement(shape::IntTuple{R}, stride::IntTuple{R}, cosize_hi::IntType) where {R}
-    if stride == 0
-        return make_layout(cosize_hi)
-    end
+function _complement(shape, stride, cosize_hi)
+    R = length(shape)
+    @assert R == 1 || dynamic(is_static(stride)) "Dynamic stride musth have rank 1"
 
     curr_stride, curr_idx = findmin(stride)
     curr_shape = shape[curr_idx]
 
     result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
-              tuple(one(curr_stride), curr_shape * curr_stride))
+              tuple(One(), curr_shape * curr_stride))
 
     function f(init, i)
         curr_stride, curr_idx = findmin(init[2])
@@ -427,11 +444,62 @@ function complement(l::Layout)
     return _complement(shape(filter_layout), stride(filter_layout), cosize(filter_layout))
 end
 
-# inverse_seq
+# need this specialization to avoid type instability
+function inverse_seq(shape, stride, I::StaticInt)
+    length(shape) < I && return ()
+    @inbounds next_stride = stride[I] * shape[I]
+    if Static.known(is_static(next_stride))
+        next_idx = static_findfirst(==(next_stride), stride)
+        return inverse_seq(shape, stride, next_idx, I)
+    else
+        return tuple(I)
+    end
+end
+function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt, Is::Vararg{StaticInt, N}) where {N}
+    length(shape) < I && return (I′, Is...)
+    @inbounds next_stride = stride[I] * shape[I]
+    if dynamic(is_static(next_stride))
+        next_idx = static_findfirst(==(next_stride), stride)
+        return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
+    else
+        return (I′, Is..., I)
+    end
+end
 
-# right_inverse
-# left_inverse
-# max_common_vector
+@inline right_inverse(x::Colon) = x
+function right_inverse(layout::Layout)
+    flat_layout = coalesce(layout)
+    astride = map(abs, flat_layout.stride)
+    next_I = findfirst(Base.Fix1(===, One()), astride)
+    isnothing(next_I) && return @Layout(1, 0)
+
+    iseq = inverse_seq(flat_layout.shape, astride, static(next_I))
+    isempty(iseq) && return @Layout(1, 0)
+
+    rstride = compact_col_major(flat_layout.shape)
+    return make_layout(unwrap(map(Base.Fix1(shape, flat_layout), iseq)),
+                       unwrap(map(i-> sign(Base.Fix1(stride, flat_layout)(i)) * Base.Fix1(getindex, rstride)(i), iseq)))
+end
+
+left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
+
+function max_common_layout(a::StaticLayout, b::StaticLayout)
+    inv_b = right_inverse(b)
+    common = coalesce(composition(a, inv_b))
+
+    if stride(common, 1) == One()
+        return composition(inv_b, common[1])
+    else
+        return @Layout 1 0 # no vectorization
+    end
+end
+
+function max_common_layout(::Layout, ::Layout)
+    @inline
+    return @Layout 1 0 # no vectorization
+end
+
+@inline max_common_vector(a::Layout, b::Layout) = size(max_common_layout(a, b))
 
 # this is equivalent to make_layout(map(make_layout, l1, l2)...)
 function _transpose(layoutA::Layout, layoutB::Layout)
@@ -451,10 +519,10 @@ corresponds to indexing through `A` and indexing through the second mode corresp
 through `B`.
 
 ```julia
-julia> tile = make_layout((2,2), (1,2));
+julia> tile = @Layout((2,2), (1,2));
 
 julia> print_layout(tile)
-(2, 2):(1, 2)
+(static(2), static(2)):(static(1), static(2))
       1   2
     +---+---+
  1  | 1 | 3 |
@@ -462,10 +530,10 @@ julia> print_layout(tile)
  2  | 2 | 4 |
     +---+---+
 
-julia> matrix_of_tiles = make_layout((3,4), (4,1));
+julia> matrix_of_tiles = @Layout((3,4), (4,1));
 
 julia> print_layout(matrix_of_tiles)
-(3, 4):(4, 1)
+(static(3), static(4)):(static(4), static(1))
        1    2    3    4
     +----+----+----+----+
  1  |  1 |  2 |  3 |  4 |
@@ -475,8 +543,8 @@ julia> print_layout(matrix_of_tiles)
  3  |  9 | 10 | 11 | 12 |
     +----+----+----+----+
 
-julia> print_layout(logical_product(tile, matrix_of_tiles));
-((2, 2), (3, 4)):((1, 2), (16, 4))
+julia> print_layout(logical_product(tile, matrix_of_tiles))
+((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
        1    2    3    4    5    6    7    8    9   10   11   12
     +----+----+----+----+----+----+----+----+----+----+----+----+
  1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
@@ -521,12 +589,12 @@ mode of `matrix_of_tiles`. Indexing through the second mode is similar. If `coal
 true, then the result is coalesced.
 
 ```julia
-julia> tile = make_layout((2, 2), (1, 2));
+julia> tile = @Layout (2, 2);
 
-julia> matrix_of_tiles = make_layout((3, 4), (4, 1));
+julia> matrix_of_tiles = @Layout (3, 4) (4, 1);
 
 julia> print_layout(blocked_product(tile, matrix_of_tiles))
-((2, 3), (2, 4)):((1, 16), (2, 4))
+((static(2), static(3)), (static(2), static(4))):((static(1), static(16)), (static(2), static(4)))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
@@ -541,7 +609,6 @@ julia> print_layout(blocked_product(tile, matrix_of_tiles))
     +----+----+----+----+----+----+----+----+
  6  | 34 | 36 | 38 | 40 | 42 | 44 | 46 | 48 |
     +----+----+----+----+----+----+----+----+
-
 ```
 """
 function blocked_product(block::Layout{N}, layout::Layout{M},
@@ -550,8 +617,8 @@ function blocked_product(block::Layout{N}, layout::Layout{M},
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    result = _transpose(result[1], result[2])
-    coalesce_result && return coalesce(result, repeat(static(1), R))
+    @inbounds result = _transpose(result[1], result[2])
+    coalesce_result && return coalesce(result, repeat(One(), R))
     return result
 end
 
@@ -561,12 +628,12 @@ end
 The tile is shattered or interleaved with the matrix of tiles.
 
 ```julia
-julia> tile = make_layout((2, 2), (1, 2));
+julia> tile = @Layout (2, 2) (1, 2);
 
-julia> matrix_of_tiles = make_layout((3, 4), (4, 1));
+julia> matrix_of_tiles = @Layout (3, 4) (4, 1);
 
 julia> print_layout(raked_product(tile, matrix_of_tiles))
-((3, 2), (4, 2)):((16, 1), (4, 2))
+((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -589,8 +656,8 @@ function raked_product(block::Layout{N}, layout::Layout{M},
     padded_block = append(block, R)
     padded_layout = append(layout, R)
     result = logical_product(padded_block, padded_layout)
-    result = _transpose(result[2], result[1])
-    coalesce_result && return coalesce(result, repeat(static(1), R))
+    @inbounds result = _transpose(result[2], result[1])
+    coalesce_result && return coalesce(result, repeat(One(), R))
     return result
 end
 
@@ -665,10 +732,10 @@ end
 Gather the elements of `layout` along all modes into blocks according to `tile`.
 
 ```julia
-julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));
+julia> raked_prod = @Layout ((3, 2), (4, 2)) ((16, 1), (4, 2));
 
 julia> print_layout(raked_prod)
-((3, 2), (4, 2)):((16, 1), (4, 2))
+((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -687,8 +754,9 @@ julia> print_layout(raked_prod)
 julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode
        # and 2 elements with stride 4 along the second mode
 
+
 julia> print_layout(logical_divide(raked_prod, subtile))
-((2, 3), (2, 4)):((1, 16), (2, 4))
+(((1, 2), ((3, 1), (1, 1))), ((1, 2), ((4, 1), (1, 1)))):(((48, 1), ((static(16), static(1)), (48, 2))), ((16, 2), ((static(4), static(2)), (16, 4))))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
@@ -726,10 +794,10 @@ Compute the logical division of `layout` by `tile`, then flatten the blocks into
 mode and the rest into the second mode.
 
 ```julia
-julia> raked_prod = make_layout(((3, 2), (4, 2)), ((16, 1), (4, 2)));
+julia> raked_prod = @Layout ((3, 2), (4, 2)) ((16, 1), (4, 2));
 
 julia> print_layout(raked_prod)
-((3, 2), (4, 2)):((16, 1), (4, 2))
+((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -744,10 +812,11 @@ julia> print_layout(raked_prod)
     +----+----+----+----+----+----+----+----+
  6  | 34 | 38 | 42 | 46 | 36 | 40 | 44 | 48 |
     +----+----+----+----+----+----+----+----+
-julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3 along the first mode and 2 elements with stride 4 along the second mode
+
+julia> subtile = (@Layout(2, 3), @Layout(2, 4)); # gather 2 elements with stride 3 along the first mode and 2 elements with stride 4 along the second mode
 
 julia> print_layout(zipped_divide(raked_prod, subtile))
-((2, 2), (3, 4)):((1, 2), (16, 4))
+((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
        1    2    3    4    5    6    7    8    9   10   11   12
     +----+----+----+----+----+----+----+----+----+----+----+----+
  1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
@@ -758,7 +827,6 @@ julia> print_layout(zipped_divide(raked_prod, subtile))
     +----+----+----+----+----+----+----+----+----+----+----+----+
  4  |  4 | 20 | 36 |  8 | 24 | 40 | 12 | 28 | 44 | 16 | 32 | 48 |
     +----+----+----+----+----+----+----+----+----+----+----+----+
-
 ```
 """
 function zipped_divide(layout::Layout, tile::Tile)

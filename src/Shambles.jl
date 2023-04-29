@@ -1,14 +1,16 @@
 module Shambles
 
-using Reexport
-using Static: StaticInt, IntType, static
+using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
 import Static
-@reexport using Static: static, is_static
-using ManualMemory, LayoutPointers
+import ManualMemory, LayoutPointers
+import StrideArraysCore
+using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
+using KernelAbstractions.Extras: @unroll
 using Core: LLVMPtr
 import Adapt
 
+include("utilities.jl")
 include("algorithm/tuple_algorithms.jl")
 include("int_tuple.jl")
 include("stride.jl")
@@ -32,6 +34,10 @@ include("arch/copy/ldmatrix.jl")
 include("atom/mma_traits.jl")
 include("atom/copy/copy_traits.jl")
 
+include("algorithm/copy.jl")
+
+# rexport
+export static, @gc_preserve
 
 # tuple algorithms
 export flatten
@@ -42,7 +48,7 @@ export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compac
 # layout
 export Layout, make_layout, shape, rank, depth, cosize, complement, logical_product,
        blocked_product, raked_product, zipped_product, logical_divide, zipped_divide,
-       tiled_divide, local_partition, local_tile, zeros!, recast
+       tiled_divide, local_partition, local_tile, zeros!, recast, right_inverse
 export print_layout
 
 # cutearray
@@ -53,5 +59,8 @@ export isgmem, issmem, isrmem
 
 # blas
 export axpby!
+
+# data movement
+export cucopyto!
 
 end

@@ -90,6 +90,8 @@ end
     return CuTeArray(ptr, make_layout(shape, args...))
 end
 
+const BitCuTeArray{N, E, L} = CuTeArray{Bool, N, E, L}
+
 engine(x::CuTeArray) = getfield(x, :engine)
 layout(x::CuTeArray) = getfield(x, :layout)
 
@@ -104,22 +106,26 @@ layout(x::CuTeArray) = getfield(x, :layout)
     return ManualMemory.preserve_buffer(engine(A))
 end
 
-# owning -> non-owning
 @inline function Base.unsafe_convert(::Type{Ptr{T}},
-                                     A::CuTeArray{T, N, <:ArrayEngine}) where {T, N}
-    return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
-end
-@inline function Base.pointer(A::CuTeArray{T, N, <:ArrayEngine}) where {N, T}
-    return Base.unsafe_convert(Ptr{T}, pointer_from_objref(engine(A)))
-end
-
-@inline function Base.unsafe_convert(::Type{Ptr{T}},
-                                     A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
+                                     A::CuTeArray{T}) where {T}
     return Base.unsafe_convert(Ptr{T}, engine(A))
 end
-@inline function Base.pointer(A::CuTeArray{T, N, <:ViewEngine}) where {T, N}
+
+@inline function Base.pointer(A::CuTeArray)
     return pointer(engine(A))
 end
+
+"""
+    pointer(A::CuTeArray, i::Integer)
+
+Return a pointer to the element at the logical index `i` in `A`, not the physical index.
+"""
+@inline function Base.pointer(x::CuTeArray{T}, i::Integer) where {T}
+    idx = x.layout(convert(Int, i))
+    return pointer(x) + (idx-one(idx))*sizeof(T)
+end
+
+Base.IndexStyle(::Type{<:CuTeArray}) = IndexLinear()
 
 Base.@propagate_inbounds function Base.getindex(x::CuTeArray{T, N, <:ArrayEngine},
                                                 ids::Union{Integer, StaticInt, IntTuple}...) where {
@@ -161,6 +167,8 @@ function Adapt.adapt_storage(::Type{CuTeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
+@inline StrideArraysCore.maybe_ptr_array(A::CuTeArray) = CuTeArray(pointer(A), layout(A))
+
 # Array operations
 # Currently don't support directly slicing, but we could make a view and then copy the view
 @inline function Base.view(x::CuTeArray{T, N}, coord::Vararg{Colon, N}) where {T, N}
@@ -181,6 +189,7 @@ end
 @inline function Base.similar(x::CuTeArray{S,N,E,<:StaticLayout}, ::Type{T}) where {S,N,E,T}
     return CuTeArray{T}(undef, layout(x))
 end
+
 
 """
     recast(::Type{NewType}, x::CuTeArray{OldType}) -> CuTeArray{NewType}
@@ -215,7 +224,7 @@ julia> x3 = recast(Int64, x)
         if sizeof(OldType) < sizeof(NewType) # TODO: handle composed layout
             shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
             extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
-            offset = foldl((i,a)->i+min(a, static(0)), extent_diff; init=static(0))
+            offset = foldl((i,a)->i+min(a, Zero()), extent_diff; init=Zero())
             return CuTeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
         else
             return CuTeArray(recast(NewType, pointer(x)), new_layout)

@@ -10,6 +10,19 @@ makedocs(; modules=[Shambles],
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", "false") == "true",
                                 canonical="https://YichengDWu.github.io/Shambles.jl",
                                 edit_link="main", assets=String[]),
-         pages=["Home" => "index.md"])
+         pages=[
+            "Home" => "index.md",
+            "Manual" => [
+                "Layout" => "manual/layout.md",
+                "Data Movement" => [
+                    "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
+                ]
+            ],
+            "API Reference" => [
+                    "Layout" => "api/layout.md",
+                    "CuTeArray" => "api/array.md",
+                    "Tiling" => "api/tiling.md",
+                ],
+         ])
 
-deploydocs(; repo="github.com/YichengDWu/Shambles.jl", devbranch="main")
+deploydocs(; repo="github.com/YichengDWu/Shambles.jl", push_preview=true, devbranch="main")

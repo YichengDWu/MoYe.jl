@@ -10,22 +10,30 @@ function coord_to_index0(coord::IntType, shape::Tuple{}, stride::Tuple{})
     @inline
     return zero(coord)
 end
-function coord_to_index0(coord::IntType, @nospecialize(shape::Tuple),
-                         @nospecialize(stride::Tuple))
+function coord_to_index0(coord::IntType, shape::Tuple, stride::Tuple)
     s, d = first(shape), first(stride)
     q, r = divrem(coord, product(s))
     return coord_to_index0(r, s, d) +
            coord_to_index0(q, Base.tail(shape), Base.tail(stride))
 end
-function coord_to_index0(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple),
-                         @nospecialize(stride::Tuple))
+function coord_to_index0(coord::Tuple, shape::Tuple, stride::Tuple)
     return flatsum(map(coord_to_index0, coord, shape, stride))
 end
 
-@inline _offset(::Colon) = static(0)
-@inline _offset(x) = x - one(x)
+@inline _offset(x::Colon) = Zero()
+@inline _offset(x::Int) = x - one(x)
+@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> Zero(), Val(N))
+@inline _offset(x::NTuple{N, Int}) where {N} = ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+@inline _offset(x::Tuple) = map(_offset, x)
+
+function coord_to_index(coord::IntType, shape, stride)
+    idx = coord_to_index0(coord - one(coord), shape, stride)
+    return idx + one(idx)
+end
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(emap(_offset, coord), shape, stride) + static(1)
+    idx = coord_to_index0(_offset(coord), shape, stride)
+    return idx + one(idx)
 end
 
 # defaul stride, compact + column major
@@ -35,7 +43,7 @@ function coord_to_index0_horner(coord::IntType, shape::IntType)
 end
 function coord_to_index0_horner(coord::Tuple{}, shape::Tuple{})
     @inline
-    return static(0)
+    return Zero()
 end
 function coord_to_index0_horner(@nospecialize(coord::Tuple), @nospecialize(shape::Tuple))
     c, s = first(coord), first(shape)
@@ -48,44 +56,48 @@ function coord_to_index0(coord, shape)
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
+function coord_to_index(coord::IntType, shape)
+    return coord_to_index0(coord - one(coord), shape) + one(coord)
+end
 function coord_to_index(coord, shape)
-    return coord_to_index0(emap(_offset, coord), shape) + static(1)
+    idx = coord_to_index0(_offset(coord), shape)
+    return idx + one(idx)
 end
 
-### index_to_coord
-function index_to_coord(index::IntType, shape::IntType, stride::IntType)
-    @inline
-    return ifelse(isone(shape), zero(stride),
-                  ((index - one(index)) ÷ stride) % shape + one(index))
+function index_to_coord(index::IntType, shape::StaticInt{1}, stride::IntType)
+    return Zero()
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple),
-                        @nospecialize(stride::Tuple))
+function index_to_coord(index::IntType, shape::IntType, stride::IntType)
+    crd = ((index - one(index)) ÷ stride) % shape
+    return crd + one(crd)
+end
+function index_to_coord(index::IntType, shape::Tuple, stride::Tuple)
     length(shape) == length(stride) ||
         throw(DimensionMismatch("shape, and stride must have the same rank"))
-    return tuple((index_to_coord(index, s, d) for (s, d) in zip(shape, stride))...)
+    return let index = index
+        map((s, d) -> index_to_coord(index, s, d), shape, stride)
+    end
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple), stride::IntType)
-    return tuple((index_to_coord(index, s, d) for (s, d) in zip(shape,
-                                                                compact_col_major(shape,
-                                                                                  stride)))...)
+function index_to_coord(index::IntType, shape::Tuple, stride::IntType)
+    return let index = index
+        map((s,d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
+    end
 end
-function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple),
-                        stride::Tuple)
+function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
     length(index) == length(shape) == length(stride) ||
         throw(DimensionMismatch("index, shape, and stride must have the same rank"))
     return map(index_to_coord, index, shape, stride)
 end
 
 # default stride, compact + column major
-
 function index_to_coord(index::IntType, shape::IntType)
     @inline
     return index
 end
-function index_to_coord(index::IntType, @nospecialize(shape::Tuple))
-    return index_to_coord(index, shape, compact_col_major(shape, static(1)))
+function index_to_coord(index::IntType, shape::Tuple)
+    return index_to_coord(index, shape, compact_col_major(shape, One()))
 end
-function index_to_coord(@nospecialize(index::Tuple), @nospecialize(shape::Tuple))
+function index_to_coord(index::Tuple, shape::Tuple)
     length(index) == length(shape) ||
         throw(DimensionMismatch("index and shape must have the same rank"))
     return map(index_to_coord, index, shape)
@@ -119,7 +131,7 @@ function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
     return foldl(CompactLambda{LayoutRight}(), reverse(shape); init=((), current))
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
-    return ifelse(isone(shape), (static(0), current), (current, current * shape))
+    return ifelse(isone(shape), (Zero(), current), (current, current * shape))
 end
 
 function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
@@ -140,8 +152,8 @@ function (::CompactLambda{LayoutRight})(init, si)
     return (prepend(init[1], result[1]), result[2])
 end
 
-compact_col_major(shape, current=static(1)) = compact_major(shape, current, LayoutLeft)
-compact_row_major(shape, current=static(1)) = compact_major(shape, current, LayoutRight)
+compact_col_major(shape, current=One()) = compact_major(shape, current, LayoutLeft)
+compact_row_major(shape, current=One()) = compact_major(shape, current, LayoutRight)
 
 function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
     return let old_shape = old_shape, old_order = old_order
@@ -150,7 +162,7 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
 end
 function compact_order(shape, order::IntType, old_shape, old_order)
     d = let order = order
-        product(map((s, o) -> ifelse(o < order, product(s), static(1)), old_shape,
+        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape,
                     old_order))
     end
     return compact_col_major(shape, d)

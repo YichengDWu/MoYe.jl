@@ -3,6 +3,8 @@ export MMAOP
 
 @inline Adapt.adapt(to, x::MMAOP) = x
 
+@inline apply(mmaop::MMAOP, a, b, c) = mmaop(a, b, c)
+
 """
   Registers{T,S}
 
@@ -35,7 +37,7 @@ function Base.propertynames(::MMAOP)
 end
 
 """
-    mma(A, B, C, ::MMAOP)
+    (::MMAOP)(A, B, C)
 
 Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
 ```julia
@@ -366,9 +368,9 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                 a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
 
                 if d_sz == 1
-                    @eval @inline mma(a, b, c, ::$_struct_name) = tuple(ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                    @eval @inline (::$_struct_name)(a, b, c) = tuple(ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
                 else
-                    @eval @inline mma(a, b, c, ::$_struct_name) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                    @eval @inline (::$_struct_name)(a, b, c) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
                 end
             end
         end

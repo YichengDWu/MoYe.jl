@@ -26,7 +26,7 @@ emap(f::Function, x::Union{IntType, Colon}) = f(x)
 
 @inline depth(@nospecialize x::IntType) = zero(x)
 function depth(@nospecialize x::IntTuple)
-    return max(map(depth, x)...) + static(1)
+    return max(map(depth, x)...) + One()
 end
 
 @inline product(x::IntType) = x
@@ -52,7 +52,7 @@ end
 Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
 function Base.cld(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     @assert rank(x) >= rank(y)
-    y = append(y, 1, rank(x))
+    y = append(y, One(), rank(x))
     return map(cld, x, y)
 end
 
@@ -95,7 +95,7 @@ end
 @inline iscompatible(a::Tuple, b::IntType) = false
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
-@inline filter_zeros(a::IntType, x) = iszero(a) ? 1 : x
+@inline filter_zeros(a::IntType, x) = iszero(a) ? One() : x
 function filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
     return map(filter_zeros, x, y)
 end
@@ -247,3 +247,26 @@ end
     end
     return expr
 end
+
+
+@inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
+@inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
+
+function Base.getindex(x::StaticInt, i::Integer)
+    @inline
+    @boundscheck i == 1 || throw(BoundsError(x, i))
+    x
+end
+@inline Base.getindex(x::StaticInt, ::StaticInt{1}) = x
+@inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))
+
+
+# static findfirst, returns StaticInt, returns N+1 if not found, specialized on `f`
+function static_findfirst(f::G, t::IntSequence, I::IntSequence) where {G}
+    return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
+end
+@inline function static_findfirst(::Function, t::IntSequence{N}, ::Tuple{}) where {N}
+    return static(N+1)
+end
+static_findfirst(f::G, t::IntSequence{N}) where {G,N} = static_findfirst(f, t, ntuple(static, N))
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), static(2))

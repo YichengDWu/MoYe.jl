@@ -1,4 +1,5 @@
 using Shambles, Test, CUDA
+using Static: One
 
 if CUDA.functional()
     @testset "Global Memory" begin
@@ -20,7 +21,7 @@ if CUDA.functional()
         gmem_8sx16d = CuTeArray(pointer(a), (static(8), 16))
         rmem = make_fragment_like(view(gmem_8sx16d, :, 1))
         @test rmem.layout.shape == tuple(static(8))
-        @test rmem.layout.stride == tuple(static(1))
+        @test rmem.layout.stride == tuple(One())
         @test length(rmem.engine) == 8
     end
 end
