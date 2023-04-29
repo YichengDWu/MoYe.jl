@@ -19,6 +19,10 @@ BFloat16s = "0.4"
 LLVM = "5.0.0"
 ManualMemory = "0.1"
 julia = "1.8"
+CUDA = "4.0.0"
+KernelAbstractions = "0.9"
+LayoutPointers = "0.1"
+Static = "0.8"
 
 [extras]
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
