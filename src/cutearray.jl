@@ -13,7 +13,7 @@ julia> slayout = @Layout (5, 2);
 julia> array_engine = ArrayEngine{Float32}(one, cosize(slayout));
 
 julia> CuTeArray(array_engine, slayout)
-5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices One():static(5)×One():static(2):
+5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
  1.0  1.0
  1.0  1.0
  1.0  1.0
@@ -21,10 +21,10 @@ julia> CuTeArray(array_engine, slayout)
  1.0  1.0
 
  julia> slayout = @Layout (5,3,2)
-(static(5), static(3), static(2)):(One(), static(5), static(15))
+(static(5), static(3), static(2)):(static(1), static(5), static(15))
 
 julia> CuTeArray{Float32}(undef, slayout) # uninitialized owning array
-5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices One():static(5)×One():static(2):
+5×2 CuTeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
  -9.73642f-16   8.09f-43
   8.09f-43     -1.64739f13
   3.47644f36    8.09f-43
@@ -34,7 +34,7 @@ julia> CuTeArray{Float32}(undef, slayout) # uninitialized owning array
 julia> A = ones(10);
 
 julia> CuTeArray(pointer(A), slayout) # create a non-owning array
-5×2 CuTeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices One():static(5)×One():static(2):
+5×2 CuTeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
  1.0  1.0
  1.0  1.0
  1.0  1.0
