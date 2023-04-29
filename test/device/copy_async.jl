@@ -17,7 +17,7 @@ function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
     threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
     threadtile_smem = local_partition(cute_smem, threadlayout, Int(threadIdx().x))
 
-    cucopyto!(threadtile_smem, threadtile_src) # bug
+    cucopyto!(threadtile_smem, threadtile_src)
     sync_threads()
     cucopyto!(threadtile_dest, threadtile_smem)
     sync_threads()
@@ -44,4 +44,6 @@ function test_copy_async()
     @test a == b
 end
 
-test_copy_async()
+if CUDA.functional()
+    test_copy_async()
+end

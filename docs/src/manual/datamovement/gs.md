@@ -1,0 +1,83 @@
+# Copy Kernel Tutorial
+
+This tutorial illustrates the process copying data between global memory and shared memory using `Shambles`. 
+
+The copy kernel first asynchronously copies data from the global memory to the shared memory and subsequently validates the correctness of the operation by copying the data back from the shared memory to the global memory.
+
+In this tutorial, we will use the following configuration:
+
+- Array size: 256 x 32 (M x N)
+- Block size: 128 x 16
+- Thread size: 32 x 8
+
+
+## Code Explanation
+
+The device function follows these steps:
+
+1. Allocate shared memory using Shambles.SharedMemory.
+2. Wrap the shared memory with [`CuTeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
+3. Compute the size of each block in the grid (bM and bN).
+4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
+5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
+6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
+7. Synchronize threads using `sync_threads`.
+8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
+9. Synchronize threads again using `sync_threads`.
+
+The host function tests the copy_kernel function with the following steps:
+
+1. Define the dimensions M and N for the source and destination arrays.
+2. Create random GPU arrays a and b with the specified dimensions using CUDA.rand.
+3. Define the block and thread layouts using [`@Layout`] for creating **static** layouts.
+4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
+
+```julia
+using Shambles, Test, CUDA
+
+function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
+    smem = Shambles.SharedMemory(eltype(dest), cosize(blocklayout))
+    cute_smem = CuTeArray(smem, blocklayout)
+
+    cute_dest = CuTeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    cute_src = CuTeArray(pointer(src), Layout((M, N), (static(1), M)))
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocktile_dest = local_tile(cute_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_src = local_tile(cute_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+
+    threadtile_dest = local_partition(blocktile_dest, threadlayout, Int(threadIdx().x))
+    threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
+    threadtile_smem = local_partition(cute_smem, threadlayout, Int(threadIdx().x))
+
+    cucopyto!(threadtile_smem, threadtile_src) 
+    sync_threads()
+    cucopyto!(threadtile_dest, threadtile_smem)
+    sync_threads()
+    return nothing
+end
+
+function test_copy_async()
+    M = 256
+    N = 32
+
+    a = CUDA.rand(Float32, M, N)
+    b = CUDA.rand(Float32, M, N)
+
+    blocklayout = @Layout((128, 16))
+    threadlayout = @Layout((32, 8))
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocks = (cld(M, bM), cld(N, bN))
+    threads = Shambles.Static.dynamic(size(threadlayout))
+
+    @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, blocklayout, threadlayout)
+    @test a == b
+end
+
+test_copy_async()
+```
