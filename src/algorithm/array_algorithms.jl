@@ -128,7 +128,7 @@ end
     b = ManualMemory.preserve_buffer(x)
     vb = ViewEngine(engine(x))
     GC.@preserve b begin
-        for i in 1:length(vb)
+        @unroll for i in 1:length(vb)
             @inbounds vb[i] = val
         end
     end
@@ -140,7 +140,7 @@ end
     vx = ViewEngine(engine(x))
     GC.@preserve b begin
         tmp = zero(T)
-        for i in 1:length(vx)
+        @unroll for i in 1:length(vx)
             @inbounds tmp += vx[i]
         end
         return tmp
