@@ -36,7 +36,7 @@ function apply(::CPOP_ASYNC_CACHEGLOBAL{TS, TD}, dst::LLVMPtr{TD, AS.Shared}, sr
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
 
-function apply(cpop::CPOP_ASYNC{TS,TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
+function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     @inline
     @assert sizeof(TS) == sizeof(TD)
     apply(cpop, dst, src, static(sizeof(TS)))
