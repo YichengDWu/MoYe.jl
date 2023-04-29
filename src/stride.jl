@@ -10,8 +10,7 @@ function coord_to_index0(coord::IntType, shape::Tuple{}, stride::Tuple{})
     @inline
     return zero(coord)
 end
-function coord_to_index0(coord::IntType, @nospecialize(shape::Tuple),
-                         @nospecialize(stride::Tuple))
+function coord_to_index0(coord::IntType, shape::Tuple, stride::Tuple)
     s, d = first(shape), first(stride)
     q, r = divrem(coord, product(s))
     return coord_to_index0(r, s, d) +
@@ -33,10 +32,11 @@ end
 @inline _offset(x::Tuple) = map(_offset, x)
 
 function coord_to_index(coord::IntType, shape, stride)
-    coord_to_index0(coord - One(), shape, stride) + One()
+    coord_to_index0(coord - one(coord), shape, stride) + one(coord)
 end
 function coord_to_index(coord, shape, stride)
-    return coord_to_index0(_offset(coord), shape, stride) + One()
+    idx = coord_to_index0(_offset(coord), shape, stride)
+    return idx + one(idx)
 end
 
 # defaul stride, compact + column major
@@ -60,10 +60,11 @@ function coord_to_index0(coord, shape)
 end
 
 function coord_to_index(coord::IntType, shape)
-    return coord_to_index0(coord - One(), shape) + One()
+    return coord_to_index0(coord - one(coord), shape) + one(coord)
 end
 function coord_to_index(coord, shape)
-    return coord_to_index0(_offset(coord), shape) + One()
+    idx = coord_to_index0(_offset(coord), shape)
+    return idx + one(idx)
 end
 
 ### index_to_coord
