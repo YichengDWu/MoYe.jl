@@ -48,6 +48,7 @@ end
 
 # map 1D index to a hier coordinate
 function get_hier_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
+    @inline
     return index_to_coord(index, l.shape, l.stride)
 end
 
@@ -57,10 +58,12 @@ end
 Get the flat congruent coordinate from the physical index `index`.
 """
 function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
-    return coord_to_coord(get_hier_coord(l, index), l.shape, repeat(1, N))
+    @inline
+    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(_ -> One(), Val(N)))
 end
 
 function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
+    @inline
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
@@ -217,7 +220,8 @@ function slice(layout::Layout, coord)
 end
 
 function slice_and_offset(layout::Layout, coord)
-    return slice(layout, coord), coord_to_index(layout, coord) - One()
+    idx = coord_to_index(layout, coord)
+    return slice(layout, coord), (idx - one(idx))
 end
 
 function dice(layout::Layout, coord)
