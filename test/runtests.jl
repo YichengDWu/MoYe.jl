@@ -6,8 +6,8 @@ using Test, SafeTestsets
 @safetestset "Layout" begin include("layout.jl") end
 @safetestset "Static" begin include("static.jl") end
 @safetestset "Engine" begin include("engine.jl") end
-@testset "MoyeArray" begin
-    @safetestset "MoyeArray" begin include("MoyeArray.jl") end
+@testset "MoYeArray" begin
+    @safetestset "MoYeArray" begin include("MoYeArray.jl") end
     @safetestset "Broadcast" begin include("broadcast.jl") end
 end
 

@@ -1,7 +1,7 @@
-## MoyeArray
+## MoYeArray
 
 ```@meta
-CurrentModule = Moye
+CurrentModule = MoYe
 ```
 ## Index
 
@@ -13,7 +13,7 @@ Pages = ["array.md"]
 ```@docs
 ViewEngine
 ArrayEngine
-MoyeArray
+MoYeArray
 recast
 ```
 

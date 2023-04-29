@@ -69,13 +69,13 @@ julia> op =  MMAOP_16x8x8_F32TF32TF32F32_TN()
 MMAOP_16x8x8_F32TF32TF32F32_TN()
 
 julia> op.ARegisters        # Register type, and number of registers
-Moye.Registers{UInt32, 4}
+MoYe.Registers{UInt32, 4}
 
 julia> op.BRegisters
-Moye.Registers{UInt32, 2}
+MoYe.Registers{UInt32, 2}
 
 julia> op.CRegisters
-Moye.Registers{Float32, 4}
+MoYe.Registers{Float32, 4}
 ```
 
 !!! note

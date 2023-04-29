@@ -1,6 +1,6 @@
 # Copy Kernel Tutorial
 
-This tutorial illustrates the process copying data between global memory and shared memory using `Moye`. 
+This tutorial illustrates the process copying data between global memory and shared memory using `MoYe`. 
 
 The copy kernel first asynchronously copies data from the global memory to the shared memory and subsequently validates the correctness of the operation by copying the data back from the shared memory to the global memory.
 
@@ -15,8 +15,8 @@ In this tutorial, we will use the following configuration:
 
 The device function follows these steps:
 
-1. Allocate shared memory using Moye.SharedMemory.
-2. Wrap the shared memory with [`MoyeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
+1. Allocate shared memory using MoYe.SharedMemory.
+2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
 3. Compute the size of each block in the grid (bM and bN).
 4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
 5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
@@ -33,14 +33,14 @@ The host function tests the copy_kernel function with the following steps:
 4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
 
 ```julia
-using Moye, Test, CUDA
+using MoYe, Test, CUDA
 
 function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
-    smem = Moye.SharedMemory(eltype(dest), cosize(blocklayout))
-    cute_smem = MoyeArray(smem, blocklayout)
+    smem = MoYe.SharedMemory(eltype(dest), cosize(blocklayout))
+    cute_smem = MoYeArray(smem, blocklayout)
 
-    cute_dest = MoyeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    cute_src = MoyeArray(pointer(src), Layout((M, N), (static(1), M)))
+    cute_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    cute_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
@@ -73,7 +73,7 @@ function test_copy_async()
     bN = size(blocklayout, 2)
 
     blocks = (cld(M, bM), cld(N, bN))
-    threads = Moye.Static.dynamic(size(threadlayout))
+    threads = MoYe.Static.dynamic(size(threadlayout))
 
     @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, blocklayout, threadlayout)
     @test a == b

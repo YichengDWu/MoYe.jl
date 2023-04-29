@@ -120,10 +120,10 @@ Construct a compact layout with the given shape and the stride is following the 
 ## Examples
 
 ```julia
-julia> Moye.make_ordered_layout((3, 5), (2, 6))
+julia> MoYe.make_ordered_layout((3, 5), (2, 6))
 (3, 5):(static(1), 3)
 
-julia> Moye.make_ordered_layout((3, 5), (10, 2))
+julia> MoYe.make_ordered_layout((3, 5), (10, 2))
 (3, 5):(5, static(1))
 ```
 """
@@ -853,7 +853,7 @@ end
 
 """
     make_fragment_like(::Layout) -> Layout
-    make_fragment_like(T, ::MoyeArray) -> MoyeArray
+    make_fragment_like(T, ::MoYeArray) -> MoYeArray
 
 Make a compact layout of the same shape with the first mode being col-major, and with the rest
 following the given order.

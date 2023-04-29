@@ -1,10 +1,10 @@
-@inline isgmem(::MoyeArray{T, N, ViewEngine{T, LLVMPtr{M, AS.Global}}}) where {T, N, M} = true
-@inline isgmem(::MoyeArray) = false
+@inline isgmem(::MoYeArray{T, N, ViewEngine{T, LLVMPtr{M, AS.Global}}}) where {T, N, M} = true
+@inline isgmem(::MoYeArray) = false
 
-@inline issmem(::MoyeArray{T, N, ViewEngine{T, LLVMPtr{M, AS.Shared}}}) where {T, N, M} = true
-@inline issmem(::MoyeArray) = false
+@inline issmem(::MoYeArray{T, N, ViewEngine{T, LLVMPtr{M, AS.Shared}}}) where {T, N, M} = true
+@inline issmem(::MoYeArray) = false
 
-@inline isrmem(::MoyeArray) = !isgmem(x) && !issmem(x)
+@inline isrmem(::MoYeArray) = !isgmem(x) && !issmem(x)
 
 @inline recast(::Type{T}, ptr::LLVMPtr{S, AS}) where {T, S, AS} = LLVM.Interop.addrspacecast(LLVMPtr{T, AS}, ptr)
 @inline recast(::Type{T}, ptr::Ptr) where {T} = reinterpret(Ptr{T}, ptr)

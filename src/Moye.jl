@@ -1,4 +1,4 @@
-module Moye
+module MoYe
 
 using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
 import Static
@@ -18,7 +18,7 @@ include("layout.jl")
 include("print.jl")
 include("container/engine.jl")
 
-include("MoyeArray.jl")
+include("array.jl")
 include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 include("algorithm/blas.jl")
@@ -51,8 +51,8 @@ export Layout, make_layout, shape, rank, depth, cosize, complement, logical_prod
        tiled_divide, local_partition, local_tile, zeros!, recast, right_inverse
 export print_layout
 
-# MoyeArray
-export ArrayEngine, ViewEngine, MoyeArray, make_fragment_like
+# MoYeArray
+export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like
 
 # pointer
 export isgmem, issmem, isrmem

@@ -1,4 +1,4 @@
-using Moye, Test, Static
+using MoYe, Test, Static
 using Static: One
 
 layout = make_layout(static((3, 4)), static((1, 2)))

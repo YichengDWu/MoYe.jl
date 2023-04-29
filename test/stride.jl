@@ -1,4 +1,4 @@
-using Moye, Test, JET
+using MoYe, Test, JET
 
 @testset "Coordinate to Index" begin
     @testset "1-D Coordinate" begin

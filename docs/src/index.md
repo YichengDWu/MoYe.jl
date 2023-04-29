@@ -1,7 +1,7 @@
 ```@meta
-CurrentModule = Moye
+CurrentModule = MoYe
 ```
 
-# Moye
+# MoYe
 
-Documentation for [Moye](https://github.com/YichengDWu/Moye.jl).
+Documentation for [MoYe](https://github.com/YichengDWu/MoYe.jl).

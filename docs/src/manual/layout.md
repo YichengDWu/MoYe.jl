@@ -5,7 +5,7 @@ Mathematically, a `Layout` represents a function that maps logical coordinates t
 ## Constructing a `Layout`
 
 ```@repl layout
-using Moye
+using MoYe
 layout_2x4 = make_layout((2, (2, 2)), (4, (1, 2)))
 print("Shape: ", shape(layout_2x4))
 print("Stride: ", stride(layout_2x4))

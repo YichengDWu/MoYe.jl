@@ -1,4 +1,4 @@
-using Moye, Test, JET
+using MoYe, Test, JET
 using Static: One
 
 @testset "Macro" begin
@@ -24,7 +24,7 @@ end
 @testset "Coalesce" begin
     @test coalesce(@Layout((2, (1, 6)), (1, (6, 2)))) == @Layout(12, 1)
     @test_opt coalesce(@Layout((2, (1, 6)), (1, (6, 2))))
-    @test_opt Moye.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
+    @test_opt MoYe.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
 
     function test_coalesce(layout)
         coalesce_layout = coalesce(layout)
@@ -128,7 +128,7 @@ end
 
     function test_composition(A,B)
         C = A ∘ B
-        @test Moye.iscompatible(B,C)
+        @test MoYe.iscompatible(B,C)
         for i in static(1):size(C)
             @test C(i) == A(B(i))
         end
@@ -323,7 +323,7 @@ end
         @test size(result) ≤ cosize(result)
         @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
 
-        if Moye.Static.dynamic(Moye.Static.is_static(stride(make_layout(l, result))))
+        if MoYe.Static.dynamic(MoYe.Static.is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
         end
     end
@@ -410,7 +410,7 @@ end
         function test_logical_product(A,B)
             C = logical_product(A,B)
             @test rank(C) == 2
-            @test Moye.iscompatible(A, first(C))
+            @test MoYe.iscompatible(A, first(C))
         end
 
         let vec = @Layout(1,0), tile = @Layout(1,0)
@@ -499,7 +499,7 @@ end
         function test_logical_divide(A, B)
             C = logical_divide(A,B)
             @test rank(C) == 2
-            @test Moye.iscompatible(B, first(C))
+            @test MoYe.iscompatible(B, first(C))
         end
 
         let layout = @Layout(1, 0),

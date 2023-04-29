@@ -15,14 +15,14 @@ function MMAAtom{OP}() where {OP <: MMAOP}
     return MMAAtom{MMATraits{OP}}()
 end
 
-function mma_unpack(D::MoyeArray{DT, 1}, A::MoyeArray{AT, 1}, B::MoyeArray{BT, 1},
-                    C::MoyeArray{CT, 1}, ::MMAAtom) end
-function mma_unpack(A::MoyeArray{AT, 1}, B::MoyeArray{BT, 1}, C::MoyeArray{CT, 1},
+function mma_unpack(D::MoYeArray{DT, 1}, A::MoYeArray{AT, 1}, B::MoYeArray{BT, 1},
+                    C::MoYeArray{CT, 1}, ::MMAAtom) end
+function mma_unpack(A::MoYeArray{AT, 1}, B::MoYeArray{BT, 1}, C::MoYeArray{CT, 1},
                     ::MMAAtom)
     return mma_unpack(C, A, B, C)
 end
 
-@inline function make_fragment_A(A::MoyeArray,
+@inline function make_fragment_A(A::MoYeArray,
                                  ::MMAAtom{Traits, DFrgType, AFrgType}) where {Traits,
                                                                                DFrgType,
                                                                                AFrgType}
@@ -31,7 +31,7 @@ end
     return make_fragment_like(AFrgType, A)     # When would AFrgType be a pointer?
 end
 
-@inline function make_fragment_B(B::MoyeArray,
+@inline function make_fragment_B(B::MoYeArray,
                                  ::MMAAtom{Traits, DFrgType, AFrgType, BFrgType}) where {
                                                                                          Traits,
                                                                                          DFrgType,
@@ -43,7 +43,7 @@ end
     return make_fragment_like(BFrgType, B)
 end
 
-@inline function make_fragment_C(C::MoyeArray,
+@inline function make_fragment_C(C::MoYeArray,
                                  m::MMAAtom{Traits, DFrgType, AFrgType, BFrgType}) where {
                                                                                           Traits,
                                                                                           DFrgType,

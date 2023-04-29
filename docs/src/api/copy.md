@@ -1,7 +1,7 @@
 ## Data Movement
 
 ```@meta
-CurrentModule = Moye
+CurrentModule = MoYe
 ```
 ## Index
 

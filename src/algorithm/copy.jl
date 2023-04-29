@@ -1,7 +1,7 @@
 struct TrivialMask end
 @inline Base.getindex(::TrivialMask, i) = true
 
-@inline function masked_copyto!(dest::MoyeArray, src::MoyeArray, mask)
+@inline function masked_copyto!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @unroll for i in One():size(src.layout)
         if mask[i]
@@ -11,7 +11,7 @@ struct TrivialMask end
     return nothing
 end
 
-@inline function copyto_vec!(dest::MoyeArray{TD}, src::MoyeArray{TS}, ::Type{TV}) where {TD,TS,TV}
+@inline function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
         src_v = recast(TV, src)
         dest_v = recast(TV, dest)
@@ -24,7 +24,7 @@ end
 end
 
 """
-    cucopyto!(dest::MoyeArray, src::MoyeArray)
+    cucopyto!(dest::MoYeArray, src::MoYeArray)
 
 Copy the contents of `src` to `dest`. The function automatically carries out potential
 vectorization. In particular, while transferring data from global memory to shared memory,
@@ -33,7 +33,7 @@ it automatically initiates asynchronous copying, if your device supports so.
 !!! note
     It should be used with @gc_preserve if `dest` or `src` is powered by an ArrayEngine.
 """
-@inline function cucopyto!(dest::MoyeArray{TD}, src::MoyeArray{TS}) where {TD,TS}
+@inline function cucopyto!(dest::MoYeArray{TD}, src::MoYeArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
     if N ≤ 1
         return masked_copyto!(dest, src, TrivialMask())
