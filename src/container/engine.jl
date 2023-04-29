@@ -10,13 +10,13 @@ A non-owning view of a memory buffer. `P` is the type of the pointer.
 """
 struct ViewEngine{T, P} <: Engine{T}
     ptr::P
-    len::IntType
+    len::Int
 end
 
-@inline function ViewEngine(ptr::Ptr{T}, len::IntType) where {T}
+@inline function ViewEngine(ptr::Ptr{T}, len::Int) where {T}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
-@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::IntType) where {T, AS}
+@inline function ViewEngine(ptr::LLVMPtr{T, AS}, len::Int) where {T, AS}
     return ViewEngine{T, typeof(ptr)}(ptr, len)
 end
 
