@@ -68,12 +68,15 @@ function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticI
 end
 
 function make_layout(@nospecialize(shape::IntTuple), @nospecialize(stride::IntTuple))
+    @inline
     return Layout(shape, stride)
 end
 function make_layout(shape::IntType, stride::IntType)
+    @inline
     return Layout(shape, stride)
 end
 function make_layout(shape::GenIntTuple)
+    @inline
     return Layout(shape, compact_col_major(shape))
 end
 function make_layout(layouts::Layout...)
