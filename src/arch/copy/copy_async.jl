@@ -15,22 +15,22 @@ struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: CPOP_ASYNC{TS,TD}
     end
 end
 
-function apply(::CPOP_ASYNC_CACHEALWAYS{TS, TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{4}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{4}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.4", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function apply(::CPOP_ASYNC_CACHEALWAYS{TS, TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{8}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{8}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.8", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function apply(::CPOP_ASYNC_CACHEALWAYS{TS, TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TD, TS}
+function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TD, TS}
     @inline
     ccall("llvm.nvvm.cp.async.ca.shared.global.16", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
-function apply(::CPOP_ASYNC_CACHEGLOBAL{TS, TD}, dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TS, TD}
+function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TS, TD}
     @inline
     ccall("llvm.nvvm.cp.async.cg.shared.global.16", llvmcall, Cvoid,
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
@@ -39,7 +39,7 @@ end
 function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     @inline
     @assert sizeof(TS) == sizeof(TD)
-    apply(cpop, dst, src, static(sizeof(TS)))
+    cpop(dst, src, static(sizeof(TS)))
     return nothing
 end
 
