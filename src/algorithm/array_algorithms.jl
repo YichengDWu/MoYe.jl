@@ -87,8 +87,8 @@ julia> local_partition(a, @Layout((2,2), (2, 1)), 2)
  11  23  35  47
 ```
 """
-@inline function local_partition(@nospecialize(x::CuTeArray), tile::Tile, coord::Tuple)
-    view(zipped_divide(x, tile), coord, repeat(:, rank(x)))
+@inline function local_partition(x::CuTeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
+    view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
 end
 @inline function local_partition(@nospecialize(x::CuTeArray), tile::Layout, index::Integer)
     return local_partition(x, map(capacity, shape(tile)), get_congr_coord(tile, index))
@@ -118,7 +118,7 @@ julia> local_tile(a, (static(2), static(2)), (1, 1))
 @inline function local_tile(x::CuTeArray, tile::Tile, coord::Tuple)
     R1 = length(tile)
     R2 = rank(x)
-    return view(zipped_divide(x, tile), repeat(:, R1), append(coord, :, R2))
+    return view(zipped_divide(x, tile), ntuple(i -> :, R1), append(coord, :, R2))
 end
 @inline function local_tile(x::CuTeArray, tile::Tile, coord::Tuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
