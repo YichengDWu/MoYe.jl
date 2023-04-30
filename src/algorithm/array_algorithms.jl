@@ -103,9 +103,9 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
  11  23  35  47
 ```
 """
-macro parallelize(args...)
+macro parallelize(x, tile, coord, args...)
     quote
-        local_partition($(map(esc, args)...))
+        local_partition($(esc(x)), $(esc(tile)), map(Int, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
@@ -132,9 +132,9 @@ julia> @tile a (static(2), static(2)) (1, 1)
  2  8
 ```
 """
-macro tile(args...)
+macro tile(x, tile, coord, args...)
     quote
-        local_tile($(map(esc, args)...))
+        local_tile($(esc(x)), $(esc(tile)), map(Int, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
