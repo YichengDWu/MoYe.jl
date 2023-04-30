@@ -1,7 +1,7 @@
-struct TrivialMask end
-@inline Base.getindex(::TrivialMask, i) = true
+struct TrivialPred end
+@inline Base.getindex(::TrivialPred, i) = true
 
-@inline function masked_copyto!(dest::MoYeArray, src::MoYeArray, mask)
+@inline function copyifto!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @loopinfo unroll  for i in One():size(src.layout)
         if mask[i]
@@ -16,9 +16,9 @@ end
         src_v = recast(TV, src)
         dest_v = recast(TV, dest)
         #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV))\n bytes")
-        masked_copyto!(dest_v, src_v, TrivialMask())
+        copyifto!(dest_v, src_v, TrivialPred())
     else
-        masked_copyto!(dest, src, TrivialMask())
+        copyifto!(dest, src, TrivialPred())
     end
     return nothing
 end
@@ -36,7 +36,7 @@ it automatically initiates asynchronous copying, if your device supports so.
 @inline function cucopyto!(dest::MoYeArray{TD}, src::MoYeArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
     if N ≤ 1
-        return masked_copyto!(dest, src, TrivialMask())
+        return copyifto!(dest, src, TrivialPred())
     else
         vec_bits = N * sizeof(TS) * 8
         TV = uint_bit(static(min(128, vec_bits)))
