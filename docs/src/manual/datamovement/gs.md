@@ -67,8 +67,8 @@ The device function follows these steps:
 1. Allocate shared memory using `MoYe.SharedMemory`.
 2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
 3. Compute the size of each block in the grid (bM and bN).
-4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
-5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
+4. Create local tiles for the destination and source arrays using [`@tile`](@ref).
+5. Partition the local tiles into thread tiles using [`@parallelize`](@ref).
 6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
 7. Synchronize threads using `sync_threads`.
 8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
