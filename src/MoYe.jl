@@ -48,11 +48,11 @@ export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compac
 # layout
 export Layout, make_layout, shape, rank, depth, cosize, complement, logical_product,
        blocked_product, raked_product, zipped_product, logical_divide, zipped_divide,
-       tiled_divide, local_partition, local_tile, zeros!, recast, right_inverse
+       tiled_divide, zeros!, recast, right_inverse
 export print_layout
 
 # MoYeArray
-export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like
+export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile
 
 # pointer
 export isgmem, issmem, isrmem
