@@ -78,7 +78,7 @@ The host function tests the copy_kernel function with the following steps:
 
 1. Define the dimensions M and N for the source and destination arrays.
 2. Create random GPU arrays a and b with the specified dimensions using CUDA.rand.
-3. Define the block and thread layouts using [`@Layout`] for creating **static** layouts.
+3. Define the block and thread layouts using [`@Layout`](@ref) for creating **static** layouts.
 4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
 
 
