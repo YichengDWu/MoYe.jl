@@ -15,7 +15,7 @@ In this tutorial, we will use the following configuration:
 
 The device function follows these steps:
 
-1. Allocate shared memory using MoYe.SharedMemory.
+1. Allocate shared memory using `MoYe.SharedMemory`.
 2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
 3. Compute the size of each block in the grid (bM and bN).
 4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
