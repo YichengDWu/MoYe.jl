@@ -10,28 +10,6 @@ In this tutorial, we will use the following configuration:
 - Block size: 128 x 16
 - Thread size: 32 x 8
 
-
-## Code Explanation
-
-The device function follows these steps:
-
-1. Allocate shared memory using `MoYe.SharedMemory`.
-2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
-3. Compute the size of each block in the grid (bM and bN).
-4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
-5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
-6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
-7. Synchronize threads using `sync_threads`.
-8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
-9. Synchronize threads again using `sync_threads`.
-
-The host function tests the copy_kernel function with the following steps:
-
-1. Define the dimensions M and N for the source and destination arrays.
-2. Create random GPU arrays a and b with the specified dimensions using CUDA.rand.
-3. Define the block and thread layouts using [`@Layout`] for creating **static** layouts.
-4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
-
 ```julia
 using MoYe, Test, CUDA
 
@@ -82,12 +60,33 @@ end
 
 test_copy_async()
 ```
+## Code Explanation
+
+The device function follows these steps:
+
+1. Allocate shared memory using `MoYe.SharedMemory`.
+2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
+3. Compute the size of each block in the grid (bM and bN).
+4. Create local tiles for the destination and source arrays using [`local_tile`](@ref).
+5. Partition the local tiles into thread tiles using [`local_partition`](@ref).
+6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
+7. Synchronize threads using `sync_threads`.
+8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
+9. Synchronize threads again using `sync_threads`.
+
+The host function tests the copy_kernel function with the following steps:
+
+1. Define the dimensions M and N for the source and destination arrays.
+2. Create random GPU arrays a and b with the specified dimensions using CUDA.rand.
+3. Define the block and thread layouts using [`@Layout`] for creating **static** layouts.
+4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
+
 
 ## Padding Shared Memory
 
-Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array by one row to avoid bank conflicts. We just need to add one line of code:
+Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array by one row to avoid bank conflicts. We just need to change one line of code:
 ```julia
 smemlayout = @Layout (128, 16) (1,129)
 ```
 
-Note that the stride is now 129, not 128. The rest of the code is basically identical.
+Note that the stride is now 129, not 128.

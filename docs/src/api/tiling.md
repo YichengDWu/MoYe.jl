@@ -10,5 +10,5 @@ Pages = ["tiling.md"]
 ```@docs
 Tile
 @tile
-@partition
+@parallelize
 ```

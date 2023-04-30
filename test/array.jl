@@ -39,6 +39,7 @@ end
 
     @testset "Copy" begin
         ca = MoYeArray{Float32}(undef, static((2, 3)))
+        zeros!(ca)
         ca2 = copy(ca)
         @test ca2 isa MoYeArray
         @test ca2.engine isa ArrayEngine
