@@ -9,6 +9,6 @@ Pages = ["tiling.md"]
 
 ```@docs
 Tile
-local_tile
-local_partition
+@tile
+@partition
 ```

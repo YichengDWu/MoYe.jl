@@ -35,9 +35,9 @@ The host function tests the copy_kernel function with the following steps:
 ```julia
 using MoYe, Test, CUDA
 
-function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(blocklayout))
-    moye_smem = MoYeArray(smem, blocklayout)
+function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
+    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
+    moye_smem = MoYeArray(smem, smemlayout)
 
     moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
     moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
@@ -45,12 +45,12 @@ function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
 
-    blocktile_dest = local_tile(moye_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
-    blocktile_src = local_tile(moye_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_dest = @tile moye_dest (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
+    blocktile_src  = @tile moye_src (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
 
-    threadtile_dest = local_partition(blocktile_dest, threadlayout, Int(threadIdx().x))
-    threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
-    threadtile_smem = local_partition(moye_smem, threadlayout, Int(threadIdx().x))
+    threadtile_dest = @parallelize blocktile_dest threadlayout Int(threadIdx().x)
+    threadtile_src  = @parallelize blocktile_src  threadlayout Int(threadIdx().x)
+    threadtile_smem = @parallelize moye_smem      threadlayout Int(threadIdx().x)
 
     cucopyto!(threadtile_smem, threadtile_src) 
     sync_threads()
@@ -67,6 +67,7 @@ function test_copy_async()
     b = CUDA.rand(Float32, M, N)
 
     blocklayout = @Layout (128, 16)
+    smemlayout = blocklayout
     threadlayout = @Layout (32, 8)
 
     bM = size(blocklayout, 1)
@@ -75,7 +76,7 @@ function test_copy_async()
     blocks = (cld(M, bM), cld(N, bN))
     threads = MoYe.Static.dynamic(size(threadlayout))
 
-    @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, blocklayout, threadlayout)
+    @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
     @test a == b
 end
 
@@ -84,58 +85,9 @@ test_copy_async()
 
 ## Padding Shared Memory
 
-Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array by one row to avoid bank conflicts. We just need to add a separate layout for the shared memory:
+Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array by one row to avoid bank conflicts. We just need to add one line of code:
 ```julia
 smemlayout = @Layout (128, 16) (1,129)
 ```
 
 Note that the stride is now 129, not 128. The rest of the code is basically identical.
-
-```julia
-function copy_kernel2(M, N, dest, src, smemlayout, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    moye_smem = MoYeArray(smem, smemlayout)
-
-    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
-
-    bM = size(blocklayout, 1)
-    bN = size(blocklayout, 2)
-
-    blocktile_dest = local_tile(moye_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
-    blocktile_src = local_tile(moye_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
-
-    threadtile_dest = local_partition(blocktile_dest, threadlayout, Int(threadIdx().x))
-    threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
-    threadtile_smem = local_partition(moye_smem, threadlayout, Int(threadIdx().x))
-
-    cucopyto!(threadtile_smem, threadtile_src) 
-    sync_threads()
-    cucopyto!(threadtile_dest, threadtile_smem)
-    sync_threads()
-    return nothing
-end
-
-function test_copy_async2()
-    M = 256
-    N = 32
-
-    a = CUDA.rand(Float32, M, N)
-    b = CUDA.rand(Float32, M, N)
-
-    smemlayout = @Layout (128, 16) (1,129)
-    blocklayout = @Layout (128, 16)
-    threadlayout = @Layout (32, 8)
-
-    bM = size(blocklayout, 1)
-    bN = size(blocklayout, 2)
-
-    blocks = (cld(M, bM), cld(N, bN))
-    threads = MoYe.Static.dynamic(size(threadlayout))
-
-    @cuda blocks=blocks threads=threads copy_kernel2(M, N, a, b, blocklayout, smemlayout, threadlayout)
-    @test a == b
-end
-
-test_copy_async2()
-```

@@ -43,17 +43,33 @@ end
     return MoYeArray(pointer(x), tiled_divide(layout(x), tile))
 end
 
-"""
-    local_partition(x::MoYeArray, tile::Tile, coord::Tuple)
-    local_partition(x::MoYeArray, thread_layout::Layout, thread_id::Integer)
 
-Partition a [`MoYeArray`](@ref) `x` into tiles that are parallised over.
+@inline function local_partition(x::MoYeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
+    view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
+end
+@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Int)
+    return local_partition(x, map(capacity, shape(tile)), get_congr_coord(tile, index))
+end
+@inline function local_partition(@nospecialize(x::MoYeArray), tile::Tile, coord, proj)
+    return local_partition(x, dice(tile, proj), dice(coord, proj))
+end
+@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Integer, proj)
+    return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
+end
+
+
+"""
+    @parallelize x::MoYeArray tile::Tile coord::Tuple
+    @parallelize x::MoYeArray thread_layout::Layout thread_id::Int
+
+Tile `x` with `tile` and return the view of the entries that the thread with `coord` or
+`thread_id` will work on.
 
 ## Examples
 
 Say we have a [`MoYeArray`](@ref) `x` of shape `(6, 8)` and 4 threads of shape (2, 2). We would
 like to  partition `x` with the 4 threads and get a view of the entries that the first thread
-will work on. We can do this by calling `local_partition(x, (2, 2), 1)`.
+will work on. We can do this by calling `@parallelize(x, (2, 2), 1)`.
 
 ```julia
 julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
@@ -65,7 +81,7 @@ julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
 
-julia> local_partition(a, (static(2), static(2)), (1, 1))
+julia> @parallelize a (static(2), static(2)) (1, 1)
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{4}}, Tuple{Static.StaticInt{2}, Static.StaticInt{12}}}}:
  1  13  25  37
  3  15  27  39
@@ -74,47 +90,25 @@ julia> local_partition(a, (static(2), static(2)), (1, 1))
 
 You can also pass in a thread layout and a thread id to get the tile:
 ```julia
-julia> local_partition(a, @Layout((2,2), (1, 2)), 2)
+julia> @parallelize a @Layout((2,2), (1, 2)) 2
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{3}, StaticInt{4}}, Tuple{StaticInt{2}, StaticInt{12}}}}:
  2  14  26  38
  4  16  28  40
  6  18  30  42
 
-julia> local_partition(a, @Layout((2,2), (2, 1)), 2)
+julia> @parallelize a @Layout((2,2), (2, 1)) 2
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{3}, StaticInt{4}}, Tuple{StaticInt{2}, StaticInt{12}}}}:
   7  19  31  43
   9  21  33  45
  11  23  35  47
 ```
 """
-@inline function local_partition(x::MoYeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
-    view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
-end
-@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Integer)
-    return local_partition(x, map(capacity, shape(tile)), get_congr_coord(tile, index))
-end
-@inline function local_partition(@nospecialize(x::MoYeArray), tile::Tile, coord, proj)
-    return local_partition(x, dice(tile, proj), dice(coord, proj))
-end
-@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Integer, proj)
-    return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
+macro parallelize(args...)
+    quote
+        local_partition($(map(esc, args)...))
+    end
 end
 
-"""
-    local_tile(@nospecialize(x::MoYeArray), tile::Tile, coord::Tuple)
-
-Partition a [`MoYeArray`](@ref) `x` into tiles. This is similar to [`local_partition`](@ref)
-but not parallelised.
-
-```julia
-julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
-
-julia> local_tile(a, (static(2), static(2)), (1, 1))
-2×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{2}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{6}}}}:
- 1  7
- 2  8
-```
-"""
 @inline function local_tile(x::MoYeArray, tile::Tile, coord::Tuple)
     R1 = length(tile)
     R2 = rank(x)
@@ -122,6 +116,26 @@ julia> local_tile(a, (static(2), static(2)), (1, 1))
 end
 @inline function local_tile(x::MoYeArray, tile::Tile, coord::Tuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))
+end
+
+"""
+    @tile x::MoYeArray tile::Tile, coord::Tuple
+
+Tile `x` with `tile` and return the view of the tile itself at `coord`.
+
+```julia
+julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
+
+julia> @tile a (static(2), static(2)) (1, 1)
+2×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{2}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{6}}}}:
+ 1  7
+ 2  8
+```
+"""
+macro tile(args...)
+    quote
+        local_tile($(map(esc, args)...))
+    end
 end
 
 @inline function Base.fill!(x::MoYeArray{T, N, <:ArrayEngine}, val) where {T, N}
