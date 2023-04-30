@@ -89,7 +89,7 @@ Note that in the above code, the layout of the shared memory is the same as the 
 smemlayout = @Layout (128, 16) (1,129)
 ```
 
-The rest of the code is basically identical.
+Note that the stride is now 129, not 128. The rest of the code is basically identical.
 
 ```julia
 function copy_kernel2(M, N, dest, src, smemlayout, blocklayout, threadlayout)
