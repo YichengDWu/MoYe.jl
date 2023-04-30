@@ -3,7 +3,7 @@ struct TrivialMask end
 
 @inline function masked_copyto!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
-    @unroll for i in One():size(src.layout)
+    @loopinfo unroll  for i in One():size(src.layout)
         if mask[i]
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end

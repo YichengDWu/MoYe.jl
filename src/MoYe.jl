@@ -6,7 +6,7 @@ import ManualMemory, LayoutPointers
 import StrideArraysCore
 using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
-using KernelAbstractions.Extras: @unroll
+using LLVMLoopInfo
 using Core: LLVMPtr
 import Adapt
 
