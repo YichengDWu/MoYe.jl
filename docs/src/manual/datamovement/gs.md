@@ -25,12 +25,12 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
 
-    blocktile_dest = @tile moye_dest (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
-    blocktile_src  = @tile moye_src  (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
+    blocktile_dest = @tile moye_dest (bM, bN) (blockIdx().x, blockIdx().y)
+    blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
 
-    threadtile_dest = @parallelize blocktile_dest threadlayout Int(threadIdx().x)
-    threadtile_src  = @parallelize blocktile_src  threadlayout Int(threadIdx().x)
-    threadtile_smem = @parallelize moye_smem      threadlayout Int(threadIdx().x)
+    threadtile_dest = @parallelize blocktile_dest threadlayout threadIdx().x
+    threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
+    threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
 
     cucopyto!(threadtile_smem, threadtile_src) 
     cp_async_wait()
