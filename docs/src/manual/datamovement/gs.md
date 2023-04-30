@@ -37,20 +37,20 @@ using MoYe, Test, CUDA
 
 function copy_kernel(M, N, dest, src, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(blocklayout))
-    cute_smem = MoYeArray(smem, blocklayout)
+    moye_smem = MoYeArray(smem, blocklayout)
 
-    cute_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    cute_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
 
-    blocktile_dest = local_tile(cute_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
-    blocktile_src = local_tile(cute_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_dest = local_tile(moye_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_src = local_tile(moye_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
 
     threadtile_dest = local_partition(blocktile_dest, threadlayout, Int(threadIdx().x))
     threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
-    threadtile_smem = local_partition(cute_smem, threadlayout, Int(threadIdx().x))
+    threadtile_smem = local_partition(moye_smem, threadlayout, Int(threadIdx().x))
 
     cucopyto!(threadtile_smem, threadtile_src) 
     sync_threads()
@@ -94,20 +94,20 @@ Note that the stride is now 129, not 128. The rest of the code is basically iden
 ```julia
 function copy_kernel2(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    cute_smem = MoYeArray(smem, smemlayout)
+    moye_smem = MoYeArray(smem, smemlayout)
 
-    cute_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
-    cute_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
 
-    blocktile_dest = local_tile(cute_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
-    blocktile_src = local_tile(cute_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_dest = local_tile(moye_dest, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
+    blocktile_src = local_tile(moye_src, (bM, bN), (Int(blockIdx().x), Int(blockIdx().y)))
 
     threadtile_dest = local_partition(blocktile_dest, threadlayout, Int(threadIdx().x))
     threadtile_src = local_partition(blocktile_src, threadlayout, Int(threadIdx().x))
-    threadtile_smem = local_partition(cute_smem, threadlayout, Int(threadIdx().x))
+    threadtile_smem = local_partition(moye_smem, threadlayout, Int(threadIdx().x))
 
     cucopyto!(threadtile_smem, threadtile_src) 
     sync_threads()
