@@ -46,7 +46,7 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     bN = size(blocklayout, 2)
 
     blocktile_dest = @tile moye_dest (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
-    blocktile_src  = @tile moye_src (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
+    blocktile_src  = @tile moye_src  (bM, bN) (Int(blockIdx().x), Int(blockIdx().y))
 
     threadtile_dest = @parallelize blocktile_dest threadlayout Int(threadIdx().x)
     threadtile_src  = @parallelize blocktile_src  threadlayout Int(threadIdx().x)
