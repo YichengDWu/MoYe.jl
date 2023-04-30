@@ -52,7 +52,7 @@ export Layout, make_layout, shape, rank, depth, cosize, complement, logical_prod
 export print_layout
 
 # MoYeArray
-export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile
+export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
 
 # pointer
 export isgmem, issmem, isrmem
