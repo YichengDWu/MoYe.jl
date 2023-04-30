@@ -10,6 +10,8 @@ In this tutorial, we will use the following configuration:
 - Block size: 128 x 16
 - Thread size: 32 x 8
 
+**Note**: Requires `sm_80` or higher.
+
 ```julia
 using MoYe, Test, CUDA
 
@@ -31,7 +33,7 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     threadtile_smem = @parallelize moye_smem      threadlayout Int(threadIdx().x)
 
     cucopyto!(threadtile_smem, threadtile_src) 
-    sync_threads()
+    cp_async_wait()
     cucopyto!(threadtile_dest, threadtile_smem)
     sync_threads()
     return nothing
@@ -70,7 +72,7 @@ The device function follows these steps:
 4. Create local tiles for the destination and source arrays using [`@tile`](@ref).
 5. Partition the local tiles into thread tiles using [`@parallelize`](@ref).
 6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
-7. Synchronize threads using `sync_threads`.
+7. Synchronize threads using [`cp_async_wait`](@ref).
 8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
 9. Synchronize threads again using `sync_threads`.
 
@@ -84,9 +86,7 @@ The host function tests the copy_kernel function with the following steps:
 
 ## Padding Shared Memory
 
-Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array by one row to avoid bank conflicts. We just need to change one line of code:
+Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array to avoid bank conflicts. We just need to change one line of code:
 ```julia
-smemlayout = @Layout (128, 16) (1,129)
+smemlayout = @Layout (128, 16) (1, 130)  # pad 2 rows
 ```
-
-Note that the stride is now 129, not 128.

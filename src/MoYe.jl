@@ -61,6 +61,6 @@ export isgmem, issmem, isrmem
 export axpby!
 
 # data movement
-export cucopyto!
+export cucopyto!, cp_async_wait, cp_async_commit
 
 end
