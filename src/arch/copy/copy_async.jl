@@ -43,6 +43,18 @@ function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS,
     return nothing
 end
 
+"""
+    cp_async_wait(i::Int32)
+    cp_async_wait()
+
+`cp.async.wait.group` and `cp.async.wait.all`.
+"""
 @inline cp_async_wait(i::Int32) = ccall("llvm.nvvm.cp.async.wait.group", llvmcall, Cvoid, (Int32,), i)
 @inline cp_async_wait() = ccall("llvm.nvvm.cp.async.wait.all", llvmcall, Cvoid, ())
-@inline cp_async_fence() = ccall("llvm.nvvm.cp.async.commit.group", llvmcall, Cvoid, ())
+
+"""
+    cp_async_commit()
+
+`cp.async.commit.group`.
+"""
+@inline cp_async_commit() = ccall("llvm.nvvm.cp.async.commit.group", llvmcall, Cvoid, ())
