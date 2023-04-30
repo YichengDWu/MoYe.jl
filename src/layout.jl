@@ -790,7 +790,7 @@ end
 """
     zipped_divide(layout::Layout, tile::Tile)
 
-Compute the logical division of `layout` by `tile`, then flatten the blocks into the first
+Compute the logical division of `layout` by `tile`, then zip the blocks into the first
 mode and the rest into the second mode.
 
 ```julia
