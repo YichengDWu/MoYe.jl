@@ -39,10 +39,7 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     return nothing
 end
 
-function test_copy_async()
-    M = 256
-    N = 32
-
+function test_copy_async(M, N)
     a = CUDA.rand(Float32, M, N)
     b = CUDA.rand(Float32, M, N)
 
@@ -60,7 +57,7 @@ function test_copy_async()
     @test a == b
 end
 
-test_copy_async()
+test_copy_async(256, 32)
 ```
 ## Code Explanation
 
@@ -90,3 +87,80 @@ Note that in the above code, the layout of the shared memory is the same as the 
 ```julia
 smemlayout = @Layout (128, 16) (1, 130)  # pad 2 rows
 ```
+Please note that our kernel will recompile for different static layout parameters.
+
+## Transpose kernel
+
+The following code transposes a matrix. To be more precise, it calculates a column-major transposed matrix.
+```julia
+using MoYe, Test, CUDA
+
+function transpose_kernel(M, N, dest, src,
+                          blocklayout, smemlayout,
+                          threadlayout_src,threadlayout_dest)
+    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
+    moye_smem = MoYeArray(smem, smemlayout)
+
+    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(pointer(dest), Layout((N, M), (static(1), N)))
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
+
+    threadtile_src  = @parallelize blocktile_src  threadlayout_src threadIdx().x
+    threadtile_smem = @parallelize moye_smem      threadlayout_src threadIdx().x
+
+    cucopyto!(threadtile_smem, threadtile_src)
+    cp_async_wait()
+
+    # transpose smem
+    moye_smem′ = MoYeArray(smem, transpose(smemlayout))
+
+    blocktile_dest = @tile moye_dest (bN, bM) (blockIdx().y, blockIdx().x)
+
+    threadtile_dest  = @parallelize blocktile_dest threadlayout_dest threadIdx().x
+    threadtile_smem′ = @parallelize moye_smem′     threadlayout_dest threadIdx().x
+
+    cucopyto!(threadtile_dest, threadtile_smem′)
+    sync_threads()
+    return nothing
+end
+
+function test_transpose(M, N)
+    M = 256
+    N = 32
+
+    src = CUDA.rand(Float32, M, N)
+    dest = CUDA.rand(Float32, N, M)
+
+    blocklayout = @Layout (128, 16)
+    smemlayout = @Layout (128, 16) (1, 130) 
+    threadlayout_src = @Layout (32, 8)
+    threadlayout_dest = @Layout (16, 16)
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocks = (cld(M, bM), cld(N, bN))
+    threads = MoYe.dynamic(size(threadlayout_src))
+
+    @cuda blocks=blocks threads=threads transpose_kernel(M, N, dest, src, blocklayout, smemlayout,
+                                                         threadlayout_src, threadlayout_dest)
+    @test dest == transpose(src)
+end
+
+test_transpose(256, 32)
+```
+
+Now let us explain. 
+
+First, we transfer the contents of global memory to shared memory, a process that closely resembles the previously implemented copy kernel function. Then, we perform a lazy transposition on the shared memory, which entails merely altering its layout to produce a row-major matrix.
+
+```julia
+moye_smem′ = MoYeArray(smem, transpose(smemlayout))
+```
+
+Following this, we copy the shared memory to global memory as usual. Note that at this point we swap `bM, bN` and `blockIdx().x, blockIdx().y`. Intriguingly, after this swap, our block size becomes 16 * 128, while the original thread layout remains 32*8, leading to a mismatch in their row numbers. This is where the power of layout comes into play: we can conveniently reconfigure the threads' layout multiple times within the kernel function to serve different purposes.
+`threadlayout_src` `threadlayout_dest`

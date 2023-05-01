@@ -1,3 +1,7 @@
+function Base.show(io::IO, l::Layout)
+    return print(io, shape(l), ":", stride(l))
+end
+
 @inline Base.ndigits(@nospecialize x::StaticInt{N}) where {N} = ndigits(N)
 
 function print_layout(layout::Layout{2})
