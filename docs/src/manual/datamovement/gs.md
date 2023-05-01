@@ -35,7 +35,6 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     cucopyto!(threadtile_smem, threadtile_src) 
     cp_async_wait()
     cucopyto!(threadtile_dest, threadtile_smem)
-    sync_threads()
     return nothing
 end
 
@@ -54,6 +53,7 @@ function test_copy_async(M, N)
     threads = MoYe.Static.dynamic(size(threadlayout))
 
     @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
+    CUDA.synchronize()
     @test a == b
 end
 
@@ -71,7 +71,6 @@ The device function follows these steps:
 6. Asynchronously copy data from the source thread tile to the shared memory thread tile using [`cucopyto!`](@ref).
 7. Synchronize threads using [`cp_async_wait`](@ref).
 8. Copy data back from the shared memory thread tile to the destination thread tile with `cucopyto!` again, but under the hood it is using the universal copy method.
-9. Synchronize threads again using `sync_threads`.
 
 The host function tests the copy_kernel function with the following steps:
 
@@ -124,7 +123,6 @@ function transpose_kernel(M, N, dest, src,
     threadtile_smem′ = @parallelize moye_smem′     threadlayout_dest threadIdx().x
 
     cucopyto!(threadtile_dest, threadtile_smem′)
-    sync_threads()
     return nothing
 end
 
@@ -148,6 +146,7 @@ function test_transpose(M, N)
 
     @cuda blocks=blocks threads=threads transpose_kernel(M, N, dest, src, blocklayout, smemlayout,
                                                          threadlayout_src, threadlayout_dest)
+    CUDA.synchronize()
     @test dest == transpose(src)
 end
 
