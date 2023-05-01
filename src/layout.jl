@@ -845,7 +845,7 @@ function tiled_divide(layout::Layout, tile::Tile)
 end
 
 function tile(l1::Layout, l2::Layout)
-    return tiled_divide(l1, l2)
+    return tiled_divide(l1, l2)  # FIXME
 end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
     return tiled_divide(l1, (l2, l3...))
