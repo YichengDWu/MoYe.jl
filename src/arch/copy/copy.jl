@@ -8,6 +8,6 @@ struct CPOP_UNIVERSAL{TS, TD} <: CPOP{Registers{TS, 1}, Registers{TD, 1}} end
 
 function (::CPOP_UNIVERSAL{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
     @inline
-    unsafe_store!(dest, unsafe_load(src, 1), 1)
+    unsafe_store!(dest, unsafe_load(src))
     return nothing
 end

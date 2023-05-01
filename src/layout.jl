@@ -25,10 +25,6 @@ Base.stride(l::Layout) = getfield(l, :stride)
 Base.stride(l::Layout, i::IntType) = getindex(stride(l), i)
 Static.static(l::Layout) = make_layout(static(shape(l)), static(stride(l)))
 
-function Base.show(io::IO, l::Layout)
-    return print(io, shape(l), ":", stride(l))
-end
-
 Static.is_static(l::Layout) = dynamic(is_static(shape(l))) && dynamic(is_static(stride(l)))
 
 # map a logical coordinate to a linear index
@@ -501,10 +497,14 @@ end
 
 @inline max_common_vector(a::Layout, b::Layout) = size(max_common_layout(a, b))
 
-# this is equivalent to make_layout(map(make_layout, l1, l2)...)
+# this is equivalent to make_layout(map(make_layout, l1, l2)...), maybe zip is a better name
 function _transpose(layoutA::Layout, layoutB::Layout)
     return make_layout(_transpose(shape(layoutA), shape(layoutB)),
                        _transpose(stride(layoutA), stride(layoutB)))
+end
+
+@inline function Base.transpose(l::Layout{2})
+    return make_layout(l[2], l[1])
 end
 
 function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
@@ -845,7 +845,7 @@ function tiled_divide(layout::Layout, tile::Tile)
 end
 
 function tile(l1::Layout, l2::Layout)
-    return tiled_divide(l1, l2)
+    return tiled_divide(l1, l2)  # FIXME
 end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
     return tiled_divide(l1, (l2, l3...))

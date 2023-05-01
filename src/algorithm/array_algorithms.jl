@@ -45,7 +45,7 @@ end
 
 
 @inline function local_partition(x::MoYeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
-    view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
+    return view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
 end
 @inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Int)
     return local_partition(x, map(capacity, shape(tile)), get_congr_coord(tile, index))
