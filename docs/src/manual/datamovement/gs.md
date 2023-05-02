@@ -97,8 +97,7 @@ for i in eachindex(threadtile_smem)
     threadtile_smem[i] = threadtile_src[i]
 end
 ```
-Note that we don't need to worry about strides anymore, as it is implicitly handled by the layout.
-
+You need not concern yourself with index bookkeeping, it is implicitly handled by the layout; instead, concentrate on the computation aspect, as it is a fundamental objective of MoYe.jl.
 
 Additionally, you can use the cucopyto! function, which is similar to copyto!, but with two key differences: copying from global memory to shared memory automatically calls `cp.async` (Requires `sm_80` or higher), and automatic vectorization when possible.
 
