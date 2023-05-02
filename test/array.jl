@@ -80,6 +80,7 @@ end
 
 @testset "Recast" begin
     x = MoYeArray{Float32}(undef, static((4, 3)))
+    zeros!(x)
     @testset "Upcast" begin
         x2 = recast(Float64, x)
         @test x2 isa MoYeArray{Float64}
@@ -89,6 +90,7 @@ end
 
     @testset "Downcast" begin
         x2 = recast(Float16, x)
+        zeros!(x2)
         @test x2 isa MoYeArray{Float16}
         @test x2.layout == @Layout (8, 3)
         @test x == recast(Float32, x2)
