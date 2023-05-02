@@ -119,5 +119,54 @@ end
     GC.@preserve b begin ViewEngine(A)[i] = val end
 end
 
+"""
+    ConstViewEngine{T, P}
 
-const Engine{T} = Union{ViewEngine{T}, ArrayEngine{T}}
+A read-only wrapper of a pointer. `P` is the type of the pointer.
+"""
+struct ConstViewEngine{T, P}
+    ptr::P
+end
+
+@inline function ConstViewEngine(ptr::Ptr{T}) where {T}
+    return ConstViewEngine{T, typeof(ptr)}(ptr)
+end
+@inline function ConstViewEngine(ptr::LLVMPtr{T, AS}) where {T, AS}
+    return ConstViewEngine{T, typeof(ptr)}(ptr)
+end
+
+@inline function ConstViewEngine(A::AbstractArray)
+    p = LayoutPointers.memory_reference(A)[1]
+    return ConstViewEngine(p)
+end
+
+@inline function ConstViewEngine(A::ConstViewEngine)
+    return A
+end
+@inline function ConstViewEngine(A::ViewEngine)
+    return ConstViewEngine(pointer(A))
+end
+@inline function ConstViewEngine(A::ArrayEngine)
+    return ConstViewEngine(pointer(A))
+end
+
+@inline Base.pointer(A::ConstViewEngine) = getfield(A, :ptr)
+@inline function Base.unsafe_convert(p::Type{Ptr{T}}, A::ConstViewEngine{T}) where {T}
+    return Base.unsafe_convert(p, pointer(A))
+end
+@inline function Base.unsafe_convert(p::Type{LLVMPtr{T, AS}}, A::ConstViewEngine{T}) where {T, AS}
+    return Base.unsafe_convert(p, pointer(A))
+end
+
+@inline function Base.getindex(A::ConstViewEngine{T, <:LLVMPtr{T}}, i::Integer) where {T}
+    align = Base.datatype_alignment(T)
+    return unsafe_cached_load(pointer(A), i, Val(align))
+end
+@inline function Base.getindex(A::ConstViewEngine{T}, i::Integer) where {T}
+    return unsafe_load(pointer(A), i)
+end
+
+@inline ManualMemory.preserve_buffer(::ConstViewEngine) = nothing
+
+
+const Engine{T} = Union{ViewEngine{T}, ArrayEngine{T}, ConstViewEngine{T}}

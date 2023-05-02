@@ -17,7 +17,7 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     moye_smem = MoYeArray(smem, smemlayout)
 
     moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M)))
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_src = MoYe.Const(MoYeArray(pointer(src), Layout((M, N), (static(1), M))))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)

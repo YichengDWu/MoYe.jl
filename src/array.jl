@@ -123,18 +123,27 @@ end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
-@inline function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+@inline function Base.getindex(x::MoYeArray{T,N,<:Union{ViewEngine, ConstViewEngine}}, ids::Union{Integer, StaticInt, IntTuple}...) where {T,N}
     @boundscheck checkbounds(x, ids...) # should fail if ids is static or hierarchical
+    index = layout(x)(ids...)
+    return engine(x)[index]
+end
+@inline function Base.getindex(x::MoYeArray{T,N,<:ArrayEngine}, ids::Union{Integer, StaticInt, IntTuple}...) where {T,N}
+    @boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
 
-@inline function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+@inline function Base.setindex!(x::MoYeArray{T,N,<:Union{ViewEngine, ArrayEngine}}, val, ids::Union{Integer, StaticInt, IntTuple}...) where {T,N}
     @boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
+end
+
+@inline function Base.setindex!(x::MoYeArray{T,N,<:ConstViewEngine}, ids...) where {T,N}
+    throw(MethodError(setindex!, (x, ids...)))
 end
 
 function Adapt.adapt_structure(to, x::MoYeArray)
@@ -148,6 +157,15 @@ function Adapt.adapt_storage(::Type{MoYeArray{T, N, A}},
 end
 
 @inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(engine(A)), layout(A))
+
+"""
+    Const(x::MoYeArray)
+
+Return a MoYeArray that is read-only.
+"""
+function Const(x::MoYeArray)
+    return MoYeArray(ConstViewEngine(engine(x)), layout(x))
+end
 
 # Array operations
 # Currently don't support directly slicing, but we could make a view and then copy the view

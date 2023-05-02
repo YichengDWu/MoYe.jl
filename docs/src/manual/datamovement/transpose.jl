@@ -68,7 +68,7 @@ function transpose_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_src = MoYe.Const(MoYeArray(pointer(src), Layout((M, N), (static(1), M))))
     moye_dest = MoYeArray(pointer(dest), Layout((N, M), (static(1), N)))
 
     bM = size(blocklayout, 1)

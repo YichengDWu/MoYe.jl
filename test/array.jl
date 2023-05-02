@@ -21,6 +21,10 @@ end
     ca2 = MoYeArray(pointer(A), static((3, 1)), GenRowMajor)
     @test ca.engine isa ViewEngine
     @test ca2.engine isa ViewEngine
+
+    ca3 = MoYe.Const(ca)
+    @test_nowarn ca3[1]
+    @test_throws MethodError ca3[1] = 1.0f0
 end
 
 @testset "Array Operations" begin
