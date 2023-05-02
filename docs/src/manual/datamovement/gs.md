@@ -90,14 +90,14 @@ A few things to notice here:
 ```
 returns the set of elements that the thread corresponding to threadIdx().x is processing, which in this case is an array of length 4.
 
-3. Once we have completed all the tiling, we want to perform computations as if we were dealing with a regular array:
+3. Once we have completed all the tiling, we just perform computations as if we were dealing with a regular array:
 
 ```julia
 for i in eachindex(threadtile_smem)
     threadtile_smem[i] = threadtile_src[i]
 end
 ```
-Note that we don't need to consider any stride, as it is implicitly handled by the layout.
+Note that we don't need to worry about strides anymore, as it is implicitly handled by the layout.
 
 
 Additionally, you can use the cucopyto! function, which is similar to copyto!, but with two key differences: copying from global memory to shared memory automatically calls `cp.async` (Requires `sm_80` or higher), and automatic vectorization when possible.
