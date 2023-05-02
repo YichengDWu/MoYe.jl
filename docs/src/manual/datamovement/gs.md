@@ -99,7 +99,7 @@ end
 ```
 You need not concern yourself with index bookkeeping, it is implicitly handled by the layout; instead, concentrate on the computation aspect, as it is a fundamental objective of MoYe.jl.
 
-Additionally, you can use the cucopyto! function, which is similar to copyto!, but with two key differences: copying from global memory to shared memory automatically calls `cp.async` (Requires `sm_80` or higher), and automatic vectorization when possible.
+Additionally, you can use the [`cucopyto!`](@ref) function, which is similar to copyto!, but with two key differences: copying from global memory to shared memory automatically calls `cp.async` (Requires `sm_80` or higher), and automatic vectorization when possible.
 
 Here is how it would look like using `cucopyto!`.
 ```julia
