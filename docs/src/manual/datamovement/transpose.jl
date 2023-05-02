@@ -116,7 +116,7 @@ function bench_transpose(a, b)
     M = size(a, 1)
     N = size(a, 2)
     blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
-    smemlayout = @Layout (32, 32)  # 32 * 32 elements in shared memory
+    smemlayout = @Layout (32, 32)  (1, 33) # 32 * 32 elements in shared memory
     threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
 
     bM = size(blocklayout, 1)
