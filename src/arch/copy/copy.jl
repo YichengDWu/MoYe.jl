@@ -8,6 +8,8 @@ struct CPOP_UNIVERSAL{TS, TD} <: CPOP{Registers{TS, 1}, Registers{TD, 1}} end
 
 function (::CPOP_UNIVERSAL{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
     @inline
-    unsafe_store!(dest, unsafe_load(src))
-    return nothing
+    align_src = Base.datatype_alignment(TS)
+    align_dst = Base.datatype_alignment(TD)
+
+    return unsafe_store!(dest, unsafe_load(src, 1, Val(align_src)), 1, Val(align_dst))
 end
