@@ -4,7 +4,7 @@ function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
+    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M)))
     moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
 
     bM = size(blocklayout, 1)
@@ -68,14 +68,14 @@ function transpose_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M))) # bug: cannot use make_layout((M, N))
     moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(pointer(dest), Layout((N, M), (static(1), N)))
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
 
-    blocktile_dest = @tile moye_dest (bM, bN) (blockIdx().y, blockIdx().x)
     blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
+    blocktile_dest = @tile moye_dest (bN, bM) (blockIdx().y, blockIdx().x)
 
     threadtile_dest = @parallelize blocktile_dest threadlayout threadIdx().x
     threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
@@ -83,6 +83,7 @@ function transpose_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout
 
     cucopyto!(threadtile_smem, threadtile_src)
     cp_async_wait()
+    sync_threads()
 
     moye_smem′ = MoYeArray(smem, transpose(smemlayout))
     threadtile_smem′ = @parallelize moye_smem′ threadlayout threadIdx().x
@@ -94,11 +95,11 @@ end
 
 function test_transpose(M, N)
     a = CUDA.rand(Float32, M, N)
-    b = CUDA.rand(Float32, M, N)
+    b = CUDA.rand(Float32, N, M)
 
-    blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
-    smemlayout = @Layout (32, 32) (1, 33) # 32 * 32 elements in shared memory
-    threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
+    blocklayout = @Layout (32, 32)
+    smemlayout = @Layout (32, 32) (1, 33)
+    threadlayout = @Layout (32, 8)
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
