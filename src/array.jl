@@ -1,7 +1,7 @@
 """
-    MoYeArray(engine::DenseVector, layout::Layout)
+    MoYeArray(engine::Engine, layout::Layout)
     MoYeArray{T}(::UndefInitializer, layout::StaticLayout)
-    MoYeArray(ptr::Ptr{T}, layout::StaticLayout)
+    MoYeArray(ptr, layout::Layout)
 
 Create a MoYeArray from an engine and a layout. See also [`ArrayEngine`](@ref) and [`ViewEngine`](@ref).
 
@@ -10,38 +10,35 @@ Create a MoYeArray from an engine and a layout. See also [`ArrayEngine`](@ref) a
 ```julia
 julia> slayout = @Layout (5, 2);
 
-julia> array_engine = ArrayEngine{Float32}(one, cosize(slayout));
+julia> array_engine = ArrayEngine{Float32}(undef, cosize(slayout)); # owning array
 
 julia> MoYeArray(array_engine, slayout)
-5×2 MoYeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{StaticInt{5}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
- 1.0  1.0
- 1.0  1.0
- 1.0  1.0
- 1.0  1.0
- 1.0  1.0
+5×2 MoYeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}}:
+ -3.24118f12   0.0
+  7.57f-43     0.0
+  0.0          0.0
+  0.0          0.0
+  7.89217f-40  0.0
 
- julia> slayout = @Layout (5,3,2)
-(static(5), static(3), static(2)):(static(1), static(5), static(15))
-
-julia> MoYeArray{Float32}(undef, slayout) # uninitialized owning array
-5×2 MoYeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
- -9.73642f-16   8.09f-43
-  8.09f-43     -1.64739f13
-  3.47644f36    8.09f-43
-  4.5914f-41    0.0
- -9.15084f-21   0.0
+julia>  MoYeArray{Float32}(undef, slayout)
+5×2 MoYeArray{Float32, 2, ArrayEngine{Float32, 10}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}}:
+  4.0f-45    7.57f-43
+  0.0        0.0
+ -1.81623f7  0.0
+  7.57f-43   0.0
+ -1.81623f7  0.0
 
 julia> A = ones(10);
 
-julia> MoYeArray(pointer(A), slayout) # create a non-owning array
-5×2 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}} with indices static(1):static(5)×static(1):static(2):
+julia> MoYeArray(pointer(A), slayout) # non-owning array
+5×2 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, Layout{2, Tuple{Static.StaticInt{5}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{5}}}}:
  1.0  1.0
  1.0  1.0
  1.0  1.0
  1.0  1.0
  1.0  1.0
 
-julia> function test_alloc()  # when powered by a ArrayEngine, MoYeArray is stack-allocated
+julia> function test_alloc()          # when powered by a ArrayEngine, MoYeArray is stack-allocated
     slayout = @Layout (2, 3)          # and mutable
     x = MoYeArray{Float32}(undef, slayout)
     fill!(x, 1.0f0)
@@ -54,15 +51,11 @@ julia> @allocated(test_alloc())
 
 ```
 """
-struct MoYeArray{T, N, E <: DenseVector{T}, L <: Layout{N}} <: AbstractArray{T, N}
+struct MoYeArray{T, N, E <: Engine{T}, L <: Layout{N}} <: AbstractArray{T, N}
     engine::E
     layout::L
-    @inline function MoYeArray(engine::DenseVector{T}, layout::Layout{N}) where {T, N}
+    @inline function MoYeArray(engine::Engine{T}, layout::Layout{N}) where {T, N}
         return new{T, N, typeof(engine), typeof(layout)}(engine, layout)
-    end
-    @inline function MoYeArray(engine::DenseVector{T}, shape::GenIntTuple,
-                               args...) where {T}
-        return MoYeArray(engine, make_layout(shape, args...))
     end
 end
 
@@ -75,7 +68,7 @@ end
     return MoYeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
 @inline function MoYeArray(ptr::Ptr{T}, layout::Layout) where {T}
-    engine = ViewEngine(ptr, cosize(layout)) # this differs from the first constructor since we recompute the length
+    engine = ViewEngine(ptr)
     return MoYeArray(engine, layout)
 end
 @inline function MoYeArray(ptr::Ptr{T}, shape::GenIntTuple, args...) where {T <: Number}
@@ -83,7 +76,7 @@ end
     return MoYeArray(ptr, l)
 end
 @inline function MoYeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
-    engine = ViewEngine(ptr, cosize(layout))
+    engine = ViewEngine(ptr)
     return MoYeArray(engine, layout)
 end
 @inline function MoYeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
@@ -95,9 +88,9 @@ const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 engine(x::MoYeArray) = getfield(x, :engine)
 layout(x::MoYeArray) = getfield(x, :layout)
 
-@inline Base.size(x::MoYeArray) = tuple(Static.dynamic(map(capacity, shape(layout(x))))...)
-@inline Base.length(x::MoYeArray) = Static.dynamic(capacity(shape(layout(x)))) # note this the logical length, not the physical length in the Engine
-@inline Base.strides(x::MoYeArray) = stride(layout(x))
+@inline Base.size(x::MoYeArray) = tuple(dynamic(map(capacity, shape(layout(x))))...)
+@inline Base.length(x::MoYeArray) = x |> layout |> shape |> capacity |> dynamic
+@inline Base.strides(x::MoYeArray) = stride(layout(x)) # note is might be static
 @inline Base.stride(x::MoYeArray, i::IntType) = getindex(stride(layout(x)), i)
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
@@ -127,35 +120,19 @@ end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
-Base.@propagate_inbounds function Base.getindex(x::MoYeArray{T, N, <:ArrayEngine},
-                                                ids::Union{Integer, StaticInt, IntTuple}...) where {
-                                                                                                    T,
-                                                                                                    N
-                                                                                                    }
-    b = ManualMemory.preserve_buffer(x)
+@inline function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
     index = layout(x)(ids...)
+    @boundscheck checkbounds(x, index)
+    b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
-Base.@propagate_inbounds function Base.getindex(x::MoYeArray,
-                                                ids::Union{Integer, StaticInt, IntTuple}...)
-    return getindex(engine(x), layout(x)(ids...))
-end
 
-Base.@propagate_inbounds function Base.setindex!(x::MoYeArray{T, N, <:ArrayEngine}, val,
-                                                 ids::Union{Integer, StaticInt, IntTuple
-                                                            }...) where {T, N}
-    b = ManualMemory.preserve_buffer(x)
+@inline function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
     index = layout(x)(ids...)
+    @boundscheck checkbounds(x, index)
+    b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
 end
-Base.@propagate_inbounds function Base.setindex!(x::MoYeArray, val,
-                                                 ids::Union{Integer, StaticInt, IntTuple
-                                                            }...)
-    return setindex!(engine(x), val, layout(x)(ids...))
-end
-
-Base.elsize(x::MoYeArray) = Base.elsize(engine(x))
-Base.sizeof(x::MoYeArray) = Base.elsize(x) * length(engine(x)) # this is the physical size
 
 function Adapt.adapt_structure(to, x::MoYeArray)
     data = Adapt.adapt_structure(to, engine(x))
@@ -167,7 +144,7 @@ function Adapt.adapt_storage(::Type{MoYeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
-@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(pointer(A), layout(A))
+@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(engine(A)), layout(A))
 
 # Array operations
 # Currently don't support directly slicing, but we could make a view and then copy the view

@@ -17,7 +17,7 @@ if CUDA.functional()
         end
 
         op_to_intrinsic = Dict(MoYe.get_mma_ops())
-        for op in Base.subtypes(MMAOP)
+        for op in Main.subtypes(MMAOP)
             buf = IOBuffer()
             @device_code_llvm io = buf @cuda threads=32 kernel(op())
             asm = String(take!(copy(buf)))
