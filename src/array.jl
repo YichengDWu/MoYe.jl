@@ -121,15 +121,15 @@ end
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
 @inline function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+    #@boundscheck checkbounds(x, ids...) # should fail if ids is static or hierarchical
     index = layout(x)(ids...)
-    @boundscheck checkbounds(x, index)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
 
 @inline function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+    #@boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
-    @boundscheck checkbounds(x, index)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
 end
