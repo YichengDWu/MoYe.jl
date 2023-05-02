@@ -84,10 +84,13 @@ end
 end
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
+const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
 
 engine(x::MoYeArray) = getfield(x, :engine)
 layout(x::MoYeArray) = getfield(x, :layout)
 
+@inline Base.elsize(x::MoYeArray{T}) where {T} = sizeof(T)
+@inline Base.sizeof(x::MoYeArray) =  Base.elsize(x) * length(x)
 @inline Base.size(x::MoYeArray) = tuple(dynamic(map(capacity, shape(layout(x))))...)
 @inline Base.length(x::MoYeArray) = x |> layout |> shape |> capacity |> dynamic
 @inline Base.strides(x::MoYeArray) = stride(layout(x)) # note is might be static
@@ -121,15 +124,15 @@ end
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
 @inline function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...) # should fail if ids is static or hierarchical
     index = layout(x)(ids...)
-    @boundscheck checkbounds(x, index)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
 
 @inline function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
-    @boundscheck checkbounds(x, index)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
 end

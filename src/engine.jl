@@ -31,13 +31,20 @@ end
     return Base.unsafe_convert(p, pointer(A))
 end
 
+@inline function Base.getindex(A::ViewEngine{T, <:LLVMPtr{T}}, i::Integer) where {T}
+    align = Base.datatype_alignment(T)
+    return unsafe_load(pointer(A), i, Val(align))
+end
 @inline function Base.getindex(A::ViewEngine{T}, i::Integer) where {T}
     return unsafe_load(pointer(A), i)
 end
 
+@inline function Base.setindex!(A::ViewEngine{T, <:LLVMPtr{T}}, val, i::Integer) where {T}
+    align = Base.datatype_alignment(T)
+    return unsafe_store!(pointer(A), val, i, Val(align))
+end
 @inline function Base.setindex!(A::ViewEngine{T}, val, i::Integer) where {T}
-    unsafe_store!(pointer(A), val, i)
-    return val
+    return unsafe_store!(pointer(A), val, i)
 end
 
 @inline ManualMemory.preserve_buffer(::ViewEngine) = nothing
@@ -100,17 +107,17 @@ end
     return ManualMemory.preserve_buffer(getfield(A, :data))
 end
 
-@inline function Base.getindex(A::ArrayEngine, i::Union{Integer, StaticInt})
+@inline function Base.getindex(A::ArrayEngine, i::Integer)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] end
 end
 
-@inline function Base.setindex!(A::ArrayEngine, val,
-                                                 i::Union{Integer, StaticInt})
+@inline function Base.setindex!(A::ArrayEngine, val, i::Integer)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] = val end
 end
+
 
 const Engine{T} = Union{ViewEngine{T}, ArrayEngine{T}}

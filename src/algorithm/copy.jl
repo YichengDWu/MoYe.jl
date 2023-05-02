@@ -15,7 +15,7 @@ end
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
         src_v = recast(TV, src)
         dest_v = recast(TV, dest)
-        #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV))\n bytes")
+        #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
         copyifto!(dest_v, src_v, TrivialPred())
     else
         copyifto!(dest, src, TrivialPred())
