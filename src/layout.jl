@@ -63,6 +63,12 @@ function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticI
     return coord_to_index(get_hier_coord(l, index), l.shape)
 end
 
+"""
+    make_layout(shape, stride)
+
+Construct a layout with the given shape and stride. If the stride is not given, it is set to
+col-major compact stride.
+"""
 function make_layout(@nospecialize(shape::IntTuple), @nospecialize(stride::IntTuple))
     @inline
     return Layout(shape, stride)

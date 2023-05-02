@@ -161,6 +161,11 @@ end
     end
 end
 
+"""
+    zeros!(x::MoYeArray)
+
+Fill `x` with zeros.
+"""
 @inline zeros!(x::MoYeArray) = fill!(x, zero(eltype(x)))
 
 function max_common_vector(src::MoYeArray{TS}, dst::MoYeArray{TD}) where {TS, TD}
