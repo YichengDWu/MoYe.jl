@@ -143,7 +143,7 @@ end
     vb = ViewEngine(engine(x))
     GC.@preserve b begin
         @loopinfo unroll  for i in 1:length(b)
-            vb[i] = val
+            @inbounds vb[i] = val
         end
     end
     return x
@@ -155,7 +155,7 @@ end
     GC.@preserve b begin
         tmp = zero(T)
         @loopinfo unroll for i in 1:length(x)
-            tmp += vx[i]
+            @inbounds tmp += vx[i]
         end
         return tmp
     end
