@@ -45,7 +45,25 @@ end
 """
     ArrayEngine{T, L} <: DenseVector{T}
 
-A owning vector of type `T` with static length `L`.
+A owning and mutable vector of type `T` with static length `L`.
+
+## Examples
+
+```julia
+julia> x = ArrayEngine{Float32}(undef, static(3))
+3-element ArrayEngine{Float32, 3}:
+ -9.8271385f-36
+  7.57f-43
+ -9.8271385f-36
+
+julia> x[1] = 10f0
+10.0f0
+
+julia> x
+3-element ArrayEngine{Float32, 3}:
+ 10.0
+  7.57f-43
+ -9.8271385f-36
 """
 mutable struct ArrayEngine{T, L} <: DenseVector{T}
     data::NTuple{L, T}
