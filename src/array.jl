@@ -82,6 +82,9 @@ end
 @inline function MoYeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
+@inline function MoYeArray(x::CuDeviceArray)
+    return MoYeArray(pointer(x), make_layout(size(x)))
+end
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
@@ -204,7 +207,7 @@ julia> x3 = recast(Int64, x)
         if sizeof(OldType) < sizeof(NewType) # TODO: handle composed layout
             shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
             extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
-            offset = foldl((i,a)->i+min(a, Zero()), extent_diff; init=Zero())
+            offset = _foldl((i,a)->i+min(a, Zero()), extent_diff, Zero())
             return MoYeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
         else
             return MoYeArray(recast(NewType, pointer(x)), new_layout)

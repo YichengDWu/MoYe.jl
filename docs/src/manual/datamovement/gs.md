@@ -12,12 +12,12 @@ We start with a copy kernel.
 ```julia
 using MoYe, Test, CUDA
 
-function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
+function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M)))
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(dest)
+    moye_src = MoYeArray(src)
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
@@ -54,7 +54,7 @@ function test_copy_async(M, N)
     blocks = (cld(M, bM), cld(N, bN))
     threads = MoYe.dynamic(size(threadlayout))
 
-    @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
+    @cuda blocks=blocks threads=threads copy_kernel(a, b, smemlayout, blocklayout, threadlayout)
     CUDA.synchronize()
     @test a == b
 end
@@ -103,12 +103,12 @@ Additionally, you can use the [`cucopyto!`](@ref) function, which is similar to 
 
 Here is how it would look like using `cucopyto!`.
 ```julia
-function copy_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
+function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_dest = MoYeArray(pointer(dest), Layout((M, N), (static(1), M)))
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
+    moye_dest = MoYeArray(dest)
+    moye_src = MoYeArray(src)
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
@@ -140,12 +140,12 @@ Also note that our kernel will recompile for different static layout parameters.
 
 Now we turn to the transpose kernel.
 ```julia
-function transpose_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
+function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
     moye_smem = MoYeArray(smem, smemlayout)
 
-    moye_src = MoYeArray(pointer(src), Layout((M, N), (static(1), M)))
-    moye_dest = MoYeArray(pointer(dest), Layout((N, M), (static(1), N)))
+    moye_src = MoYeArray(src)
+    moye_dest = MoYeArray(dest)
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
@@ -183,7 +183,7 @@ function test_transpose(M, N)
     blocks = (cld(M, bM), cld(N, bN))
     threads = MoYe.dynamic(size(threadlayout))
 
-    @cuda blocks=blocks threads=threads transpose_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
+    @cuda blocks=blocks threads=threads transpose_kernel(a, b, smemlayout, blocklayout, threadlayout)
     CUDA.synchronize()
     @test a == transpose(b)
 end

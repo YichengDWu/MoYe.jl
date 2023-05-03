@@ -64,8 +64,8 @@ function shape_div(@nospecialize(a::IntType), @nospecialize(b::IntTuple))
     return shape_div(a, product(b))
 end
 function shape_div(@nospecialize(a::IntTuple), b::IntType)
-    result, _ = foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])),
-                                     shape_div(init[2], ai)), a; init=((), b))
+    result, _ = _foldl((init, ai) -> (append(init[1], shape_div(ai, init[2])),
+                                      shape_div(init[2], ai)), a, ((), b))
     return result
 end
 function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
