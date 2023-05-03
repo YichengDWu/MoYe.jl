@@ -125,13 +125,16 @@ const GenRowMajor = LayoutRight
 struct CompactLambda{Major} end
 
 function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
-    return foldl(CompactLambda{LayoutLeft}(), shape; init=((), current))
+    return _foldl(CompactLambda{LayoutLeft}(), shape, ((), current))
 end
 function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
-    return foldl(CompactLambda{LayoutRight}(), reverse(shape); init=((), current))
+    return _foldl(CompactLambda{LayoutRight}(), reverse(shape), ((), current))
+end
+function compact(shape::StaticInt{1}, current::IntType, ::Type{Major}) where {Major}
+    return (Zero(), current)
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
-    return ifelse(isone(shape), (Zero(), current), (current, current * shape))
+    return (current, current * shape)
 end
 
 function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}

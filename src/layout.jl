@@ -324,10 +324,10 @@ end
 
 function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{1})
     result_shape_0 = lhs_shape[1:(end - 1)]
-    result_shape_1, rest_shape = foldl((init, si) -> (append(init[1],
+    result_shape_1, rest_shape = _foldl((init, si) -> (append(init[1],
                                                                 min(abs(si), init[2])),
                                                         shape_div(init[2], abs(si))),
-                                        result_shape_0; init=((), rhs_shape))
+                                         result_shape_0, ((), rhs_shape))
     return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_1, lhs_stride,
                         rest_shape, last(lhs_stride))
 end
@@ -339,18 +339,18 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rh
     result_shape_0 = lhs_shape[1:(end - 1)]
     result_stride_0 = lhs_stride[1:(end - 1)]
 
-    result_shape_1, rest_stride = foldl((init, di) -> (append(init[1],
+    result_shape_1, rest_stride = _foldl((init, di) -> (append(init[1],
                                                                 shape_div(di, init[2])),
                                                         shape_div(init[2], di)),
-                                        result_shape_0; init=((), rhs_stride))
+                                         result_shape_0, ((), rhs_stride))
 
     result_stride_1 = elem_scale(result_stride_0,
                                     shape_div(result_shape_0, result_shape_1))
 
-    result_shape_2, rest_shape = foldl((init, si) -> (append(init[1],
+    result_shape_2, rest_shape = _foldl((init, si) -> (append(init[1],
                                                                 min(abs(si), init[2])),
                                                         shape_div(init[2], abs(si))),
-                                        result_shape_1; init=((), rhs_shape))
+                                         result_shape_1, ((), rhs_shape))
     return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_2, result_stride_1,
                         rest_shape, rest_stride * last(lhs_stride))
 end
@@ -433,7 +433,7 @@ function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R}, cosize_hi::I
                 append(init[4], curr_shape * curr_stride))
     end
 
-    result = foldl(f, ntuple(x -> x + 1, R - 2); init=result)
+    result = _foldl(f, ntuple(x -> x + 1, R - 2), result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
