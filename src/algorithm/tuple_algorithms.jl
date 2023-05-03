@@ -125,7 +125,7 @@ end
 
 # specialize on the operation
 @generated function _foldl(op::G, x::Tuple, init) where {G}
-    length(x.parameters) == 0 && return init
+    length(x.parameters) == 0 && return :init
     expr = :(op(init, x[1]))
     for i in 2:length(x.parameters)
         expr = :(op($expr, x[$i]))
