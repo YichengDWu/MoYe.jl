@@ -112,7 +112,7 @@ end
 @inline function local_tile(x::MoYeArray, tile::Tile, coord::Tuple)
     R1 = length(tile)
     R2 = rank(x)
-    return view(zipped_divide(x, tile), ntuple(i -> :, R1), append(coord, :, R2))
+    return view(zipped_divide(x, tile), ntuple(i -> :, R1), append(coord, :, StaticInt{R2}()))
 end
 @inline function local_tile(x::MoYeArray, tile::Tile, coord::Tuple, proj)
     return local_tile(x, dice(tile, proj), dice(coord, proj))

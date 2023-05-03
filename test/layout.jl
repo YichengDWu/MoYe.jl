@@ -323,7 +323,7 @@ end
         @test size(result) ≤ cosize(result)
         @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
 
-        if MoYe.Static.dynamic(MoYe.Static.is_static(stride(make_layout(l, result))))
+        if MoYe.dynamic(MoYe.is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
         end
     end

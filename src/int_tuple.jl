@@ -50,9 +50,9 @@ function inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
 end
 
 Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
-function Base.cld(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+function Base.cld(x::IntTuple, y::IntTuple)
     @assert rank(x) >= rank(y)
-    y = append(y, One(), rank(x))
+    y = append(y, One(), StaticInt{rank(x)}())
     return map(cld, x, y)
 end
 
@@ -239,7 +239,7 @@ function Base.iterate(x::ForwardCoordOneTo, state)
     return (new_state, new_state)
 end
 
-@generated make_tuple(::Type{StaticInt{N}}) where {N} = static(N)
+@generated make_tuple(::Type{StaticInt{N}}) where {N} = StaticInt{N}()
 @generated function make_tuple(::Type{S}) where {S<:StaticIntTuple}
     expr = Expr(:tuple)
     for p in S.parameters
