@@ -5,6 +5,18 @@ using MoYe, Test, JET
     @test_opt capacity(((2, 3, (1, 1)), 4))
 end
 
+@testset "Repeat like" begin
+    @test MoYe.repeat_like((2,3,4), 1) == (1,1,1)
+    @test MoYe.repeat_like(typeof((2,3,4)), 1) == (1,1,1)
+    @test_opt MoYe.repeat_like((2,3,4), 1)
+    @test_opt MoYe.repeat_like(typeof((2,3,4)), 1)
+
+    @test MoYe.repeat_like(((2,3), (4,5)), 1) == ((1,1), (1,1))
+    @test MoYe.repeat_like(typeof(((2,3), (4,5))), 1) == ((1,1), (1,1))
+    # @test_opt MoYe.repeat_like(((2,3), (4,5)), 1)  failed to optimize due to recursion
+    @test_opt MoYe.repeat_like(typeof(((2,3), (4,5))), 1)
+end
+
 @testset "Shape Division" begin
     @test MoYe.shape_div((12, 3), (2, 3)) == (6, 1)
     @test_opt MoYe.shape_div((12, 3), (2, 3))
