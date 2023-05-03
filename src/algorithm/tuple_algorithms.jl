@@ -56,8 +56,24 @@ end
 end
 
 @inline repeat_like(t, x) = x
-function repeat_like(@nospecialize(t::Tuple), x)
+function repeat_like(t::Tuple, x)
     return map(Base.Fix2(repeat_like, x), t)
+end
+
+@generated function repeat_like(::Type{T}, x) where {T<:Tuple}
+    expr = Expr(:tuple)
+    function repeat_inner(expr, T)
+        for i in T.parameters
+            if i <: IntType
+                push!(expr.args, :x)
+            elseif i <: Tuple
+                push!(expr.args, repeat_inner(Expr(:tuple), i))
+            end
+        end
+        return expr
+    end
+    repeat_inner(expr, T)
+    return expr
 end
 
 # Group the elements [B,E] of a T into a single element

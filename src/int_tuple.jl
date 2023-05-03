@@ -206,31 +206,30 @@ end
 
 # iterator
 
-struct ForwardCoordUnitRange{B, E} <: AbstractUnitRange{Int}
+struct ForwardCoordUnitRange{N, B, E} <: AbstractUnitRange{Int}
     start::B
     stop::E
 
-    function ForwardCoordUnitRange(start::IntTuple, stop::IntTuple)
-        return new{typeof(start), typeof(stop)}(start, stop)
+    function ForwardCoordUnitRange(start::IntTuple{N}, stop::IntTuple{N}) where {N}
+        return new{N, typeof(start), typeof(stop)}(start, stop)
     end
 end
 
-const ForwardCoordOneTo{T} = ForwardCoordUnitRange{T, T}
 function ForwardCoordOneTo(shape::IntTuple)
-    start = repeat_like(shape, 1)
+    start = repeat_like(typeof(shape), 1)
     return ForwardCoordUnitRange(start, shape)
 end
 
 Base.oneto(shape::IntTuple) = ForwardCoordOneTo(shape)
-Base.first(x::ForwardCoordOneTo) = getfield(x, :start)
-Base.last(x::ForwardCoordOneTo) = getfield(x, :stop)
-Base.length(x::ForwardCoordOneTo) = length(getfield(x, :stop))
+Base.first(x::ForwardCoordUnitRange) = getfield(x, :start)
+Base.last(x::ForwardCoordUnitRange) = getfield(x, :stop)
+Base.length(x::ForwardCoordUnitRange) = length(getfield(x, :stop))
 
-function Base.iterate(x::ForwardCoordOneTo)
+function Base.iterate(x::ForwardCoordUnitRange)
     start = getfield(x, :start)
     return (start, start)
 end
-function Base.iterate(x::ForwardCoordOneTo, state)
+function Base.iterate(x::ForwardCoordUnitRange, state)
     stop = getfield(x, :stop)
     if state == stop
         return nothing
@@ -248,7 +247,6 @@ end
     return expr
 end
 
-
 @inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
 @inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
 
@@ -259,7 +257,6 @@ function Base.getindex(x::StaticInt, i::Integer)
 end
 @inline Base.getindex(x::StaticInt, ::StaticInt{1}) = x
 @inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))
-
 
 # static findfirst, returns StaticInt, returns N+1 if not found, specialized on `f`
 function static_findfirst(f::G, t::IntSequence, I::IntSequence) where {G}
