@@ -82,6 +82,9 @@ end
 @inline function MoYeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
+@inline function MoYeArray(x::CuDeviceArray)
+    return MoYeArray(pointer(x), make_layout(size(x)))
+end
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
