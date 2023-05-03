@@ -21,8 +21,8 @@ end
 end
 
 @testset "Remove" begin
-    @test MoYe.remove((1, 2, 3), 2) === (1, 3)
-    @test_opt MoYe.remove((1, 2, 3), 2)
+    @test MoYe.remove((1, 2, 3), static(2)) === (1, 3)
+    @test_opt MoYe.remove((1, 2, 3), static(2))
 end
 
 @testset "Replace" begin
@@ -39,16 +39,16 @@ end
     @test MoYe.append((1, 2), 3) === (1, 2, 3)
     @test_opt MoYe.append((1, 2), 3)
 
-    @test MoYe.append((1, 2), 3, 4) === (1, 2, 3, 3)
-    @test_opt MoYe.append((1, 2), 3, 4)
+    @test MoYe.append((1, 2), 3, static(4)) === (1, 2, 3, 3)
+    @test_opt MoYe.append((1, 2), 3, static(4))
 end
 
 @testset "Prepend" begin
     @test MoYe.prepend((1, 2), 3) === (3, 1, 2)
     @test_opt MoYe.prepend((1, 2), 3)
 
-    @test MoYe.prepend((1, 2), 3, 4) === (3, 3, 1, 2)
-    @test_opt MoYe.prepend((1, 2), 3, 4)
+    @test MoYe.prepend((1, 2), 3, static(4)) === (3, 3, 1, 2)
+    @test_opt MoYe.prepend((1, 2), 3, static(4))
 end
 
 @testset "Exclusive scan" begin

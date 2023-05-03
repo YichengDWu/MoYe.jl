@@ -20,11 +20,16 @@ function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N - one(N)))..., x, getindex(t, N:length(t))...)
 end
 
-function remove(@nospecialize(t::Tuple), N::IntType)
-    if N > length(t)
-        return t
-    elseif N == length(t)
-        return Base.front(t)
+function remove(t::Tuple, ::StaticInt{N}) where {N}
+    M = length(t)
+    M < N && return t
+    M == N && return Base.front(t)
+    if @generated
+        f = ntuple(i-> :(x[$i]), N-1)
+        t = ntuple(i-> :(x[$(i+N)]), M-N)
+        quote
+            ($(f...), $(t...))
+        end
     else
         return (getindex(t, Base.OneTo(N - one(N)))...,
                 getindex(t, UnitRange(N + one(N), length(t)))...)
@@ -62,10 +67,18 @@ function group(@nospecialize(t::Tuple), b, e)
 end
 
 # append x to extend t to rank N
-function append(@nospecialize(t::Union{Tuple, IntType}), x, N::IntType)
-    return (t..., ntuple(_ -> x, N - length(t))...)
+@inline function append(t::Union{Tuple, IntType}, val, ::StaticInt{N}) where {N}
+    M = length(t)
+    M > N && throw(ArgumentError(LazyString("input tuple of length ", M, ", requested ", N)))
+    if @generated
+        quote
+            (t..., $(fill(:val, N - length(t.parameters))...))
+        end
+    else
+        (t..., ntuple(Returns(val), N-M)...)
+    end
 end
-function append(@nospecialize(t::Tuple), x)
+function append(t::Tuple, x)
     @inline
     return (t..., x)
 end
@@ -74,10 +87,18 @@ function append(t::IntType, x::IntType)
     return (t, x)
 end
 
-function prepend(@nospecialize(t::Union{Tuple, IntType}), x, I)
-    return (ntuple(_ -> x, I - length(t))..., t...)
+@inline function prepend(t::Union{Tuple, IntType}, val, ::StaticInt{N}) where {N}
+    M = length(t)
+    M > N && throw(ArgumentError(LazyString("input tuple of length ", M, ", requested ", N)))
+    if @generated
+        quote
+            ($(fill(:val, N - length(t.parameters))...), t...)
+        end
+    else
+        (ntuple(Returns(val), N-M)..., t...)
+    end
 end
-function prepend(@nospecialize(t::Tuple), x)
+function prepend(t::Tuple, x)
     @inline
     return (x, t...)
 end

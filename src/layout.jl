@@ -55,7 +55,7 @@ Get the flat congruent coordinate from the physical index `index`.
 """
 function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
     @inline
-    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(_ -> One(), Val(N)))
+    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(Returns(One()), Val(N)))
 end
 
 function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})
@@ -233,21 +233,21 @@ function dice(layout::Layout, coord)
     return make_layout(dice(shape(layout), coord), dice(stride(layout), coord))
 end
 
-function append(layout::Layout, x::Layout, N::IntType)
+function append(layout::Layout, x::Layout, N::StaticInt)
     return make_layout(append(shape(layout), shape(x), N),
                        append(stride(layout), stride(x), N))
 end
 
-function append(layout::Layout, N::IntType)
+function append(layout::Layout, N::StaticInt)
     return append(layout, make_layout(1, 0), N)
 end
 
-function prepend(layout::Layout, x::Layout, N::IntType)
+function prepend(layout::Layout, x::Layout, N::StaticInt)
     return make_layout(prepend(shape(layout), shape(x), N),
                        prepend(stride(layout), stride(x), N))
 end
 
-function prepend(layout::Layout, N::IntType)
+function prepend(layout::Layout, N::StaticInt)
     return prepend(layout, make_layout(1, 0), N)
 end
 
@@ -408,18 +408,24 @@ function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
     return bw_coalesce(Val(1), (stride,), (One(),), cld(cosize_hi, rest_stride),
                        rest_stride)
 end
-function _complement(shape, stride, cosize_hi)
-    R = length(shape)
-    @assert R == 1 || dynamic(is_static(stride)) "Dynamic stride musth have rank 1"
-
-    curr_stride, curr_idx = findmin(stride)
+function _complement(shape::Tuple{IntType}, stride::Tuple{IntType}, cosize_hi::IntType)
+    result_stride = tuple(One())
+    result_shape = stride
+    rest_stride = first(shape) * first(stride)
+    return bw_coalesce(Val(1), result_shape, result_stride, cld(cosize_hi, rest_stride),
+                       rest_stride)
+end
+function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R}, cosize_hi::IntType) where {R}
+    curr_stride = Static.reduce_tup(min, stride)   # we assume R > 1 here, R == 1 is handled above
+    curr_idx = static_findfirst(==(curr_stride), stride)
     curr_shape = shape[curr_idx]
 
     result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
               tuple(One(), curr_shape * curr_stride))
 
     function f(init, i)
-        curr_stride, curr_idx = findmin(init[2])
+        curr_stride = Static.reduce_tup(min, init[2])
+        curr_idx = static_findfirst(==(curr_stride), init[2])
         curr_shape = init[1][curr_idx]
 
         return (remove(init[1], curr_idx), remove(init[2], curr_idx),
@@ -620,8 +626,8 @@ julia> print_layout(blocked_product(tile, matrix_of_tiles))
 function blocked_product(block::Layout{N}, layout::Layout{M},
                          coalesce_result::Bool=false) where {N, M}
     R = max(N, M)
-    padded_block = append(block, R)
-    padded_layout = append(layout, R)
+    padded_block = append(block, StaticInt{R}())
+    padded_layout = append(layout, StaticInt{R}())
     result = logical_product(padded_block, padded_layout)
     @inbounds result = _transpose(result[1], result[2])
     coalesce_result && return coalesce(result, repeat(One(), R))
@@ -659,8 +665,8 @@ julia> print_layout(raked_product(tile, matrix_of_tiles))
 function raked_product(block::Layout{N}, layout::Layout{M},
                        coalesce_result::Bool=false) where {N, M}
     R = max(N, M)
-    padded_block = append(block, R)
-    padded_layout = append(layout, R)
+    padded_block = append(block, StaticInt{R}())
+    padded_layout = append(layout, StaticInt{R}())
     result = logical_product(padded_block, padded_layout)
     @inbounds result = _transpose(result[2], result[1])
     coalesce_result && return coalesce(result, repeat(One(), R))
@@ -674,7 +680,7 @@ end
     if R * M == N
         return :(static($R))
     end
-    throw(DimensionMismatch("Cannot divide $N by $M"))
+    throw(DimensionMismatch(LazyString("Cannot divide", N, "by", M)))
 end
 
 @inline safe_div(x::IntType, y::IntType) = div(x, y)

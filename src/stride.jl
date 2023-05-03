@@ -23,7 +23,7 @@ end
 @inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
 @inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
-@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(_ -> Zero(), Val(N))
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(Returns(Zero()), Val(N))
 @inline _offset(x::NTuple{N, Int}) where {N} = ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
 @inline _offset(x::Tuple) = map(_offset, x)
 

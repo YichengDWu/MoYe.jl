@@ -6,6 +6,7 @@ using Test, SafeTestsets
 @safetestset "Layout" begin include("layout.jl") end
 @safetestset "Static" begin include("static.jl") end
 @safetestset "Engine" begin include("engine.jl") end
+
 @testset "MoYeArray" begin
     @safetestset "MoYeArray" begin include("array.jl") end
     @safetestset "Broadcast" begin include("broadcast.jl") end
@@ -16,4 +17,8 @@ end
     @safetestset "MMA" begin include("device/mmaop.jl") end
     @safetestset "MMATraits" begin include("device/mmatraits.jl") end
     @safetestset "Pointer" begin include("device/pointer.jl") end
+end
+
+@testset "Examples" begin
+    @safetestset "Copy Async" begin include("examples/copy_async.jl") end
 end

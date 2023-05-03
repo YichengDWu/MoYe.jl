@@ -43,26 +43,10 @@ function test_copy_async(M, N)
     @test a == b
 end
 
-test_copy_async(2048, 2048)
-
-function bench_copy(a,b)
-    M = size(a, 1)
-    N = size(a, 2)
-    blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
-    smemlayout = @Layout (32, 32) (1, 33) # 32 * 32 elements in shared memory
-    threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
-
-    bM = size(blocklayout, 1)
-    bN = size(blocklayout, 2)
-
-    blocks = (cld(M, bM), cld(N, bN))
-    threads = MoYe.dynamic(size(threadlayout))
-
-    CUDA.@sync @cuda blocks=blocks threads=threads copy_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
+if CUDA.functional()
+    test_copy_async(2048, 2048)
 end
 
-
-using MoYe, Test, CUDA
 
 function transpose_kernel(M, N, dest, src, smemlayout, blocklayout, threadlayout)
     smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
@@ -112,19 +96,6 @@ function test_transpose(M, N)
     @test a == transpose(b)
 end
 
-
-function bench_transpose(a, b)
-    M = size(a, 1)
-    N = size(a, 2)
-    blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
-    smemlayout = @Layout (32, 32)  (1, 33) # 32 * 32 elements in shared memory
-    threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
-
-    bM = size(blocklayout, 1)
-    bN = size(blocklayout, 2)
-
-    blocks = (cld(M, bM), cld(N, bN))
-    threads = MoYe.dynamic(size(threadlayout))
-
-    CUDA.@sync @cuda blocks=blocks threads=threads transpose_kernel(M, N, a, b, smemlayout, blocklayout, threadlayout)
+if CUDA.functional()
+    test_transpose(2048, 2048)
 end
