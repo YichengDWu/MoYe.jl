@@ -55,7 +55,7 @@ Get the flat congruent coordinate from the physical index `index`.
 """
 function get_congr_coord(l::Layout{N}, @nospecialize index::Union{Integer, StaticInt}) where {N}
     @inline
-    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(_ -> One(), Val(N)))
+    return coord_to_coord(get_hier_coord(l, index), l.shape, ntuple(Returns(One()), Val(N)))
 end
 
 function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticInt})

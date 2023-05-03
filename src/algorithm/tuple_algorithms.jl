@@ -75,7 +75,7 @@ end
             (t..., $(fill(:val, N - length(t.parameters))...))
         end
     else
-        (t..., ntuple(_ -> val, N-M)...)
+        (t..., ntuple(Returns(val), N-M)...)
     end
 end
 function append(t::Tuple, x)
@@ -95,7 +95,7 @@ end
             ($(fill(:val, N - length(t.parameters))...), t...)
         end
     else
-        (ntuple(_ -> val, N-M)..., t...)
+        (ntuple(Returns(val), N-M)..., t...)
     end
 end
 function prepend(t::Tuple, x)
