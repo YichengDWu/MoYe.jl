@@ -84,7 +84,7 @@ function elem_scale(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
 end
 
 function iscongruent(x, y)
-    return repeat_like(x, 0) === repeat_like(y, 0)
+    return repeat_like(typeof(x), 0) === repeat_like(typeof(y), 0)
 end
 
 # Any coordinate into A can also be used as a coordinate into B
@@ -201,7 +201,7 @@ function increment(coord, shape)
     if c != s
         return (increment(c, s), Base.tail(coord)...)
     end
-    return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
+    return (repeat_like(typeof(s), 1), increment(Base.tail(coord), Base.tail(shape))...)
 end
 
 # iterator
