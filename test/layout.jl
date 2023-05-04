@@ -27,6 +27,7 @@ end
     @test_opt MoYe.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
 
     function test_coalesce(layout)
+        @test_opt coalesce(layout)
         coalesce_layout = coalesce(layout)
         @test depth(coalesce_layout) <= One()
         @test size(coalesce_layout) == size(layout)
@@ -127,6 +128,7 @@ end
     @test_opt make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 
     function test_composition(A,B)
+        @test_opt A ∘ B
         C = A ∘ B
         @test MoYe.iscompatible(B,C)
         for i in static(1):size(C)
@@ -309,6 +311,7 @@ end
     @test_opt complement(@Layout(6, 4), static(24))
 
     function test_complement(l, cosize_hi)
+        @test_opt  complement(l, cosize_hi)
         result = complement(l, cosize_hi)
         @test size(result) ≥ cosize_hi ÷ size(filter(l))
         @test cosize(result) ≤ cld(cosize_hi, cosize(l)) * cosize(l)
@@ -408,6 +411,7 @@ end
         @test_opt logical_product(static(tile), static(matrix_of_tiles)) # note that `complement` requires a static layout to avoid dynamic dispatch
 
         function test_logical_product(A,B)
+            @test_opt logical_product(A,B)
             C = logical_product(A,B)
             @test rank(C) == 2
             @test MoYe.iscompatible(A, first(C))
@@ -497,6 +501,7 @@ end
         @test_call logical_divide(raked_prod, subtile)
 
         function test_logical_divide(A, B)
+            @test_opt logical_divide(A,B)
             C = logical_divide(A,B)
             @test rank(C) == 2
             @test MoYe.iscompatible(B, first(C))
