@@ -1,6 +1,4 @@
-abstract type CPOP{SRegisters, DRegisters} end
-
-@inline apply(copy_op::CPOP, dest::LLVMPtr, src::LLVMPtr) = copy_op(dest, src)
+abstract type CPOP{SRegisters, DRegisters} <: PTXOperatrion end
 
 struct CPOP_UNIVERSAL{TS, TD} <: CPOP{Registers{TS, 1}, Registers{TD, 1}} end
 
