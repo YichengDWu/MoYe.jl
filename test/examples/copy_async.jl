@@ -49,8 +49,7 @@ end
 
 
 function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    moye_smem = MoYeArray(smem, smemlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout)
 
     moye_src = MoYeArray(src)
     moye_dest = MoYeArray(dest)
@@ -69,7 +68,7 @@ function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     cp_async_wait()
     sync_threads()
 
-    moye_smem′ = MoYeArray(smem, transpose(smemlayout))
+    moye_smem′ = MoYe.transpose(moye_smem)
     threadtile_smem′ = @parallelize moye_smem′ threadlayout threadIdx().x
 
     cucopyto!(threadtile_dest, threadtile_smem′)

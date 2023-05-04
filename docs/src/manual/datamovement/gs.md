@@ -13,8 +13,7 @@ We start with a copy kernel.
 using MoYe, Test, CUDA
 
 function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    moye_smem = MoYeArray(smem, smemlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
 
     moye_dest = MoYeArray(dest)
     moye_src = MoYeArray(src)
@@ -58,14 +57,14 @@ function test_copy_async(M, N)
     @test a == b
 end
 
- test_copy_async(2048, 2048)
+test_copy_async(2048, 2048)
 ```
 ## Code Explanation
 
 The device function follows these steps:
 
-1. Allocate shared memory using `MoYe.SharedMemory`.
-2. Wrap the shared memory with [`MoYeArray`](@ref) with a static layout and destination, and source arrays with dynamic layouts.
+1. Allocate shared memory using `MoYeSharedArray` with a static layout.
+2. Wrap the destination and source arrays with dynamic layouts.
 3. Get the size of each block in the grid (bM and bN).
 4. Create local tiles for the destination and source arrays using [`@tile`](@ref).
 5. Partition the local tiles into thread tiles using [`@parallelize`](@ref).
@@ -103,8 +102,7 @@ Additionally, you can use the [`cucopyto!`](@ref) function, which is similar to 
 Here is how it would look like using `cucopyto!`.
 ```julia
 function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    moye_smem = MoYeArray(smem, smemlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
 
     moye_dest = MoYeArray(dest)
     moye_src = MoYeArray(src)
@@ -140,8 +138,7 @@ Also note that our kernel will recompile for different static layout parameters.
 Now we turn to the transpose kernel.
 ```julia
 function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
-    smem = MoYe.SharedMemory(eltype(dest), cosize(smemlayout))
-    moye_smem = MoYeArray(smem, smemlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
 
     moye_src = MoYeArray(src)
     moye_dest = MoYeArray(dest)
@@ -160,7 +157,7 @@ function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     cp_async_wait()
     sync_threads()
 
-    moye_smem′ = MoYeArray(smem, transpose(smemlayout))
+    moye_smem′ = MoYe.transpose(moye_smem)
     threadtile_smem′ = @parallelize moye_smem′ threadlayout threadIdx().x
 
     cucopyto!(threadtile_dest, threadtile_smem′)
@@ -192,6 +189,6 @@ test_transpose(2048, 2048)
 
 It is almost identical to the copy kernel， but we would need to transpose the shared memory by simply transposing its layout
 ```julia
-moye_smem′ = MoYeArray(smem, transpose(smemlayout))
+    moye_smem′ = MoYe.transpose(moye_smem)
 ```
 and then compute the new thread tiles. Note that each thread would work on different elements now so we need to call `sync_threads()`.
