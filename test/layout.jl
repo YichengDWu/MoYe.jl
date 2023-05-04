@@ -607,7 +607,7 @@ end
         test_right_inverse(@Layout((8,4), (4,1)))
         test_right_inverse(@Layout((2,4,6)))
         test_right_inverse(@Layout((2,4,6), (4,1,8)))
-        # test_right_inverse(@Layout((2,4,4,6), (4,1,0,8))) failed to optimize due to recursion
+        test_right_inverse(@Layout((2,4,4,6), (4,1,0,8)))
         test_right_inverse(@Layout((4,2), (1,16)))
         test_right_inverse(@Layout((4,2), (1,5)))
     end

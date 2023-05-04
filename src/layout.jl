@@ -455,10 +455,10 @@ function complement(l::Layout)
 end
 
 # need this specialization to avoid type instability
-function inverse_seq(shape, stride, I::StaticInt)
+Base.@assume_effects :total function inverse_seq(shape, stride, I::StaticInt)
     length(shape) < I && return ()
     @inbounds next_stride = stride[I] * shape[I]
-    if Static.known(is_static(next_stride))
+    if isa(next_stride, StaticInt)
         next_idx = static_findfirst(==(next_stride), stride)
         return inverse_seq(shape, stride, next_idx, I)
     else
@@ -468,7 +468,7 @@ end
 function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt, Is::Vararg{StaticInt, N}) where {N}
     length(shape) < I && return (I′, Is...)
     @inbounds next_stride = stride[I] * shape[I]
-    if dynamic(is_static(next_stride))
+    if isa(next_stride, StaticInt)
         next_idx = static_findfirst(==(next_stride), stride)
         return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
     else
