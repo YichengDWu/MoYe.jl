@@ -24,7 +24,7 @@ include("algorithm/array_algorithms.jl")
 include("algorithm/blas.jl")
 
 include("pointer.jl")
-include("device/memory.jl")
+include("device/smem.jl")
 
 include("arch/mma.jl")
 include("arch/copy/copy.jl")
@@ -53,6 +53,7 @@ export print_layout
 
 # MoYeArray
 export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
+export MoYeSharedArray
 
 # pointer
 export isgmem, issmem, isrmem

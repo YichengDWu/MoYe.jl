@@ -173,6 +173,9 @@ end
     return MoYeArray{T}(undef, layout(x))
 end
 
+function transpose(x::MoYeArray)
+    return MoYeArray(pointer(x), transpose(x.layout))
+end
 
 """
     recast(::Type{NewType}, x::MoYeArray{OldType}) -> MoYeArray{NewType}

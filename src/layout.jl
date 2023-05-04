@@ -517,7 +517,7 @@ function _transpose(layoutA::Layout, layoutB::Layout)
                        _transpose(stride(layoutA), stride(layoutB)))
 end
 
-@inline function Base.transpose(l::Layout{2})
+@inline function transpose(l::Layout{2})
     return make_layout(l[2], l[1])
 end
 
