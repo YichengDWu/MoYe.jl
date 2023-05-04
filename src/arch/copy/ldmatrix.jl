@@ -46,7 +46,6 @@ Registers{UInt32, 4}
 function load end
 
 @inline load(op::LdMatrix, src_addr::LLVMPtr) = op(src_addr)
-@inline apply(op::LdMatrix, src_addr::LLVMPtr) = op(src_addr)
 
 function get_ld_type(d_sz, layout)
     signature = layout == "" ? "N" : "T"
