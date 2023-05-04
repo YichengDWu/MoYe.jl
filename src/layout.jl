@@ -4,7 +4,7 @@ struct Layout{N, Shape, Stride}
 
     # shape and stride must be congruent
     function Layout(shape::IntTuple{N}, stride::IntTuple{N}) where {N}
-        return new{rank(shape), typeof(shape), typeof(stride)}(shape, stride)
+        return new{N, typeof(shape), typeof(stride)}(shape, stride)
     end
     function Layout(shape::IntType, stride::IntType)
         return new{1, typeof(shape), typeof(stride)}(shape, stride)
@@ -69,7 +69,7 @@ end
 Construct a layout with the given shape and stride. If the stride is not given, it is set to
 col-major compact stride.
 """
-function make_layout(@nospecialize(shape::IntTuple), @nospecialize(stride::IntTuple))
+function make_layout(shape::IntTuple, stride::IntTuple)
     @inline
     return Layout(shape, stride)
 end
@@ -248,7 +248,7 @@ function prepend(layout::Layout, x::Layout, N::StaticInt)
 end
 
 function prepend(layout::Layout, N::StaticInt)
-    return prepend(layout, make_layout(1, 0), N)
+    return prepend(layout, @Layout(1, 0), N)
 end
 
 function replace(layout::Layout, x::Layout, N::IntType)
@@ -267,23 +267,23 @@ function transform_layout(f::G, t1, t2) where {G}
     return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
 end
 
-function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
+function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
     return Layout(one(new_shape), zero(new_shape))
 end
-function bw_coalesce(::Val{0}, old_shape, old_stride, new_shape, new_stride)
+function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape, new_stride)
     return Layout(new_shape, new_stride)
 end
-function bw_coalesce(::Val{I}, old_shape, old_stride, new_shape, new_stride) where {I}
-    if old_shape[I] === One()
-        return bw_coalesce(Val(I - 1), old_shape, old_stride, new_shape, new_stride)
-    elseif new_shape === One()
-        return bw_coalesce(Val(I - 1), old_shape, old_stride, old_shape[I], old_stride[I])
-    elseif old_shape[I] * old_stride[I] === new_stride[1]
-        return bw_coalesce(Val(I - 1), old_shape, old_stride,
+Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_stride, new_shape, new_stride)
+    if isa(old_shape[I], StaticInt) && old_shape[I] == One()
+        return bw_coalesce(I-One(), old_shape, old_stride, new_shape, new_stride)
+    elseif isa(new_shape, StaticInt) && new_shape == One()
+        return bw_coalesce(I-One(), old_shape, old_stride, old_shape[I], old_stride[I])
+    elseif old_shape[I] * old_stride[I] == new_stride[1]
+        return bw_coalesce(I-One(), old_shape, old_stride,
                            replace_front(new_shape, old_shape[I] * new_shape[1]),
                            replace_front(new_stride, old_stride[I]))
     else
-        return bw_coalesce(Val(I - 1), old_shape, old_stride,
+        return bw_coalesce(I-One(), old_shape, old_stride,
                            prepend(new_shape, old_shape[I]),
                            prepend(new_stride, old_stride[I]))
     end
@@ -292,7 +292,7 @@ end
 function Base.coalesce(layout::Layout)
     flat_shape = flatten(shape(layout))
     flat_stride = flatten(stride(layout))
-    return bw_coalesce(Val(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
+    return bw_coalesce(static(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
                        last(flat_stride))
 end
 function Base.coalesce(layout::Layout, @nospecialize trg_profile::IntTuple) # respect the target profile
@@ -323,12 +323,12 @@ function composition(lhs_shape::IntType, lhs_stride::IntType, rhs_shape::IntType
 end
 
 function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::StaticInt{1})
-    result_shape_0 = lhs_shape[1:(end - 1)]
+    result_shape_0 = Base.front(lhs_shape)
     result_shape_1, rest_shape = _foldl((init, si) -> (append(init[1],
                                                                 min(abs(si), init[2])),
                                                         shape_div(init[2], abs(si))),
                                          result_shape_0, ((), rhs_shape))
-    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_1, lhs_stride,
+    return bw_coalesce(static(rank(lhs_shape) - 1), result_shape_1, lhs_stride,
                         rest_shape, last(lhs_stride))
 end
 
@@ -336,8 +336,8 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rh
     return Layout(rhs_shape, rhs_stride)
 end
 function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rhs_stride::IntType)
-    result_shape_0 = lhs_shape[1:(end - 1)]
-    result_stride_0 = lhs_stride[1:(end - 1)]
+    result_shape_0 = Base.front(lhs_shape)
+    result_stride_0 = Base.front(lhs_stride)
 
     result_shape_1, rest_stride = _foldl((init, di) -> (append(init[1],
                                                                 shape_div(di, init[2])),
@@ -351,15 +351,17 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType, rh
                                                                 min(abs(si), init[2])),
                                                         shape_div(init[2], abs(si))),
                                          result_shape_1, ((), rhs_shape))
-    return bw_coalesce(Val(rank(lhs_shape) - 1), result_shape_2, result_stride_1,
+    return bw_coalesce(static(rank(lhs_shape) - 1), result_shape_2, result_stride_1,
                         rest_shape, rest_stride * last(lhs_stride))
 end
 
 # distributivity with concatenation
-function composition(lhs_shape, lhs_stride, rhs_shape::IntTuple{N}, rhs_stride::IntTuple{N}) where {N}
+Base.@assume_effects :total function composition(lhs_shape, lhs_stride,
+                                                 rhs_shape::IntTuple{N},
+                                                 rhs_stride::IntTuple{N}) where {N}
     return let lhs_shape = lhs_shape, lhs_stride = lhs_stride
-        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape, rhs_stride)...) # Note: there is a closure
-    end                                                                             # we assume rank(lhs) == rank(rhs)
+        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape, rhs_stride)...)
+    end                                               # we assume rank(lhs) == rank(rhs)
 end
 
 function composition(lhs::Layout, rhs::Layout)
@@ -405,14 +407,14 @@ end
 function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
     #stride == 0 && return make_layout(cosize_hi)
     rest_stride = shape * stride
-    return bw_coalesce(Val(1), (stride,), (One(),), cld(cosize_hi, rest_stride),
+    return bw_coalesce(One(), (stride,), (One(),), cld(cosize_hi, rest_stride),
                        rest_stride)
 end
 function _complement(shape::Tuple{IntType}, stride::Tuple{IntType}, cosize_hi::IntType)
     result_stride = tuple(One())
     result_shape = stride
     rest_stride = first(shape) * first(stride)
-    return bw_coalesce(Val(1), result_shape, result_stride, cld(cosize_hi, rest_stride),
+    return bw_coalesce(One(), result_shape, result_stride, cld(cosize_hi, rest_stride),
                        rest_stride)
 end
 function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R}, cosize_hi::IntType) where {R}
@@ -420,25 +422,25 @@ function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R}, cosize_hi::I
     curr_idx = static_findfirst(==(curr_stride), stride)
     curr_shape = shape[curr_idx]
 
-    result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
-              tuple(One(), curr_shape * curr_stride))
+    _result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
+               tuple(One(), curr_shape * curr_stride))
 
     function f(init, i)
-        curr_stride = Static.reduce_tup(min, init[2])
-        curr_idx = static_findfirst(==(curr_stride), init[2])
-        curr_shape = init[1][curr_idx]
+        _curr_stride = Static.reduce_tup(min, init[2])
+        _curr_idx = static_findfirst(==(_curr_stride), init[2])
+        _curr_shape = init[1][_curr_idx]
 
-        return (remove(init[1], curr_idx), remove(init[2], curr_idx),
-                append(init[3], curr_stride ÷ init[4][i]),
-                append(init[4], curr_shape * curr_stride))
+        return (remove(init[1], _curr_idx), remove(init[2], _curr_idx),
+                append(init[3], _curr_stride ÷ init[4][i]),
+                append(init[4], _curr_shape * _curr_stride))
     end
 
-    result = _foldl(f, ntuple(x -> x + 1, R - 2), result)
+    result = _foldl(f, ntuple(x -> x + 1, Val(R - 2)), _result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
     rest_stride = result[1][1] * result[2][1]
-    return bw_coalesce(Val(R), result_shape, result_stride, cld(cosize_hi, rest_stride),
+    return bw_coalesce(StaticInt{R}(), result_shape, result_stride, cld(cosize_hi, rest_stride),
                        rest_stride)
 end
 
@@ -453,10 +455,10 @@ function complement(l::Layout)
 end
 
 # need this specialization to avoid type instability
-function inverse_seq(shape, stride, I::StaticInt)
+Base.@assume_effects :total function inverse_seq(shape, stride, I::StaticInt)
     length(shape) < I && return ()
     @inbounds next_stride = stride[I] * shape[I]
-    if Static.known(is_static(next_stride))
+    if isa(next_stride, StaticInt)
         next_idx = static_findfirst(==(next_stride), stride)
         return inverse_seq(shape, stride, next_idx, I)
     else
@@ -466,7 +468,7 @@ end
 function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt, Is::Vararg{StaticInt, N}) where {N}
     length(shape) < I && return (I′, Is...)
     @inbounds next_stride = stride[I] * shape[I]
-    if dynamic(is_static(next_stride))
+    if isa(next_stride, StaticInt)
         next_idx = static_findfirst(==(next_stride), stride)
         return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
     else

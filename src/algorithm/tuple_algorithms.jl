@@ -20,19 +20,15 @@ function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N - one(N)))..., x, getindex(t, N:length(t))...)
 end
 
-function remove(t::Tuple, ::StaticInt{N}) where {N}
-    M = length(t)
-    M < N && return t
-    M == N && return Base.front(t)
-    if @generated
-        f = ntuple(i-> :(x[$i]), N-1)
-        t = ntuple(i-> :(x[$(i+N)]), M-N)
-        quote
-            ($(f...), $(t...))
-        end
-    else
-        return (getindex(t, Base.OneTo(N - one(N)))...,
-                getindex(t, UnitRange(N + one(N), length(t)))...)
+@generated function remove(x::Tuple, ::StaticInt{N}) where {N}
+    M = length(x.parameters)
+    M < N && return :x
+    M == N && return :(Base.front(x))
+
+    f = ntuple(i-> :(x[$i]), N-1)
+    t = ntuple(i-> :(x[$(i+N)]), M-N)
+    return quote
+        ($(f...), $(t...))
     end
 end
 
