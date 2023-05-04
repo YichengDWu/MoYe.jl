@@ -31,8 +31,11 @@ include("arch/copy/copy.jl")
 include("arch/copy/copy_async.jl")
 include("arch/copy/ldmatrix.jl")
 
-include("atom/mma_traits.jl")
-include("atom/copy/copy_traits.jl")
+include("traits/mma.jl")
+include("traits/copy.jl")
+include("traits/cp_async.jl")
+include("traits/ldmatrix.jl")
+
 
 include("algorithm/copy.jl")
 

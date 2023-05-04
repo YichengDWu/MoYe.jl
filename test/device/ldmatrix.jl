@@ -1,18 +1,22 @@
 
-using Test, CuTe, CUDA
-using CUDA: i32
+using Test, MoYe, CUDA
 
-if CUDA.functional()
+if CUDA.functional() && MoYe.LLVM.version().major>=15
+    @testset "Compile to LLVM" begin
+        function kernel(op)
+            A = CuStaticSharedArray(UInt16, (64,))
+            a_frag = load(op, pointer(A))
+            @cushow Float32(sum(a_frag))
+            return nothing
+        end
 
-    function kernel(op)
-        A = CuStaticSharedArray(UInt16, (64,))
-        a_frag = load(pointer(A) + (threadIdx().x - 1i32) << 4, op)
-        @cushow Float32(sum(a_frag))
-        return nothing
+        op_to_intrinsic = Dict(MoYe.get_ldmatrix_ops())
+        for op in Main.subtypes(LdMatrix)
+            buf = IOBuffer()
+            @device_code_llvm io = buf @cuda threads=1 kernel(op())
+            asm = String(take!(copy(buf)))
+
+            @test occursin(op_to_intrinsic["$op"], asm)
+        end
     end
-
-    buf = IOBuffer()
-    @device_code_ptx io = buf @cuda threads=32 kernel(LDSM_U32x2_N())
-    asm = String(take!(copy(buf)))
-
 end
