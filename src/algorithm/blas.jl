@@ -7,3 +7,10 @@
         end
     end
 end
+
+gemm!(A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(C,A,B,C)
+#gemm!(mma::MMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
+
+function gemm!(D::MoYeArray,
+
+end
