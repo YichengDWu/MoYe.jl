@@ -32,7 +32,6 @@ function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     for i in eachindex(threadtile_smem)
         threadtile_smem[i] = threadtile_src[i]
     end
-    sync_threads()
     
     for i in eachindex(threadtile_dest)
         threadtile_dest[i] = threadtile_smem[i]
