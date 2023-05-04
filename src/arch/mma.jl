@@ -1,9 +1,13 @@
-abstract type MMAOP{DRegisters, ARegisters, BRegisters, CRegisters} end
+abstract type PTXOperatrion end
+
+@inline apply(op::PTXOperatrion, args...) = op(args...)
+
+abstract type MMAOP{DRegisters, ARegisters, BRegisters, CRegisters} <: PTXOperatrion end
 export MMAOP
 
 @inline Adapt.adapt(to, x::MMAOP) = x
 
-@inline apply(mmaop::MMAOP, a, b, c) = mmaop(a, b, c)
+@inline fma(mmaop::MMAOP, a, b, c) = mmaop(a, b, c)
 
 """
   Registers{T,S}
@@ -36,8 +40,17 @@ function Base.propertynames(::MMAOP)
     return (:DRegisters, :ARegisters, :BRegisters, :CRegisters)
 end
 
+struct UniversalFMA{D,A,B,C} <: MMAOP{Registers{D, 1}, Registers{A, 1},
+    Registers{B, 1}, Registers{C, 1}}
+end
+
+UniversalFMA{D}() where {D} = UniversalFMA{D, D, D, D}()
+UniversalFMA{D,A}() where {D,A} = UniversalFMA{D, A, A, D}()
+
+@inline (::UniversalFMA)(a,b,c) = CUDA.fma(a,b,c)
+
 """
-    (::MMAOP)(A, B, C)
+    fma(::MMAOP, A, B, C)
 
 Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
 ```julia
