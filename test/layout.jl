@@ -24,7 +24,7 @@ end
 @testset "Coalesce" begin
     @test coalesce(@Layout((2, (1, 6)), (1, (6, 2)))) == @Layout(12, 1)
     @test_opt coalesce(@Layout((2, (1, 6)), (1, (6, 2))))
-    @test_opt MoYe.bw_coalesce(Val{1}(), (1,), (48,), 2, 1)
+    @test_opt MoYe.bw_coalesce(MoYe.One(), (1,), (48,), 2, 1)
 
     function test_coalesce(layout)
         @test_opt coalesce(layout)
@@ -571,7 +571,6 @@ end
             tile   = @Layout((32, 2))
             test_logical_divide(layout, tile)
         end
-
     end
 
     @testset "Zipped division" begin

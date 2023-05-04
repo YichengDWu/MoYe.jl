@@ -74,12 +74,11 @@ function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
     return map(shape_div, a, b)
 end
 
-function elem_scale(@nospecialize(x::IntType), @nospecialize(y))
+function elem_scale(x::IntType, y)
     @inline
-    return x * product(y)
+    return x * capacity(y)
 end
-function elem_scale(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
-    @assert rank(x) == rank(y)
+function elem_scale(x::IntTuple{N}, y::IntTuple{N}) where {N}
     return map(elem_scale, x, y)
 end
 
