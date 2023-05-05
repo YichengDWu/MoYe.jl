@@ -9,8 +9,8 @@
 end
 
 # used for dispatching
-const LocalArray{T,N} = MoYeArray{T,N, ViewEngine{T, Ptr{T}}}
-const SharedArray{T,N} = MoYeArray{T,N, ViewEngine{T, LLVMPtr{T, AS.Shared}}}
+const LocalArray{T,N,L} = MoYeArray{T,N, ViewEngine{T, Ptr{T}},L}
+const SharedArray{T,N,L} = MoYeArray{T,N, ViewEngine{T, LLVMPtr{T, AS.Shared}},L}
 
 gemm!(A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(C,A,B,C)
 #gemm!(mma::MMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
