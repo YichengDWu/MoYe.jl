@@ -3,14 +3,14 @@ const CP_SYNC_ENABLED = true # TODO: make this configurable. >=SM_80
 
 struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: CPOP_ASYNC{TS,TD}
     function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
-        #@assert sizeof(TS) == sizeof(TD)
+        @assert sizeof(TS) == sizeof(TD)
         return new{TS, TD}()
     end
 end
 
 struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: CPOP_ASYNC{TS,TD}
     function CPOP_ASYNC_CACHEGLOBAL{TS, TD}() where {TS, TD}
-        #@assert sizeof(TS) == sizeof(TD)
+        @assert sizeof(TS) == sizeof(TD)
         return new{TS, TD}()
     end
 end
@@ -38,7 +38,7 @@ end
 
 function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     @inline
-    #@assert sizeof(TS) == sizeof(TD)
+    @assert sizeof(TS) == sizeof(TD)
     cpop(dst, src, static(sizeof(TS)))
     return nothing
 end

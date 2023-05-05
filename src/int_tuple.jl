@@ -51,7 +51,7 @@ end
 
 Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
 function Base.cld(x::IntTuple, y::IntTuple)
-    #@assert rank(x) >= rank(y)
+    @assert rank(x) >= rank(y)
     y = append(y, One(), StaticInt{rank(x)}())
     return map(cld, x, y)
 end
