@@ -788,7 +788,7 @@ julia> print_layout(logical_divide(raked_prod, subtile))
 function logical_divide(layout::Layout, tile::Layout)
     return composition(layout, make_layout(tile, complement(tile, size(layout))))
 end
-function logical_divide(layout::Layout, @nospecialize tile::Tuple)
+function logical_divide(layout::Layout, tile::Tuple)
     length(tile) <= rank(layout) || throw(DimensionMismatch("too many modes in tile"))
     return transform_layout(logical_divide, layout, tile)
 end
