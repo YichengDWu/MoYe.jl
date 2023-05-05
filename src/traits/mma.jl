@@ -7,6 +7,8 @@ struct MMATraits{M <: MMAOP, DElType, AElType, BElType, CElType, DFrgType, AFrgT
     Clayout::C
 end
 
+export MMATraits
+
 # For Hooper, FrgType and ElTypeare not the same
 @inline function MMATraits{M, DElType, AElType, BElType, CElType}(mnk, threadid, Alayout,
                                                                   Blayout,
@@ -20,8 +22,6 @@ end
                      typeof(Blayout), typeof(Clayout)}(mnk, threadid, Alayout, Blayout,
                                                        Clayout)
 end
-
-export MMATraits
 
 @inline function fragtype_d(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
                                         AFrgType, BFrgType, CFrgType}) where {M, DElType,
@@ -66,6 +66,16 @@ end
                                                                               BFrgType,
                                                                               CFrgType}
     return CFrgType
+end
+
+function MMATraits{UniversalFMA{D,A,B,C}}() where {D,A,B,C}
+    mnk = (static(1), static(1), static(1))
+    threadid = @Layout 1
+    Alayout = @Layout (1, 1)
+    Blayout = @Layout (1, 1)
+    Clayout = @Layout (1, 1)
+    return MMATraits{UniversalFMA{D,A,B,C}, D, A, B, C}(mnk, threadid, Alayout, Blayout,
+                                                        Clayout)
 end
 
 function mmaop_to_layoutargs(s::String)

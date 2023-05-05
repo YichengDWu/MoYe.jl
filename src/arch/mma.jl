@@ -44,10 +44,9 @@ struct UniversalFMA{D,A,B,C} <: MMAOP{Registers{D, 1}, Registers{A, 1},
     Registers{B, 1}, Registers{C, 1}}
 end
 
-UniversalFMA{D}() where {D} = UniversalFMA{D, D, D, D}()
-UniversalFMA{D,A}() where {D,A} = UniversalFMA{D, A, A, D}()
+@inline (::UniversalFMA{C,A,B,C})(a::A,b::B,c::C) where {A,B,C} = CUDA.fma(a,b,c)
 
-@inline (::UniversalFMA)(a,b,c) = CUDA.fma(a,b,c)
+export UniversalFMA
 
 """
     fma(::MMAOP, A, B, C)

@@ -12,7 +12,7 @@ function MMAAtom{Traits}() where {Traits <: MMATraits}
 end
 
 function MMAAtom{OP}() where {OP <: MMAOP}
-    return MMAAtom{MMATraits{OP}}()
+    return MMAAtom{typeof(MMATraits{OP}())}()
 end
 
 function mma_unpack(D::MoYeArray{DT, 1}, A::MoYeArray{AT, 1}, B::MoYeArray{BT, 1},
