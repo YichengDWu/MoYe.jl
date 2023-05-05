@@ -13,7 +13,7 @@ end
 
     @test MoYe.repeat_like(((2,3), (4,5)), 1) == ((1,1), (1,1))
     @test MoYe.repeat_like(typeof(((2,3), (4,5))), 1) == ((1,1), (1,1))
-    # @test_opt MoYe.repeat_like(((2,3), (4,5)), 1)  failed to optimize due to recursion
+    @test_opt MoYe.repeat_like(((2,3), (4,5)), 1)
     @test_opt MoYe.repeat_like(typeof(((2,3), (4,5))), 1)
 end
 
