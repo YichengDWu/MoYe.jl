@@ -80,8 +80,11 @@ end
 
 @testset "Unsqueeze" begin
     a = MoYeArray{Float32}(undef, static((2, 3)))
-    b = MoYe.unsqueeze(a, static(3));
+    b = MoYe.append_dim(a, static(3));
     @test b.layout == @Layout (2, 3, 1) (1,2,0)
+
+    c = MoYe.prepend_dim(a, static(3));
+    @test c.layout == @Layout (1, 2, 3) (0,1,2)
 end
 
 @testset "Recast" begin
