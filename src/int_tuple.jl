@@ -95,10 +95,10 @@ end
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::IntType, x) = iszero(a) ? One() : x
-function filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+function filter_zeros(x::IntTuple{N}, y::IntTuple{N}) where {N}
     return map(filter_zeros, x, y)
 end
-filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
+filter_zeros(t::Tuple) = filter_zeros(t, t)
 
 function slice(@nospecialize(A::Tuple), @nospecialize(index::Tuple))
     length(A) == length(index) ||
