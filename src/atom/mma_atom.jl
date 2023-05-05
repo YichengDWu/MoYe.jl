@@ -26,8 +26,8 @@ end
                                  ::MMAAtom{Traits, DFrgType, AFrgType}) where {Traits,
                                                                                DFrgType,
                                                                                AFrgType}
-    #@assert rank(A) ≥ static(3)
-    #@assert size(A.layout, 1) == size(m.traits.Alayout, 2)
+    @assert rank(A) ≥ static(3)
+    @assert size(A.layout, 1) == size(m.traits.Alayout, 2)
     return make_fragment_like(AFrgType, A)     # When would AFrgType be a pointer?
 end
 
@@ -38,8 +38,8 @@ end
                                                                                          AFrgType,
                                                                                          BFrgType
                                                                                          }
-    #@assert rank(B) ≥ static(3)
-    #@assert size(B.layout, 1) == size(m.traits.Blayout, 2)
+    @assert rank(B) ≥ static(3)
+    @assert size(B.layout, 1) == size(m.traits.Blayout, 2)
     return make_fragment_like(BFrgType, B)
 end
 
@@ -51,8 +51,8 @@ end
                                                                                           BFrgType,
                                                                                           CFrgType
                                                                                           }
-    #@assert rank(C) ≥ static(3)
-    #@assert size(C.layout, 1) == size(m.traits.Clayout, 2)
+    @assert rank(C) ≥ static(3)
+    @assert size(C.layout, 1) == size(m.traits.Clayout, 2)
     return make_fragment_like(CFrgType, shape(C))
 end
 =#
