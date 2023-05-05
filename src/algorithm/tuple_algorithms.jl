@@ -164,3 +164,5 @@ end
 function zip2_by(t, guide)
     return t
 end
+
+@generated hascolon(::T) where T = :($(Colon ∈ T.parameters))
