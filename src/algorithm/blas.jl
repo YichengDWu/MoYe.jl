@@ -29,5 +29,5 @@ end
 function gemm!(mma_atom::MMAAtom, D::LocalArray{DT,2},  A::LocalArray{DA,1},
                B::LocalArray{DB,1}, C::LocalArray{DC,2}) where {DT,DA,DB,DC}
 
-    gemm(mma_atom, D, A, B, C)
+    gemm(mma_atom, D, unsqueeze(A, StaticInt{2}()), unsqueeze(B, StaticInt{2}()), C)
 end
