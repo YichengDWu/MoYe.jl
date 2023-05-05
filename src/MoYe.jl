@@ -1,5 +1,6 @@
 module MoYe
 
+using SimpleTraits
 using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
 import Static
 import ManualMemory, LayoutPointers

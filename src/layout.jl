@@ -27,6 +27,10 @@ Static.static(l::Layout) = make_layout(static(shape(l)), static(stride(l)))
 
 Static.is_static(l::Layout) = dynamic(is_static(shape(l))) && dynamic(is_static(stride(l)))
 
+isrankless(::Type{<:IntTuple{N}}, ::Type{<:Layout{M}}) where {N,M} = N<M
+isrankless(::Type{<:Layout{N}}, ::Type{<:IntTuple{M}}) where {N,M} = N<M
+isrankless(::Type{<:Layout{N}}, ::Type{<:Layout{M}}) where {N,M} = N<M
+
 # map a logical coordinate to a linear index
 function (l::Layout)(@nospecialize coord::IntType)
     return coord_to_index(coord, shape(l), stride(l))
@@ -34,8 +38,7 @@ end
 function (l::Layout)(@nospecialize coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
-function (l::Layout)(coord) # coord is fixed with colon
-    #@assert Colon() ∈ coord
+@traitfn function (l::Layout)(coord::C) where {C; HasColon{C}}
     return slice(l, coord)
 end
 function (l::Layout)(c1, c2, c3...)
@@ -293,8 +296,8 @@ function Base.coalesce(layout::Layout)
     return bw_coalesce(static(rank(flat_shape) - 1), flat_shape, flat_stride, last(flat_shape),
                        last(flat_stride))
 end
-function Base.coalesce(layout::Layout, @nospecialize trg_profile::IntTuple) # respect the target profile
-    #@assert rank(trg_profile) <= rank(layout)
+@traitfn function Base.coalesce(layout::L, trg_profile::T) where {L<:Layout, T<:IntTuple;
+                                                                  !IsRankLess{L, T}}
     return transform_layout(coalesce, layout, trg_profile)
 end
 function Base.coalesce(layout::Layout, trg_profile)
@@ -726,17 +729,53 @@ function downcast(layout::Layout, m::StaticInt)
     return downcast(layout.shape, layout.stride, m)
 end
 
-function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType, OldType}
-    if sizeof(NewType) == sizeof(OldType)
-        return layout
-    elseif sizeof(NewType) > sizeof(OldType)
-        #@assert sizeof(NewType) % sizeof(OldType) == 0 "Cannot recast $OldType to $NewType"
-        return upcast(layout, static(sizeof(NewType) ÷ sizeof(OldType)))
-    else
-        #@assert sizeof(OldType) % sizeof(NewType) == 0 "Cannot recast $OldType to $NewType"
-        return downcast(layout, static(sizeof(OldType) ÷ sizeof(NewType)))
-    end
+@traitfn function recast(layout::Layout,
+                         ::Type{NewType},
+                         ::Type{OldType}) where {NewType, OldType; IsSizeEqual{NewType, OldType}}
+    return layout
 end
+
+
+@traitfn function _downcast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; IsDivisible{M, N}}
+    return downcast(layout, m ÷ n)
+end
+@traitfn function _downcast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; !IsDivisible{M, N}}
+    return @cuassert m % n == 0  "Cannot downcast $m bytes to $n bytes "
+end
+
+
+@traitfn function _upcast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; IsDivisible{N, M}}
+    return upcast(layout, n ÷ m)
+end
+@traitfn function _upcast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; !IsDivisible{N, M}}
+    return @cuassert n % m == 0  "Cannot upcast $m bytes to $n bytes"
+end
+
+@traitfn function _updowncast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; IsGreater{N, M}}
+    return _upcast(layout, n, m)
+end
+@traitfn function _updowncast(layout::Layout,
+                   n::N,
+                   m::M) where {N<:StaticInt, M<:StaticInt; !IsGreater{N, M}}
+    return _downcast(layout, n, m)
+end
+
+@traitfn function recast(layout::Layout,
+                         ::Type{NewType},
+                         ::Type{OldType}) where {NewType, OldType; !IsSizeEqual{NewType, OldType}}
+    return _updowncast(layout, static(sizeof(NewType)), static(sizeof(OldType)))
+end
+
 
 """
     logical_divide(layout::Layout, tile::Tile)

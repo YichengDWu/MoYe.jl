@@ -4,6 +4,10 @@ const IntSequence{N} = NTuple{N, Union{Int, StaticInt}}
 const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
 
+@traitdef IsRankLess{X,Y}
+@traitimpl IsRankLess{X,Y} <- isrankless(X,Y)
+isrankless(::Type{<:IntTuple{N}}, ::Type{<:IntTuple{M}}) where {N,M} = N<M
+
 # note that this type is only **almost** static
 const StaticIntTuple{N} = Tuple{
                                 Vararg{
@@ -50,8 +54,7 @@ function inner_product(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
 end
 
 Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
-function Base.cld(x::IntTuple, y::IntTuple)
-    #@assert rank(x) >= rank(y)
+@traitfn function Base.cld(x::X, y::Y) where {X<:IntTuple, Y<:IntTuple; !IsRankLess{X,Y}}
     y = append(y, One(), StaticInt{rank(x)}())
     return map(cld, x, y)
 end
@@ -68,9 +71,7 @@ function shape_div(@nospecialize(a::IntTuple), b::IntType)
                                       shape_div(init[2], ai)), a, ((), b))
     return result
 end
-function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
-    length(a) == length(b) ||
-        throw(DimensionMismatch("Tuple A and B must have the same rank"))
+function shape_div(a::IntTuple{N}, b::IntTuple{N}) where {N}
     return map(shape_div, a, b)
 end
 
