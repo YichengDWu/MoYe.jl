@@ -78,6 +78,12 @@ end
     end
 end
 
+@testset "Unsqueeze" begin
+    a = MoYeArray{Float32}(undef, static((2, 3)))
+    b = MoYe.unsqueeze(a, static(3));
+    @test b.layout == @Layout (2, 3, 1) (1,2,0)
+end
+
 @testset "Recast" begin
     x = MoYeArray{Float32}(undef, static((4, 3)))
     zeros!(x)

@@ -178,6 +178,15 @@ function transpose(x::MoYeArray)
 end
 
 """
+    unsqueeze(x::MoYeArray, N::StaticInt) -> MoYeArray
+
+Add dimension to the end of the array to N.
+"""
+function unsqueeze(x::MoYeArray, N::StaticInt)
+    return MoYeArray(pointer(x), append(x.layout, N))
+end
+
+"""
     recast(::Type{NewType}, x::MoYeArray{OldType}) -> MoYeArray{NewType}
 
 Recast the element type of a MoYeArray. This is similar to `Base.reinterpret`, but dose all
