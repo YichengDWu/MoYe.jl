@@ -178,12 +178,21 @@ function transpose(x::MoYeArray)
 end
 
 """
-    unsqueeze(x::MoYeArray, N::StaticInt) -> MoYeArray
+append_dim(x::MoYeArray, N::StaticInt) -> MoYeArray
 
 Add dimension to the end of the array to N.
 """
-function unsqueeze(x::MoYeArray, N::StaticInt)
+function append_dim(x::MoYeArray, N::StaticInt)
     return MoYeArray(pointer(x), append(x.layout, N))
+end
+
+"""
+append_dim(x::MoYeArray, N::StaticInt) -> MoYeArray
+
+Add dimension to the front of the array to N.
+"""
+function prepend_dim(x::MoYeArray, N::StaticInt)
+    return MoYeArray(pointer(x), prepend(x.layout, N))
 end
 
 """
