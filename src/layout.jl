@@ -30,6 +30,7 @@ Static.is_static(l::Layout) = dynamic(is_static(shape(l))) && dynamic(is_static(
 isrankless(::Type{<:IntTuple{N}}, ::Type{<:Layout{M}}) where {N,M} = N<M
 isrankless(::Type{<:Layout{N}}, ::Type{<:IntTuple{M}}) where {N,M} = N<M
 isrankless(::Type{<:Layout{N}}, ::Type{<:Layout{M}}) where {N,M} = N<M
+@generated isrankless(::Type{<:Layout{N}}, ::Type{T}) where {N,T} =  :($(<(N ,length(T.parameters))))
 
 # map a logical coordinate to a linear index
 function (l::Layout)(@nospecialize coord::IntType)
@@ -370,8 +371,7 @@ function composition(lhs::Layout, rhs::Layout)
     flat_stride = flatten(stride(lhs))
     return composition(flat_shape, flat_stride, shape(rhs), stride(rhs))
 end
-function composition(lhs::Layout, @nospecialize rhs::Tuple{Vararg{Layout}})
-    #@assert rank(rhs) <= length(lhs)
+@traitfn function composition(lhs::L, rhs::T) where {L<:Layout, T<:IntTuple; !IsRankLess{L, T}}
     return make_layout(Iterators.map(composition, lhs, rhs)...)
 end
 function composition(lhs::Layout, rhs::Colon)
@@ -827,7 +827,7 @@ julia> print_layout(logical_divide(raked_prod, subtile))
 function logical_divide(layout::Layout, tile::Layout)
     return composition(layout, make_layout(tile, complement(tile, size(layout))))
 end
-function logical_divide(layout::Layout, @nospecialize tile::Tuple)
+function logical_divide(layout::Layout, tile::Tuple)
     length(tile) <= rank(layout) || throw(DimensionMismatch("too many modes in tile"))
     return transform_layout(logical_divide, layout, tile)
 end
