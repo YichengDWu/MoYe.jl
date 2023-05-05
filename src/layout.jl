@@ -237,16 +237,14 @@ function append(layout::Layout, x::Layout, N::StaticInt)
     return make_layout(append(shape(layout), shape(x), N),
                        append(stride(layout), stride(x), N))
 end
-
 function append(layout::Layout, N::StaticInt)
-    return append(layout, make_layout(1, 0), N)
+    return append(layout, @Layout(1, 0), N)
 end
 
 function prepend(layout::Layout, x::Layout, N::StaticInt)
     return make_layout(prepend(shape(layout), shape(x), N),
                        prepend(stride(layout), stride(x), N))
 end
-
 function prepend(layout::Layout, N::StaticInt)
     return prepend(layout, @Layout(1, 0), N)
 end
