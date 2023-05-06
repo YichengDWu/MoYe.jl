@@ -23,5 +23,6 @@ end
 end
 
 @testset "Examples" begin
+    @safetestset "Tiling MatMul" begin include("examples/tiling_matmul.jl") end
     @safetestset "Copy Async" begin include("examples/copy_async.jl") end
 end
