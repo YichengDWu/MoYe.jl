@@ -12,6 +12,8 @@ using Test, SafeTestsets
     @safetestset "Broadcast" begin include("broadcast.jl") end
 end
 
+@safetestset "Tiling" begin include("tiling.jl") end
+
 @testset "Device" begin
     @safetestset "Memory" begin include("device/memory.jl") end
     @safetestset "MMA" begin include("device/mmaop.jl") end

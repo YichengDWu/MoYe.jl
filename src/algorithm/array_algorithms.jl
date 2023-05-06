@@ -57,6 +57,8 @@ end
     return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
 end
 
+_toint(x::Integer) = Int(x)
+_toint(x::Colon) = x
 
 """
     @parallelize x::MoYeArray tile::Tile coord::Tuple
@@ -105,7 +107,7 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
 """
 macro parallelize(x, tile, coord, args...)
     quote
-        local_partition($(esc(x)), $(esc(tile)), map(Int, $(esc(coord))), $(map(esc, args)...))
+        local_partition($(esc(x)), $(esc(tile)), map(_toint, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
@@ -134,7 +136,7 @@ julia> @tile a (static(2), static(2)) (1, 1)
 """
 macro tile(x, tile, coord, args...)
     quote
-        local_tile($(esc(x)), $(esc(tile)), map(Int, $(esc(coord))), $(map(esc, args)...))
+        local_tile($(esc(x)), $(esc(tile)), map(_toint, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
