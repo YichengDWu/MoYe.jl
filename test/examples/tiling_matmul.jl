@@ -4,9 +4,9 @@ using MoYe, Test
 M = 4*32
 N = 4*32
 K = 8*32
-A = reshape([i for i in 1:(M*K)], (M, K))
-B = reshape([i for i in 1:(N*K)], (N, K))
-C = zeros(Int, M, N)
+A = rand(M, K)
+B = rand(N, K)
+C = zeros(M, N)
 
 threadlayout = @Layout (4, 4)
 
@@ -38,4 +38,4 @@ GC.@preserve A B C begin
     end
 end
 
-@test C == A * transpose(B)
+@test C ≈ A * transpose(B)

@@ -116,5 +116,5 @@ GC.@preserve A B C begin
     end
 end
 
-C == A * transpose(B)
+C ≈ A * transpose(B)
 ```
