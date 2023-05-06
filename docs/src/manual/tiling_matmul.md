@@ -101,7 +101,7 @@ moye_B = MoYeArray(pointer(B), (N, K))
 moye_C = MoYeArray(pointer(C), (M, N))
 
 GC.@preserve A B C begin
-    Threads.@threads :static for i in 1:Threads.threadpoolsize()
+    Threads.@threads :static for i in 1:Threads.nthreads()
         tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)
         tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, static(1))
         tile_C = @parallelize moye_C threadlayout Threads.threadid()
