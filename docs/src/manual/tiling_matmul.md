@@ -1,6 +1,6 @@
 # Tiling MatMul
 
-This tutorial demonstrates how to perform matrix multiplication `C = A * B^T + C` using tiling techniques.
+This tutorial demonstrates how to perform matrix multiplication `C = A * B^T + C` using tiling techniques on CPU.
 
 We follow the convention where the shape of matrix `A` is `(M, K)`, matrix `B` is `(N, K)`, and matrix `C` is `(M, N)`.
 
