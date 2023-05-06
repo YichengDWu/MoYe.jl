@@ -63,7 +63,6 @@ Great, this is exactly what we want. Now let's look at `tile_B`. Threads 1 and 2
 ```julia
 julia> tile_B = @parallelize moye
 
-```julia
 julia> tile_B = @parallelize moye_B threadlayout 1 (:, static(1))
 1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
  1  5  9  13  17  21  25  29
