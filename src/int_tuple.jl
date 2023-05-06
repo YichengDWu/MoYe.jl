@@ -51,7 +51,7 @@ end
 
 Base.cld(@nospecialize(x::IntSequence), @nospecialize(y::IntSequence)) = map(cld, x, y)
 function Base.cld(x::IntTuple, y::IntTuple)
-    #@assert rank(x) >= rank(y)
+    @assert rank(x) >= rank(y)
     y = append(y, One(), StaticInt{rank(x)}())
     return map(cld, x, y)
 end
@@ -82,8 +82,8 @@ function elem_scale(x::IntTuple{N}, y::IntTuple{N}) where {N}
     return map(elem_scale, x, y)
 end
 
-function iscongruent(x, y)
-    return repeat_like(typeof(x), 0) === repeat_like(typeof(y), 0)
+@generated function iscongruent(x, y)
+    :($(==(repeat_like(x, Zero()), repeat_like(y, Zero()))))
 end
 
 # Any coordinate into A can also be used as a coordinate into B
@@ -95,10 +95,10 @@ end
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
 @inline filter_zeros(a::IntType, x) = iszero(a) ? One() : x
-function filter_zeros(@nospecialize(x::IntTuple), @nospecialize(y::IntTuple))
+function filter_zeros(x::IntTuple{N}, y::IntTuple{N}) where {N}
     return map(filter_zeros, x, y)
 end
-filter_zeros(@nospecialize t::Tuple) = filter_zeros(t, t)
+filter_zeros(t::Tuple) = filter_zeros(t, t)
 
 function slice(@nospecialize(A::Tuple), @nospecialize(index::Tuple))
     length(A) == length(index) ||
@@ -200,7 +200,7 @@ function increment(coord, shape)
     if c != s
         return (increment(c, s), Base.tail(coord)...)
     end
-    return (repeat_like(typeof(s), 1), increment(Base.tail(coord), Base.tail(shape))...)
+    return (repeat_like(s, 1), increment(Base.tail(coord), Base.tail(shape))...)
 end
 
 # iterator
@@ -215,7 +215,7 @@ struct ForwardCoordUnitRange{N, B, E} <: AbstractUnitRange{Int}
 end
 
 function ForwardCoordOneTo(shape::IntTuple)
-    start = repeat_like(typeof(shape), 1)
+    start = repeat_like(shape, 1)
     return ForwardCoordUnitRange(start, shape)
 end
 

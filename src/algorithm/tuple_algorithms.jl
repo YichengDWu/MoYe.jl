@@ -52,8 +52,8 @@ end
 end
 
 @inline repeat_like(t, x) = x
-function repeat_like(t::Tuple, x)
-    return map(Base.Fix2(repeat_like, x), t)
+@inline function repeat_like(t::Tuple, x)
+    return repeat_like(typeof(t), x)
 end
 
 @generated function repeat_like(::Type{T}, x) where {T<:Tuple}
@@ -164,3 +164,5 @@ end
 function zip2_by(t, guide)
     return t
 end
+
+@generated hascolon(::T) where T = :($(Colon ∈ T.parameters))

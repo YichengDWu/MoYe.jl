@@ -35,7 +35,7 @@ function (l::Layout)(@nospecialize coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
 function (l::Layout)(coord) # coord is fixed with colon
-    #@assert Colon() ∈ coord
+    @assert hascolon(coord)
     return slice(l, coord)
 end
 function (l::Layout)(c1, c2, c3...)
@@ -294,7 +294,7 @@ function Base.coalesce(layout::Layout)
                        last(flat_stride))
 end
 function Base.coalesce(layout::Layout, @nospecialize trg_profile::IntTuple) # respect the target profile
-    #@assert rank(trg_profile) <= rank(layout)
+    @assert rank(trg_profile) <= rank(layout)
     return transform_layout(coalesce, layout, trg_profile)
 end
 function Base.coalesce(layout::Layout, trg_profile)
@@ -368,7 +368,7 @@ function composition(lhs::Layout, rhs::Layout)
     return composition(flat_shape, flat_stride, shape(rhs), stride(rhs))
 end
 function composition(lhs::Layout, @nospecialize rhs::Tuple{Vararg{Layout}})
-    #@assert rank(rhs) <= length(lhs)
+    @assert rank(rhs) <= length(lhs)
     return make_layout(Iterators.map(composition, lhs, rhs)...)
 end
 function composition(lhs::Layout, rhs::Colon)
@@ -730,10 +730,10 @@ function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType
     if sizeof(NewType) == sizeof(OldType)
         return layout
     elseif sizeof(NewType) > sizeof(OldType)
-        #@assert sizeof(NewType) % sizeof(OldType) == 0 "Cannot recast $OldType to $NewType"
+        @assert sizeof(NewType) % sizeof(OldType) == 0 "Cannot recast $OldType to $NewType"
         return upcast(layout, static(sizeof(NewType) ÷ sizeof(OldType)))
     else
-        #@assert sizeof(OldType) % sizeof(NewType) == 0 "Cannot recast $OldType to $NewType"
+        @assert sizeof(OldType) % sizeof(NewType) == 0 "Cannot recast $OldType to $NewType"
         return downcast(layout, static(sizeof(OldType) ÷ sizeof(NewType)))
     end
 end
