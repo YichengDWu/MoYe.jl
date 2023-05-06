@@ -11,20 +11,20 @@ function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArr
 end
 
 function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T,N}
-    @assert rank(C) ≥ 3
+    @assert N ≥ 3
     @assert size(C.layout, 1) == size(m.traits.Clayout, 2)
     return MoYeArray{frgtype_c(m.traits)}(undef, shape(C)) # (V, M, N)
 end
 
 # Hopper needs to specialize on make_fragment_A and make_fragment_B
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T,N}
-    @assert rank(A) ≥ 3
+    @assert N ≥ 3
     @assert size(A.layout, 1) == size(m.traits.Alayout, 2)
     return MoYeArray{frgtype_a(m.traits)}(undef, shape(A)) # (V, M, K)
 end
 
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T,N}
-    @assert rank(B) ≥ 3
+    @assert N ≥ 3
     @assert size(B.layout, 1) == size(m.traits.Blayout, 2)
     return MoYeArray{frgtype_b(m.traits)}(undef, shape(B)) # (V, K, N)
 end
