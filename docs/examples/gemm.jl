@@ -32,7 +32,7 @@ function gemme_kernel(A, blocklayout_A, threadlayout_A,
     computetile_B = @parallize b threadlayout_C threadIdx().x (:, One())
     computetile_C = @parallize blocktile_C threadlayout_C threadIdx().x # (tM, tN)
 
-    frag_c = make_fragment_like(computetile_C)
+    frg_c = make_fragment_like(computetile_C)
     zeros!(frag_c)
 
     k_max = size(threadtile_a, 2)
@@ -43,7 +43,7 @@ function gemme_kernel(A, blocklayout_A, threadlayout_A,
         cucopyto!(threadtile_b, view(threadtile_B, (:, :, k)))
         cp_async_wait()
         sync_threads()
-        gemm!(computetile_A, computetile_B, frag_c)
+        MoYe.gemm!(computetile_A, computetile_B, frg_c) # (2,2,2)
         sync_threads()
     end
 end
