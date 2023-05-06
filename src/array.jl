@@ -100,6 +100,7 @@ layout(x::MoYeArray) = getfield(x, :layout)
 @inline Base.stride(x::MoYeArray, i::IntType) = getindex(stride(layout(x)), i)
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
+@inline shape(x::MoYeArray) = shape(layout(x))
 
 @inline function ManualMemory.preserve_buffer(A::MoYeArray)
     return ManualMemory.preserve_buffer(engine(A))

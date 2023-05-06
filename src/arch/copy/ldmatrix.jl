@@ -1,9 +1,6 @@
-abstract type LdMatrix{SRegisters, DRegisters} <: CPOP{SRegisters, DRegisters} end
-export LdMatrix
+abstract type AbstractLdMatrix{SRegisters, DRegisters} <: AbstractCPOP{SRegisters, DRegisters} end
 
-@inline Adapt.adapt(to, x::LdMatrix) = x
-
-function Base.getproperty(obj::LdMatrix{SRegisters, DRegisters},
+function Base.getproperty(obj::AbstractLdMatrix{SRegisters, DRegisters},
                           sym::Symbol) where {SRegisters, DRegisters}
     if sym === :DRegisters
         return DRegisters
@@ -14,12 +11,12 @@ function Base.getproperty(obj::LdMatrix{SRegisters, DRegisters},
     end
 end
 
-function Base.propertynames(::LdMatrix)
+function Base.propertynames(::AbstractLdMatrix)
     return (:SRegisters, :DRegisters)
 end
 
 """
-    load(::LdMatrix, src_addr::LLVMPtr) where {T}
+    load(::AbstractLdMatrix, src_addr::LLVMPtr) where {T}
 
 Load one or multiple matrices from shared memory to registers. The available `LdMatrix`s are:
 
@@ -45,7 +42,7 @@ Registers{UInt32, 4}
 """
 function load end
 
-@inline load(op::LdMatrix, src_addr::LLVMPtr) = op(src_addr)
+@inline load(op::AbstractLdMatrix, src_addr::LLVMPtr) = op(src_addr)
 
 function get_ld_type(d_sz, layout)
     signature = layout == "" ? "N" : "T"
@@ -63,8 +60,8 @@ function get_ldmatrix_ops()
     ld_ops = []
     for (d_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
         ld_type = get_ld_type(d_sz, layout)
-        @eval struct $(Symbol(ld_type)) <: LdMatrix{Registers{$s_type, $s_sz}, Registers{$d_type, $d_sz}} end
-        @eval export $(Symbol(ld_type))
+        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$s_type, $s_sz}, Registers{$d_type, $d_sz}} end
+        #@eval export $(Symbol(ld_type))
 
         intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(d_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
@@ -87,4 +84,3 @@ function get_ldmatrix_ops()
 end
 
 get_ldmatrix_ops()
-export load

@@ -1,57 +1,9 @@
-abstract type PTXOperatrion end
-
-@inline apply(op::PTXOperatrion, args...) = op(args...)
-
-abstract type MMAOP{DRegisters, ARegisters, BRegisters, CRegisters} <: PTXOperatrion end
-export MMAOP
-
-@inline Adapt.adapt(to, x::MMAOP) = x
-
-@inline fma(mmaop::MMAOP, a, b, c) = mmaop(a, b, c)
 
 """
-  Registers{T,S}
+    fma!(::AbstractMMAOP, D, A, B, C)
 
-A struct that wraps the register file type `T` and number of register files `S`.
-"""
-struct Registers{T,S} end
-
-@inline Base.eltype(::Registers{T}) where {T} = T
-@inline Base.length(::Registers{T, L}) where {T, L} = L
-
-function Base.getproperty(obj::MMAOP{DRegisters, ARegisters,
-                                     BRegisters, CRegisters},
-                          sym::Symbol) where {DRegisters, ARegisters,
-                                              BRegisters, CRegisters}
-    if sym === :DRegisters
-        return DRegisters
-    elseif sym === :ARegisters
-        return ARegisters
-    elseif sym === :BRegisters
-        return BRegisters
-    elseif sym === :CRegisters
-        return CRegisters
-    else
-        return getfield(obj,sym)
-    end
-end
-
-function Base.propertynames(::MMAOP)
-    return (:DRegisters, :ARegisters, :BRegisters, :CRegisters)
-end
-
-struct UniversalFMA{D,A,B,C} <: MMAOP{Registers{D, 1}, Registers{A, 1},
-    Registers{B, 1}, Registers{C, 1}}
-end
-
-@inline (::UniversalFMA{C,A,B,C})(a::A,b::B,c::C) where {A,B,C} = CUDA.fma(a,b,c)
-
-export UniversalFMA
-
-"""
-    fma(::MMAOP, A, B, C)
-
-Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAOP`s are
+Perform matrix multiply-and-accumulate computation, `A*B+C`, and store the result in D.
+The available subtypes of `AbstractMMAOP`s are
 ```julia
 "MMAOP_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
 "MMAOP_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
@@ -75,7 +27,8 @@ Perform matrix multiply-and-accumulate computation, `A*B+C`. The available `MMAO
 "MMAOP_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
 ```
 
-You can instantiate any of these `MMAOP`s and inspect the information about the operation
+You can instantiate any of these `AbstractMMAOP`s and inspect the information about
+the operation
 ```julia
 julia> op =  MMAOP_16x8x8_F32TF32TF32F32_TN()
 MMAOP_16x8x8_F32TF32TF32F32_TN()
@@ -369,8 +322,8 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                 CRegisters = make_frag(geom, "c", type_c)
 
                 _struct_name = Symbol(struct_name)
-                @eval struct $_struct_name <: MMAOP{$DRegisters, $ARegisters, $BRegisters, $CRegisters} end
-                @eval export $_struct_name
+                @eval struct $_struct_name <: AbstractMMAOP{$DRegisters, $ARegisters, $BRegisters, $CRegisters} end
+                #@eval export $_struct_name
 
                 intrinsic_signature = mma_signature(type_d, type_a, type_b, type_c)
                 layout = op_signature_to_layout[signature]
@@ -380,9 +333,16 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                 a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
 
                 if d_sz == 1
-                    @eval @inline (::$_struct_name)(a, b, c) = tuple(ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                    @eval function fma!(::$_struct_name, d, a, b, c)
+                        d[1] = ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
+                        return d
+                    end
                 else
-                    @eval @inline (::$_struct_name)(a, b, c) = convert(NTuple{$d_sz, $d_frag_ty}, ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...)))
+                    @eval function fma!(::$_struct_name, d, a, b, c)
+                        tmp = ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
+                        Base.Cartesian.@nexprs $d_sz i -> d[i] = getfield(tmp, i)
+                        return d
+                    end
                 end
             end
         end
@@ -411,4 +371,3 @@ function get_mma_ops()
 end
 
 get_mma_ops()
-export mma

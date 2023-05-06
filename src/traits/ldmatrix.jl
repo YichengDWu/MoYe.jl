@@ -1,4 +1,4 @@
-function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:LdMatrix}
+function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:AbstractLdMatrix}
     return CopyTraits{OP, UInt128, UInt32, typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(threadid, srclayout, dstlayout, reflayout)
 end
 

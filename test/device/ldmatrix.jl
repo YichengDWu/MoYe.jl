@@ -11,7 +11,7 @@ if CUDA.functional() && MoYe.LLVM.version().major>=15
         end
 
         op_to_intrinsic = Dict(MoYe.get_ldmatrix_ops())
-        for op in Main.subtypes(LdMatrix)
+        for op in Main.subtypes(MoYe.LdMatrix)
             buf = IOBuffer()
             @device_code_llvm io = buf @cuda threads=1 kernel(op())
             asm = String(take!(copy(buf)))

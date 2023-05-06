@@ -7,13 +7,9 @@
         end
     end
 end
-
-# used for dispatching
-const LocalArray{T,N,L} = MoYeArray{T,N, ViewEngine{T, Ptr{T}},L}
-const SharedArray{T,N,L} = MoYeArray{T,N, ViewEngine{T, LLVMPtr{T, AS.Shared}},L}
-
+#=
 gemm!(A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(C,A,B,C)
-#gemm!(mma::MMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
+gemm!(mma::MMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
 
 function gemm!(D::MoYeArray{TD}, A::MoYeArray{TA}, B::MoYeArray{TB}, C::MoYeArray{TC}) where {TD,TA,TB,TC}
     mma_atom = MMAAtom{UniversalFMA{TD,TA,TB,TC}}()
@@ -23,7 +19,7 @@ end
 # element-wise multiplication
 function gemm!(mma_atom::MMAAtom, D::LocalArray{DT,1},  A::LocalArray{DA,1},
                B::LocalArray{DB,1}, C::LocalArray{DC,1}) where {DT,DA,DB,DC}
-    apply(mma_atom, D, A, B, C)
+    mma_unpack!(mma_atom, D, A, B, C)
 end
 
 # outer product
@@ -65,3 +61,4 @@ end
 function gemm!()
 
 end
+=#

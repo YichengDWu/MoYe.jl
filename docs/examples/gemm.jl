@@ -3,10 +3,8 @@ function gemme_kernel(M, N, K,
                       B, strideB, blocklayoutB, threadlayoutB,
                       C, strideC, blocklayoutC, threadlayoutC)
 
-    shmemA = MoYe.SharedMemory(eltype(A), cosize(blocklayoutA))
-    shmemB = MoYe.SharedMemory(eltype(B), cosize(blocklayoutB))
-    a = MoYeArray(shmemA, blocklayoutA)
-    b = MoYeArray(shmemB, blocklayoutB)
+    a = MoYeSharedArray(eltype(A), blocklayoutA)
+    b = MoYeSharedArray(eltype(B), blocklayoutB)
 
     cuteA = MoYeArray(pointer(A), (M, K), strideA)
     cuteB = MoYeArray(pointer(B), (N, K), strideB)
@@ -16,12 +14,12 @@ function gemme_kernel(M, N, K,
     bN = size(blocklayoutB, 1)
     bK = size(blocklayoutB, 2)
 
-    blocktileA = local_tile(cuteA, (bM, bK), (blockIdx().x, :)) # (BLK_M,BLK_K,k)
-    blocktileB = local_tile(cuteB, (bN, bK), (blockIdx().y, :)) # (BLK_N,BLK_K,k)
-    blocktileC = local_tile(cuteC, (bM, bN), (blockIdx().x, blockIdx().y)) # (BLK_M,BLK_N,k)
+    blocktileA = @tile cuteA (bM, bK) (blockIdx().x, :) # (BLK_M,BLK_K,k)
+    blocktileB = @tile cuteB (bN, bK) (blockIdx().y, :) # (BLK_N,BLK_K,k)
+    blocktileC = @tile cuteC (bM, bN) (blockIdx().x, blockIdx().y) # (BLK_M,BLK_N,k)
 
-    threadtileA = local_partition(blocktileA, threadlayoutA, threadIdx().x) # (THR_M,THR_K,k)
-    threadtileB = local_partition(blocktileB, threadlayoutB, threadIdx().x) # (THR_N,THR_K,k)
+    threadtileA =  @parallize blocktileA threadlayoutA threadIdx().x# (THR_M,THR_K,k)
+    threadtileB =  @parallize blocktileB threadlayoutB threadIdx().x # (THR_N,THR_K,k)
 
     threadtile_a = local_partition(a, threadlayoutA, threadIdx().x) # (THR_M,THR_K）
     threadtile_b = local_partition(b, threadlayoutB, threadIdx().x) # (THR_N,THR_K）
