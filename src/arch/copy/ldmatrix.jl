@@ -55,28 +55,28 @@ end
 function get_ldmatrix_ops()
     ptr_type = LLVMPtr{UInt32, AS.Shared}
     s_type, s_sz = UInt128, 1 # each thread provides a 128 bits pointer
-    d_type = UInt32
+    dst_type = UInt32
 
     ld_ops = []
     for (d_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
         ld_type = get_ld_type(d_sz, layout)
-        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$s_type, $s_sz}, Registers{$d_type, $d_sz}} end
+        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$s_type, $s_sz}, Registers{$dst_type, $d_sz}} end
         #@eval export $(Symbol(ld_type))
 
         intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(d_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
 
         llvm_struct = Symbol("LLVMStruct$d_sz")
-        ret_type = @eval $llvm_struct{$d_type}
+        ret_type = @eval $llvm_struct{$dst_type}
         if isone(d_sz)
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
                 _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return tuple(ccall($intrinsic, llvmcall, $d_type, ($ptr_type,), _src_addr))
+                return tuple(ccall($intrinsic, llvmcall, $dst_type, ($ptr_type,), _src_addr))
             end
         else
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
                 _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return convert(NTuple{$d_sz, $d_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
+                return convert(NTuple{$d_sz, $dst_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
             end
         end
     end
