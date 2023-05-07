@@ -1,17 +1,17 @@
-abstract type CPOP_ASYNC{TS,TD} <: CPOP{Registers{TS, 1}, Registers{TD, 1}} end
+abstract type AbstractCPOP_ASYNC{TS,TD} <: AbstractCPOP{Registers{TS, 1}, Registers{TD, 1}} end
 const CP_SYNC_ENABLED = true # TODO: make this configurable. >=SM_80
 
-struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: CPOP_ASYNC{TS,TD}
-    function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
+struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCPOP_ASYNC{TS,TD}
+    @generated function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
-        return new{TS, TD}()
+        return :($(new{TS, TD}()))
     end
 end
 
-struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: CPOP_ASYNC{TS,TD}
-    function CPOP_ASYNC_CACHEGLOBAL{TS, TD}() where {TS, TD}
+struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCPOP_ASYNC{TS,TD}
+    @generated function CPOP_ASYNC_CACHEGLOBAL{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
-        return new{TS, TD}()
+        return :($(new{TS, TD}()))
     end
 end
 
@@ -36,11 +36,9 @@ function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LL
           (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
 end
 
-function (cpop::CPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
-    @inline
+@generated function (cpop::AbstractCPOP_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     @assert sizeof(TS) == sizeof(TD)
-    cpop(dst, src, static(sizeof(TS)))
-    return nothing
+    return :(cpop(dst, src, $(StaticInt{sizeof(TS)}())))
 end
 
 """

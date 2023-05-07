@@ -21,23 +21,29 @@ include("engine.jl")
 include("array.jl")
 include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
-include("algorithm/blas.jl")
 
 include("pointer.jl")
 include("device/smem.jl")
 
-include("arch/mma.jl")
+# Arch
+include("arch/mma/mma.jl")
+include("arch/mma/mma_sm80.jl")
 include("arch/copy/copy.jl")
 include("arch/copy/copy_async.jl")
 include("arch/copy/ldmatrix.jl")
 
+# Traits
 include("traits/mma.jl")
+include("traits/mma_sm80.jl")
 include("traits/copy.jl")
 include("traits/cp_async.jl")
 include("traits/ldmatrix.jl")
 
+# Atom
+include("atom/mma.jl")
 
 include("algorithm/copy.jl")
+include("algorithm/blas.jl")
 
 # rexport
 export static, @gc_preserve

@@ -1,71 +1,74 @@
-function gemme_kernel(M, N, K,
-                      A, strideA, blocklayoutA, threadlayoutA,
-                      B, strideB, blocklayoutB, threadlayoutB,
-                      C, strideC, blocklayoutC, threadlayoutC)
+function gemme_kernel(A, blocklayout_A, threadlayout_A,
+                      B, blocklayout_B, threadlayout_B,
+                      C, blocklayout_C, threadlayout_C)
+    a = MoYeSharedArray(eltype(A), blocklayout_A)
+    b = MoYeSharedArray(eltype(B), blocklayout_B)
 
-    shmemA = MoYe.SharedMemory(eltype(A), cosize(blocklayoutA))
-    shmemB = MoYe.SharedMemory(eltype(B), cosize(blocklayoutB))
-    a = MoYeArray(shmemA, blocklayoutA)
-    b = MoYeArray(shmemB, blocklayoutB)
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
 
-    cuteA = MoYeArray(pointer(A), (M, K), strideA)
-    cuteB = MoYeArray(pointer(B), (N, K), strideB)
-    cuteC = MoYeArray(pointer(C), (M, N), strideC)
+    moye_A = moye_Array(pointer(A), (M, K))
+    moye_B = moye_Array(pointer(B), (N, K))
+    moye_C = moye_Array(pointer(C), (M, N))
 
-    bM = size(blocklayoutA, 1)
-    bN = size(blocklayoutB, 1)
-    bK = size(blocklayoutB, 2)
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+    bK = size(blocklayout_B, 2)
 
-    blocktileA = local_tile(cuteA, (bM, bK), (blockIdx().x, :)) # (BLK_M,BLK_K,k)
-    blocktileB = local_tile(cuteB, (bN, bK), (blockIdx().y, :)) # (BLK_N,BLK_K,k)
-    blocktileC = local_tile(cuteC, (bM, bN), (blockIdx().x, blockIdx().y)) # (BLK_M,BLK_N,k)
+    blocktile_A = @tile moye_A (bM, bK) (blockIdx().x, :) # (bM,bK,k)
+    blocktile_B = @tile moye_B (bN, bK) (blockIdx().y, :) # (bN,bK,k)
+    blocktile_C = @tile moye_C (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
 
-    threadtileA = local_partition(blocktileA, threadlayoutA, threadIdx().x) # (THR_M,THR_K,k)
-    threadtileB = local_partition(blocktileB, threadlayoutB, threadIdx().x) # (THR_N,THR_K,k)
+    # Load data A and B from gmem to smem a and b
+    threadtile_A = @parallize blocktile_A threadlayout_A threadIdx().x # (tM,tK,k)
+    threadtile_a = @parallize a threadlayout_A threadIdx().x # (tM,tK）
 
-    threadtile_a = local_partition(a, threadlayoutA, threadIdx().x) # (THR_M,THR_K）
-    threadtile_b = local_partition(b, threadlayoutB, threadIdx().x) # (THR_N,THR_K）
+    threadtile_B = @parallize blocktile_B threadlayout_B threadIdx().x # (tN,tK,k)
+    threadtile_b = @parallize b threadlayout_B threadIdx().x # (tN,tK）
 
-    tCsA = local_partition(a, threadlayoutC, threadIdx().x, (One(), :))  # (16,8)
-    tCsB = local_partition(b, threadlayoutC, threadIdx().x)                  # (16,8)
-    tCgC = local_partition(blocktileC, threadlayoutC, threadIdx().x)         # (16,16)
+    # For mma computation
+    computetile_A = @parallize a threadlayout_C threadIdx().x (One(), :)
+    computetile_B = @parallize b threadlayout_C threadIdx().x (:, One())
+    computetile_C = @parallize blocktile_C threadlayout_C threadIdx().x # (tM, tN)
 
-    frag_c = make_fragment_like(tCgC)
+    frg_c = make_fragment_like(computetile_C)
+    zeros!(frag_c)
 
     k_max = size(threadtile_a, 2)
 
     for k in 1:k_max
         # copy gmem to smem
-        cucopyto!(threadtile_a, view(threadtileA, (:, :, k)))
-        cucopyto!(threadtile_b, view(threadtileB, (:, :, k)))
+        cucopyto!(threadtile_a, view(threadtile_A, (:, :, k)))
+        cucopyto!(threadtile_b, view(threadtile_B, (:, :, k)))
+        cp_async_wait()
         sync_threads()
-        gemm(tCsA, tCsB, frag_c)
+        MoYe.gemm!(computetile_A, computetile_B, frg_c) # (2,2,2)
         sync_threads()
     end
 end
 
-function gemm(A,B,C)
+function gemm(A, B, C)
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
 
-    bM = static(128)
-    bN = static(128)
-    bK = static(8)
+    blocklayout_A = @Layout (128, 8)
+    blocklayout_B = @Layout (128, 8)
+    blocklayout_C = @Layout (128, 128)
 
-    blocklayoutA = make_layout((bM, bK))
-    blocklayoutB = make_layout((bN, bK))
-    blocklayoutC = make_layout((bM, bN))
+    threadlayout_A = @Layout (32, 8)
+    threadlayout_B = @Layout (32, 8)
+    threadlayout_C = @Layout (16, 16)
 
-    threadlayoutA = make_layout((static(32), static(8)))
-    threadlayoutB = make_layout((static(32), static(8)))
-    threadlayoutC = make_layout((static(16), static(16)))
+    threads = dynamic(size(threadlayout_C))
 
-    threads = dynamic(size(threadlayoutC))
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+
     blocks = (cld(M, bM), cld(N, bN))
 
-    @cuda threads=threads blocks=blocks gemme_kernel(M, N, K,
-                                                      A, strideA, blocklayoutA, threadlayoutA,
-                                                      B, strideB, blocklayoutB, threadlayoutB,
-                                                      C, strideC, blocklayoutC, threadlayoutC)
+    @cuda threads=threads blocks=blocks gemme_kernel(A, strideA, blocklayout_A, threadlayout_A,
+                                                     B, strideB, blocklayout_B, threadlayout_B,
+                                                     C, strideC, blocklayout_C, threadlayout_C)
 end

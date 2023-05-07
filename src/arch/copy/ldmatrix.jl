@@ -1,9 +1,6 @@
-abstract type LdMatrix{SRegisters, DRegisters} <: CPOP{SRegisters, DRegisters} end
-export LdMatrix
+abstract type AbstractLdMatrix{SRegisters, DRegisters} <: AbstractCPOP{SRegisters, DRegisters} end
 
-@inline Adapt.adapt(to, x::LdMatrix) = x
-
-function Base.getproperty(obj::LdMatrix{SRegisters, DRegisters},
+function Base.getproperty(obj::AbstractLdMatrix{SRegisters, DRegisters},
                           sym::Symbol) where {SRegisters, DRegisters}
     if sym === :DRegisters
         return DRegisters
@@ -14,14 +11,12 @@ function Base.getproperty(obj::LdMatrix{SRegisters, DRegisters},
     end
 end
 
-function Base.propertynames(::LdMatrix)
+function Base.propertynames(::AbstractLdMatrix)
     return (:SRegisters, :DRegisters)
 end
 
 """
-    load(::LdMatrix, src_addr::LLVMPtr) where {T}
-
-Load one or multiple matrices from shared memory to registers. The available `LdMatrix`s are:
+Load data from shared memory to registers. The available `AbstractLdMatrix`s are:
 
 ```julia
 # Type => LLVM intrinsic
@@ -32,7 +27,7 @@ Load one or multiple matrices from shared memory to registers. The available `Ld
 "LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
 "LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
 ```
-You can inspect how many registers are used to store the matrix per thread by
+You can inspect the number and the type of  registers are used per thread by
 ```julia
 julia> LDSM_U32x4_N()
 LD_U32x4_N()
@@ -43,10 +38,7 @@ Registers{UInt32, 4}
 !!! note
     Would not work with LLVM 14
 """
-function load end
-
-@inline load(op::LdMatrix, src_addr::LLVMPtr) = op(src_addr)
-@inline apply(op::LdMatrix, src_addr::LLVMPtr) = op(src_addr)
+AbstractLdMatrix
 
 function get_ld_type(d_sz, layout)
     signature = layout == "" ? "N" : "T"
@@ -59,28 +51,26 @@ end
 function get_ldmatrix_ops()
     ptr_type = LLVMPtr{UInt32, AS.Shared}
     s_type, s_sz = UInt128, 1 # each thread provides a 128 bits pointer
-    d_type = UInt32
+    dst_type = UInt32
 
     ld_ops = []
     for (d_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
         ld_type = get_ld_type(d_sz, layout)
-        @eval struct $(Symbol(ld_type)) <: LdMatrix{Registers{$s_type, $s_sz}, Registers{$d_type, $d_sz}} end
-        @eval export $(Symbol(ld_type))
+        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$s_type, $s_sz}, Registers{$dst_type, $d_sz}} end
+        #@eval export $(Symbol(ld_type))
 
         intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(d_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
 
         llvm_struct = Symbol("LLVMStruct$d_sz")
-        ret_type = @eval $llvm_struct{$d_type}
+        ret_type = @eval $llvm_struct{$dst_type}
         if isone(d_sz)
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
-                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return tuple(ccall($intrinsic, llvmcall, $d_type, ($ptr_type,), _src_addr))
+            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
+                return ccall($intrinsic, llvmcall, $dst_type, ($ptr_type,), src_addr)
             end
         else
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
-                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return convert(NTuple{$d_sz, $d_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
+            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
+                return ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), src_addr)
             end
         end
     end
@@ -88,4 +78,3 @@ function get_ldmatrix_ops()
 end
 
 get_ldmatrix_ops()
-export load

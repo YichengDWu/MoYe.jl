@@ -34,9 +34,9 @@ end
 function (l::Layout)(@nospecialize coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
-function (l::Layout)(coord) # coord is fixed with colon
+@generated function (l::Layout)(coord) # coord is fixed with colon
     @assert hascolon(coord)
-    return slice(l, coord)
+    return :(slice(l, coord))
 end
 function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
@@ -197,6 +197,9 @@ end
 function rank(layout::Layout, i::Int)
     return rank(shape(layout)[i])
 end
+function rank(::Type{<:Layout{N}}) where {N}
+    return N
+end
 
 function depth(layout::Layout)
     return depth(shape(layout))
@@ -258,11 +261,26 @@ function group(layout::Layout, B::IntType, E::IntType)
     return make_layout(group(shape(layout), B, E), group(stride(layout), B, E))
 end
 
-function transform_layout(f::G, t1, t2) where {G}
-    R1 = length(t1)
-    R2 = length(t2)
-    R = (R1 < R2) ? R1 : R2
-    return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
+@generated function transform_layout(f, t1, t2)
+    R1 = rank(t1)
+    R2 = rank(t2)
+
+    expr = Expr(:call, :make_layout)
+    for i in 1:min(R1, R2)
+        push!(expr.args, Expr(:call, :f, :(t1[$i]), :(t2[$i])))
+    end
+
+    if R1 < R2
+        for i in (R1 + 1):R2
+            push!(expr.args, :(t2[$i]))
+        end
+    elseif R1 > R2
+        for i in (R2 + 1):R1
+            push!(expr.args, :(t1[$i]))
+        end
+    end
+
+    return expr
 end
 
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
@@ -677,10 +695,8 @@ end
 
 @generated function safe_div(::StaticInt{N}, ::StaticInt{M}) where {N, M}
     R = div(N, M)
-    if R * M == N
-        return :(static($R))
-    end
-    throw(DimensionMismatch(LazyString("Cannot divide", N, "by", M)))
+    @assert R * M == N "Safe division failed"
+    return :($(StaticInt{R}()))
 end
 
 @inline safe_div(x::IntType, y::IntType) = div(x, y)
@@ -689,14 +705,14 @@ function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
     return make_layout(shape, stride)
 end
 function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-    return make_layout(shape_div(shape, shape_div(m, abs(stride))), shape_div(stride, m))
+    return make_layout(shape_div(shape, shape_div(m, static_abs(stride))), shape_div(stride, m))
 end
 function upcast(shape::IntType, stride::Int, m::StaticInt)
     return make_layout(shape, safe_div(stride, m))
 end
-function upcast(shape::Tuple, stride::Tuple, ::StaticInt{N}) where N
-    return let N=N
-        transform_layout((x,y)->upcast(x, y, static(N)), shape, stride)
+Base.@assume_effects :total function upcast(shape::Tuple, stride::Tuple, n::StaticInt)
+    return let n=n
+        transform_layout((x,y)->upcast(x, y, n), shape, stride)
     end
 end
 function upcast(layout::Layout, m::StaticInt)
@@ -716,9 +732,9 @@ function downcast(shape::IntType, stride::IntType, n::StaticInt)
     @inline
     return make_layout(shape, stride * n)
 end
-function downcast(shape::Tuple, stride::Tuple, ::StaticInt{N}) where {N}
-    return let N=N
-        transform_layout((x,y)->downcast(x,y,static(N)), shape, stride)
+Base.@assume_effects :total function downcast(shape::Tuple, stride::Tuple, n::StaticInt)
+    return let n=n
+        transform_layout((x,y)->downcast(x,y,n), shape, stride)
     end
 end
 function downcast(layout::Layout, m::StaticInt)
@@ -726,15 +742,15 @@ function downcast(layout::Layout, m::StaticInt)
     return downcast(layout.shape, layout.stride, m)
 end
 
-function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType, OldType}
+@generated function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType, OldType}
     if sizeof(NewType) == sizeof(OldType)
-        return layout
+        return :layout
     elseif sizeof(NewType) > sizeof(OldType)
         @assert sizeof(NewType) % sizeof(OldType) == 0 "Cannot recast $OldType to $NewType"
-        return upcast(layout, static(sizeof(NewType) ÷ sizeof(OldType)))
+        return :(upcast(layout, $(StaticInt{sizeof(NewType) ÷ sizeof(OldType)}())))
     else
         @assert sizeof(OldType) % sizeof(NewType) == 0 "Cannot recast $OldType to $NewType"
-        return downcast(layout, static(sizeof(OldType) ÷ sizeof(NewType)))
+        return :(downcast(layout, $(StaticInt{sizeof(OldType) ÷ sizeof(NewType)}())))
     end
 end
 

@@ -21,7 +21,7 @@ emap(f::Function, x::Union{IntType, Colon}) = f(x)
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)
 @inline rank(@nospecialize(x::IntTuple), I::IntType...) = rank(getindex(x, I...))
-
+@inline @generated rank(::Type{T}) where {T<:Tuple} = :($(length(T.parameters)))
 # shape
 
 @inline depth(@nospecialize x::IntType) = zero(x)
@@ -246,9 +246,6 @@ end
     return expr
 end
 
-@inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
-@inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
-
 function Base.getindex(x::StaticInt, i::Integer)
     @inline
     @boundscheck i == 1 || throw(BoundsError(x, i))
@@ -261,8 +258,8 @@ end
 function static_findfirst(f::G, t::IntSequence, I::IntSequence) where {G}
     return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
 end
-@inline function static_findfirst(::Function, t::IntSequence{N}, ::Tuple{}) where {N}
-    return static(N+1)
+@inline function static_findfirst(::G, t::IntSequence{N}, ::Tuple{}) where {G, N}
+    return StaticInt{N+1}()
 end
 static_findfirst(f::G, t::IntSequence{N}) where {G,N} = static_findfirst(f, t, ntuple(static, N))
-static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), static(2))
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), StaticInt{2}())

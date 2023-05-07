@@ -90,9 +90,11 @@ end
 
 @inline Base.size(::ArrayEngine{T, L}) where {T, L} = (L,)
 @inline Base.length(::ArrayEngine{T, L}) where {T, L} = L
+@inline Base.length(::Type{ArrayEngine{T, L}}) where {T, L} = L
+
 @inline Base.similar(::ArrayEngine{T, L}) where {T, L} = ArrayEngine{T, L}(undef)
-@inline function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
-    return ArrayEngine{T}(undef, static(length(A)))
+@inline @generated function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
+    return :(ArrayEngine{T}(undef, $(StaticInt{length(A)}())))
 end
 
 @inline function ArrayEngine{T}(f::Function, ::StaticInt{L}) where {T, L} # not very useful
@@ -107,13 +109,13 @@ end
     return ManualMemory.preserve_buffer(getfield(A, :data))
 end
 
-@inline function Base.getindex(A::ArrayEngine, i::Integer)
+Base.@propagate_inbounds function Base.getindex(A::ArrayEngine, i::Integer)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] end
 end
 
-@inline function Base.setindex!(A::ArrayEngine, val, i::Integer)
+Base.@propagate_inbounds function Base.setindex!(A::ArrayEngine, val, i::Integer)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] = val end

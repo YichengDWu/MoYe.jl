@@ -100,6 +100,7 @@ layout(x::MoYeArray) = getfield(x, :layout)
 @inline Base.stride(x::MoYeArray, i::IntType) = getindex(stride(layout(x)), i)
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
+@inline shape(x::MoYeArray) = shape(layout(x))
 
 @inline function ManualMemory.preserve_buffer(A::MoYeArray)
     return ManualMemory.preserve_buffer(engine(A))
@@ -126,15 +127,15 @@ end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
-@inline function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+Base.@propagate_inbounds function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
     @boundscheck checkbounds(x, ids...) # should fail if ids is static or hierarchical
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
 
-@inline function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
-    @boundscheck checkbounds(x, ids...)
+Base.@propagate_inbounds function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+    #@boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin ViewEngine(engine(x))[index] = val end
@@ -221,17 +222,19 @@ julia> x3 = recast(Int64, x)
 ```
 """
 @inline function recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType}
-    b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin
-        old_layout = layout(x)
-        new_layout = recast(old_layout, NewType, OldType)
-        if sizeof(OldType) < sizeof(NewType) # TODO: handle composed layout
-            shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
-            extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
-            offset = _foldl((i,a)->i+min(a, Zero()), extent_diff, Zero())
-            return MoYeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
-        else
-            return MoYeArray(recast(NewType, pointer(x)), new_layout)
-        end
+    @gc_preserve _recast(NewType, x)
+end
+
+function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType}
+    @inline
+    old_layout = layout(x)
+    new_layout = recast(old_layout, NewType, OldType)
+    if sizeof(OldType) < sizeof(NewType) # TODO: handle composed layout
+        shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
+        extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
+        offset = _foldl((i,a)->i+min(a, Zero()), extent_diff, Zero())
+        return MoYeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
+    else
+        return MoYeArray(recast(NewType, pointer(x)), new_layout)
     end
 end

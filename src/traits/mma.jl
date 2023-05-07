@@ -1,5 +1,10 @@
-struct MMATraits{M <: MMAOP, DElType, AElType, BElType, CElType, DFrgType, AFrgType,
-                 BFrgType, CFrgType, S, T, A, B, C}
+abstract type AbstractTraits end
+abstract type AbstractMMATraits{M, DElType, AElType, BElType, CElType} <: AbstractTraits end
+
+
+# in the future, we might have `HopperMMATraits` and so on.
+struct MMATraits{OP <: AbstractMMAOP, DElType, AElType, BElType, CElType, S, T, A, B, C} <: AbstractMMATraits{OP, DElType, AElType, BElType, CElType}
+    mma_op::OP
     mnk::S
     threadid::T
     Alayout::A
@@ -7,129 +12,81 @@ struct MMATraits{M <: MMAOP, DElType, AElType, BElType, CElType, DFrgType, AFrgT
     Clayout::C
 end
 
-# For Hooper, FrgType and ElTypeare not the same
-@inline function MMATraits{M, DElType, AElType, BElType, CElType}(mnk, threadid, Alayout,
-                                                                  Blayout,
-                                                                  Clayout) where {M,
-                                                                                  DElType,
-                                                                                  AElType,
-                                                                                  BElType,
-                                                                                  CElType}
-    return MMATraits{M, DElType, AElType, BElType, CElType, DElType, AElType, BElType,
-                     CElType, typeof(mnk), typeof(threadid), typeof(Alayout),
-                     typeof(Blayout), typeof(Clayout)}(mnk, threadid, Alayout, Blayout,
-                                                       Clayout)
+function MMATraits{M, DElType, AElType, BElType, CElType}(mnk, threadid, Alayout, Blayout,
+                                                          Clayout) where {M <: AbstractMMAOP,
+                                                                          DElType, AElType,
+                                                                          BElType, CElType}
+    return MMATraits{M, DElType, AElType, BElType, CElType, typeof(mnk), typeof(threadid),
+                     typeof(Alayout), typeof(Blayout), typeof(Clayout)}(M(), mnk, threadid,
+                                                                        Alayout, Blayout,
+                                                                        Clayout)
 end
 
-export MMATraits
+function MMATraits{M}(mnk, threadid, Alayout, Blayout, Clayout) where {M <: AbstractMMAOP}
+    mma_op = M()
+    DElType = eltype(mma_op.DRegisters)
+    AElType = eltype(mma_op.ARegisters)
+    BElType = eltype(mma_op.BRegisters)
+    CElType = eltype(mma_op.CRegisters)
 
-@inline function fragtype_d(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
-                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
-                                                                              AElType,
-                                                                              BElType,
-                                                                              CElType,
-                                                                              DFrgType,
-                                                                              AFrgType,
-                                                                              BFrgType,
-                                                                              CFrgType}
-    return DFrgType
-end
-@inline function fragtype_a(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
-                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
-                                                                              AElType,
-                                                                              BElType,
-                                                                              CElType,
-                                                                              DFrgType,
-                                                                              AFrgType,
-                                                                              BFrgType,
-                                                                              CFrgType}
-    return AFrgType
-end
-@inline function fragtype_b(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
-                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
-                                                                              AElType,
-                                                                              BElType,
-                                                                              CElType,
-                                                                              DFrgType,
-                                                                              AFrgType,
-                                                                              BFrgType,
-                                                                              CFrgType}
-    return BFrgType
-end
-@inline function fragtype_c(::MMATraits{M, DElType, AElType, BElType, CElType, DFrgType,
-                                        AFrgType, BFrgType, CFrgType}) where {M, DElType,
-                                                                              AElType,
-                                                                              BElType,
-                                                                              CElType,
-                                                                              DFrgType,
-                                                                              AFrgType,
-                                                                              BFrgType,
-                                                                              CFrgType}
-    return CFrgType
+    return MMATraits{M, DElType, AElType, BElType, CElType, typeof(mnk), typeof(threadid),
+                     typeof(Alayout), typeof(Blayout), typeof(Clayout)}(mma_op, mnk,
+                                                                        threadid, Alayout,
+                                                                        Blayout, Clayout)
 end
 
-function mmaop_to_layoutargs(s::String)
-    split_str = split(s, "_")
-
-    num_pattern = r"\d+"
-    letter_pattern = r"[A-Z]+\d+"
-
-    num_matches = collect(eachmatch(num_pattern, split_str[2]))
-    letter_matches = collect(eachmatch(letter_pattern, split_str[3]))
-
-    mnk = tuple((static(parse(Int, m.match)) for m in num_matches)...)
-    eltypes = tuple((ptx_to_jl[lowercase(m.match)] for m in letter_matches)...)
-
-    return mnk, eltypes, Val(Symbol(split_str[4]))
+for (fn, ElType) in Dict(:valtype_d => :DElType, :valtype_a => :AElType,
+                         :valtype_b => :BElType, :valtype_c => :CElType)
+    @eval $fn(::AbstractMMATraits{M, DElType, AElType, BElType, CElType}) where {M,
+                                                                         DElType,
+                                                                         AElType,
+                                                                         BElType,
+                                                                         CElType} =
+        $ElType
 end
 
-function _get_layouts(::Tuple{StaticInt{16}, StaticInt{8}, StaticInt{8}},
-                      AElType::Type{<:Union{Float16, BFloat16}},
-                      CEltyp::Type{<:Union{Float16, Float32}}, ::Val{:TN})
-    threadid = @Layout(32)
-    Alayout = @Layout ((4, 8), (2, 2)) ((32, 1), (16, 8))
-    Blayout = @Layout ((4, 8), 2) ((16, 1), 8)
-    Clayout = Alayout
+# default implementation, Hooper would need to specialize on these
+frgtype_d(traits::AbstractMMATraits) = valtype_d(traits)
+frgtype_a(traits::AbstractMMATraits) = valtype_a(traits)
+frgtype_b(traits::AbstractMMATraits) = valtype_b(traits)
+frgtype_c(traits::AbstractMMATraits) = valtype_c(traits)
 
-    return threadid, Alayout, Blayout, Clayout
+function MMATraits{UniversalFMA{D, A, B, C}}() where {D, A, B, C}
+    mnk = (static(1), static(1), static(1))
+    threadid = @Layout 1
+    Alayout = @Layout (1, 1)
+    Blayout = @Layout (1, 1)
+    Clayout = @Layout (1, 1)
+    return MMATraits{UniversalFMA{D, A, B, C}, D, A, B, C}(mnk, threadid, Alayout, Blayout,
+                                                           Clayout)
 end
 
-function _get_layouts(::Tuple{StaticInt{16}, StaticInt{8}, StaticInt{16}},
-                      AElType::Type{<:Union{Float16, BFloat16}},
-                      CElType::Type{<:Union{Float16, Float32}}, ::Val{:TN})
-    threadid = @Layout(32)
-    Alayout = @Layout ((4, 8), (2, 2, 2)) ((32, 1), (16, 8, 128))
-    Blayout = @Layout ((4, 8), (2, 2)) ((16, 1), (8, 64))
-    Clayout = @Layout ((4, 8), (2, 2)) ((32, 1), (16, 8))
+# used for dispatching
+const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
+const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
 
-    return threadid, Alayout, Blayout, Clayout
+# again, default implementation, Hooper would need to specialize on it
+function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
+                     D::LocalArray{TD}, A::LocalArray{TA},
+                     B::LocalArray{TB}, C::LocalArray{TC}) where {M, TD, TA, TB, TC}
+    RegTypeD = regtype_d(traits.mma_op)
+    RegTypeA = regtype_a(traits.mma_op)
+    RegTypeB = regtype_b(traits.mma_op)
+    RegTypeC = regtype_c(traits.mma_op)
+
+    RegNumD = regnum_d(traits.mma_op)
+    RegNumA = regnum_a(traits.mma_op)
+    RegNumB = regnum_b(traits.mma_op)
+    RegNumC = regnum_c(traits.mma_op)
+
+    rD = recast(RegTypeD, D)
+    rA = recast(RegTypeA, A)
+    rB = recast(RegTypeB, B)
+    rC = recast(RegTypeC, C)
+
+    @assert length(rD) == RegNumD
+    @assert length(rA) == RegNumA
+    @assert length(rB) == RegNumB
+    @assert length(rC) == RegNumC
+    fma!(traits.mma_op, rD, rA, rB, rC)
 end
-
-function make_mmatraits(mmaops)
-    for mmaop in mmaops
-        mnk, eltypes, major = mmaop_to_layoutargs(mmaop)
-        DElType, AElType, BElType, CElType= eltypes
-        layouts = _get_layouts(mnk, AElType, CElType, major)
-        @eval @inline function MMATraits{$(Symbol(mmaop))}()
-            return MMATraits{$(Symbol(mmaop)), $DElType, $AElType, $BElType, $CElType}($mnk,
-                                                                                       $(layouts...))
-        end
-    end
-end
-
-# 16x8x8
-make_mmatraits([
-                   "MMAOP_16x8x8_F16F16F16F16_TN",
-                   "MMAOP_16x8x8_F32F16F16F32_TN",
-                   #"MMAOP_16x8x8_F32TF32TF32F32_TN", # TODO: add support for TF32
-                   "MMAOP_16x8x8_F32BF16BF16F32_TN",
-               ])
-
-# 16x8x16
-make_mmatraits([
-                   "MMAOP_16x8x16_F16F16F16F16_TN",
-                   "MMAOP_16x8x16_F32F16F16F32_TN",
-                   "MMAOP_16x8x16_F32BF16BF16F32_TN",
-               ])
-
-# 8x8x4
