@@ -66,8 +66,9 @@ const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
 const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
 
 # again, default implementation, Hooper would need to specialize on it
-function mma_unpack!(traits::AbstractMMATraits, D::LocalArray{TD}, A::LocalArray{TA},
-                     B::LocalArray{TB}, C::LocalArray{TC}) where {TD, TA, TB, TC}
+function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
+                     D::LocalArray{TD}, A::LocalArray{TA},
+                     B::LocalArray{TB}, C::LocalArray{TC}) where {M, TD, TA, TB, TC}
     RegTypeD = regtype_d(traits.mma_op)
     RegTypeA = regtype_a(traits.mma_op)
     RegTypeB = regtype_b(traits.mma_op)

@@ -1,4 +1,3 @@
-
 function mmaop_to_layoutargs(s::String)
     split_str = split(s, "_")
 
