@@ -16,9 +16,7 @@ function Base.propertynames(::AbstractLdMatrix)
 end
 
 """
-    load(::AbstractLdMatrix, src_addr::LLVMPtr) where {T}
-
-Load one or multiple matrices from shared memory to registers. The available `LdMatrix`s are:
+Load data from shared memory to registers. The available `AbstractLdMatrix`s are:
 
 ```julia
 # Type => LLVM intrinsic
@@ -29,7 +27,7 @@ Load one or multiple matrices from shared memory to registers. The available `Ld
 "LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
 "LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
 ```
-You can inspect how many registers are used to store the matrix per thread by
+You can inspect the number and the type of  registers are used per thread by
 ```julia
 julia> LDSM_U32x4_N()
 LD_U32x4_N()
@@ -40,9 +38,7 @@ Registers{UInt32, 4}
 !!! note
     Would not work with LLVM 14
 """
-function load end
-
-@inline load(op::AbstractLdMatrix, src_addr::LLVMPtr) = op(src_addr)
+AbstractLdMatrix
 
 function get_ld_type(d_sz, layout)
     signature = layout == "" ? "N" : "T"
@@ -69,14 +65,12 @@ function get_ldmatrix_ops()
         llvm_struct = Symbol("LLVMStruct$d_sz")
         ret_type = @eval $llvm_struct{$dst_type}
         if isone(d_sz)
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
-                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return tuple(ccall($intrinsic, llvmcall, $dst_type, ($ptr_type,), _src_addr))
+            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
+                return ccall($intrinsic, llvmcall, $dst_type, ($ptr_type,), src_addr)
             end
         else
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::LLVMPtr)
-                _src_addr = $LLVM.Interop.addrspacecast($ptr_type, src_addr)
-                return convert(NTuple{$d_sz, $dst_type}, ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), _src_addr))
+            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
+                return ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), src_addr)
             end
         end
     end

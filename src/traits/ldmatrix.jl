@@ -4,7 +4,7 @@ end
 
 function CopyTraits{LDSM_U32x1_N}()
     threadid = @Layout 32 # 32 threads per operation
-    srclayout = @Layout ((8, 4), 128) ((128, 0), 1)
+    srclayout = @Layout ((8, 4), 128) ((128, 0), 1) # thr -> bit
     dstlayout = @Layout (32, 32) (32, 1)
     return CopyTraits{LDSM_U32x1_N}(threadid, srclayout, dstlayout)
 end
