@@ -6,7 +6,7 @@ abstract type AbstractMMAOP{DRegisters, ARegisters, BRegisters, CRegisters} <: P
 
 @inline Adapt.adapt(to, x::AbstractMMAOP) = x
 
-@inline fma!(mmaop::AbstractMMAOP, a, b, c) = fma!(mmaop, d, a, b, c)
+@inline fma!(mmaop::AbstractMMAOP, a, b, c) = fma!(mmaop, c, a, b, c)
 
 """
   Registers{T,S}

@@ -332,15 +332,26 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                 push!(struct_names, struct_name => mma_intrinsic)
                 a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
 
+
+
                 if d_sz == 1
-                    @eval function fma!(::$_struct_name, d, a, b, c)
-                        d[1] = ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
-                        return d
+                    @eval @inline function (::$_struct_name)(a, b, c)
+                        return ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
+                    end
+
+                    @eval @inline function fma!(op::$_struct_name, d, a, b, c)
+                        val = op(a,b,c)
+                        return unsafe_store!(pointer(d), val, 1)
                     end
                 else
-                    @eval function fma!(::$_struct_name, d, a, b, c)
-                        tmp = ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
-                        Base.Cartesian.@nexprs $d_sz i -> d[i] = getfield(tmp, i)
+                    @eval @inline function (::$_struct_name)(a, b, c)
+                        return ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
+                    end
+
+                    @eval @inline function fma!(op::$_struct_name, d, a, b, c)
+                        val = op(a,b,c)
+                        ptr = pointer(d)
+                        Base.Cartesian.@nexprs $d_sz i -> unsafe_store!(ptr, getfield(val, i), 1)
                         return d
                     end
                 end
