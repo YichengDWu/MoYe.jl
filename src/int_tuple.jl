@@ -246,9 +246,6 @@ end
     return expr
 end
 
-@inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
-@inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
-
 function Base.getindex(x::StaticInt, i::Integer)
     @inline
     @boundscheck i == 1 || throw(BoundsError(x, i))
