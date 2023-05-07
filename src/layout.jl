@@ -34,9 +34,9 @@ end
 function (l::Layout)(@nospecialize coord::IntTuple)
     return coord_to_index(coord, shape(l), stride(l))
 end
-function (l::Layout)(coord) # coord is fixed with colon
+@generated function (l::Layout)(coord) # coord is fixed with colon
     @assert hascolon(coord)
-    return slice(l, coord)
+    return :(slice(l, coord))
 end
 function (l::Layout)(c1, c2, c3...)
     return l((c1, c2, c3...))
@@ -103,12 +103,12 @@ Construct a static layout with the given shape and stride.
 """
 macro Layout(expr1, expr2=nothing)
     if expr2 === nothing
-        layout_call = :(make_layout(static($expr1)))
+        layout_call = :(make_layout($(static(expr1))))
     elseif expr2 isa Symbol
-        layout_call = :(make_layout(static($expr1), $expr2))
+        layout_call = :(make_layout($(static(expr1)), $expr2))
     else
         expr2
-        layout_call = :(make_layout(static($expr1), static($expr2)))
+        layout_call = :(make_layout($(static(expr1)), $(static(expr2))))
     end
     return layout_call
 end
@@ -726,15 +726,15 @@ function downcast(layout::Layout, m::StaticInt)
     return downcast(layout.shape, layout.stride, m)
 end
 
-function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType, OldType}
+@generated function recast(layout::Layout, ::Type{NewType}, ::Type{OldType}) where {NewType, OldType}
     if sizeof(NewType) == sizeof(OldType)
-        return layout
+        return :layout
     elseif sizeof(NewType) > sizeof(OldType)
         @assert sizeof(NewType) % sizeof(OldType) == 0 "Cannot recast $OldType to $NewType"
-        return upcast(layout, static(sizeof(NewType) ÷ sizeof(OldType)))
+        return :(upcast(layout, $(StaticInt{sizeof(NewType) ÷ sizeof(OldType)}())))
     else
         @assert sizeof(OldType) % sizeof(NewType) == 0 "Cannot recast $OldType to $NewType"
-        return downcast(layout, static(sizeof(OldType) ÷ sizeof(NewType)))
+        return :(downcast(layout, $(StaticInt{sizeof(OldType) ÷ sizeof(NewType)}())))
     end
 end
 

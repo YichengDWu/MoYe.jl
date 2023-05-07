@@ -90,9 +90,11 @@ end
 
 @inline Base.size(::ArrayEngine{T, L}) where {T, L} = (L,)
 @inline Base.length(::ArrayEngine{T, L}) where {T, L} = L
+@inline Base.length(::Type{ArrayEngine{T, L}}) where {T, L} = L
+
 @inline Base.similar(::ArrayEngine{T, L}) where {T, L} = ArrayEngine{T, L}(undef)
-@inline function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
-    return ArrayEngine{T}(undef, static(length(A)))
+@inline @generated function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
+    return :(ArrayEngine{T}(undef, $(StaticInt{length(A)}())))
 end
 
 @inline function ArrayEngine{T}(f::Function, ::StaticInt{L}) where {T, L} # not very useful

@@ -261,8 +261,8 @@ end
 function static_findfirst(f::G, t::IntSequence, I::IntSequence) where {G}
     return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
 end
-@inline function static_findfirst(::Function, t::IntSequence{N}, ::Tuple{}) where {N}
-    return static(N+1)
+@inline function static_findfirst(::G, t::IntSequence{N}, ::Tuple{}) where {G, N}
+    return StaticInt{N+1}()
 end
 static_findfirst(f::G, t::IntSequence{N}) where {G,N} = static_findfirst(f, t, ntuple(static, N))
-static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), static(2))
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), StaticInt{2}())
