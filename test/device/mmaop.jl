@@ -7,18 +7,15 @@ if CUDA.functional()
     _one(::Type{NTuple{N, VecElement{T}}}) where {N, T} = ntuple(i -> VecElement(one(T)), Val(N))
     _one(x) = one(x)
 
-    _scaled_one(::Type{NTuple{N, VecElement{T}}}, scale) where {N, T} = ntuple(i -> VecElement(one(T)/scale), Val(N))
-    _scaled_one(x, scale) = one(x)/ scale
-
     @testset "Compile to LLVM" begin
         function kernel(mma_op)
             a_frag = make_fragment(mma_op.ARegisters)
             b_frag = make_fragment(mma_op.BRegisters)
             c_frag = make_fragment(mma_op.CRegisters)
 
-            fill!(a_frag, _scaled_one(eltype(a_frag), 2))
+            fill!(a_frag, _one(eltype(a_frag)))
             fill!(b_frag, _one(eltype(b_frag)))
-            fill!(c_frag, _scaled_one(eltype(c_frag), 100))
+            fill!(c_frag, _one(eltype(c_frag)))
 
             d_frag = mma_op(a_frag, b_frag, c_frag)
             @cushow _float32(getfield(d_frag,1)[1])
