@@ -21,7 +21,7 @@ emap(f::Function, x::Union{IntType, Colon}) = f(x)
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)
 @inline rank(@nospecialize(x::IntTuple), I::IntType...) = rank(getindex(x, I...))
-
+@inline @generated rank(::Type{T}) where {T<:Tuple} = :($(length(T.parameters)))
 # shape
 
 @inline depth(@nospecialize x::IntType) = zero(x)

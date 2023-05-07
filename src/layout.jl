@@ -197,6 +197,9 @@ end
 function rank(layout::Layout, i::Int)
     return rank(shape(layout)[i])
 end
+function rank(::Type{<:Layout{N}}) where {N}
+    return N
+end
 
 function depth(layout::Layout)
     return depth(shape(layout))
@@ -258,11 +261,26 @@ function group(layout::Layout, B::IntType, E::IntType)
     return make_layout(group(shape(layout), B, E), group(stride(layout), B, E))
 end
 
-function transform_layout(f::G, t1, t2) where {G}
-    R1 = length(t1)
-    R2 = length(t2)
-    R = (R1 < R2) ? R1 : R2
-    return make_layout(map(f, t1[1:R], t2[1:R])..., t1[(R + 1):end]..., t2[(R + 1):end]...)
+@generated function transform_layout(f, t1, t2)
+    R1 = rank(t1)
+    R2 = rank(t2)
+
+    expr = Expr(:call, :make_layout)
+    for i in 1:min(R1, R2)
+        push!(expr.args, Expr(:call, :f, :(t1[$i]), :(t2[$i])))
+    end
+
+    if R1 < R2
+        for i in (R1 + 1):R2
+            push!(expr.args, :(t2[$i]))
+        end
+    elseif R1 > R2
+        for i in (R2 + 1):R1
+            push!(expr.args, :(t1[$i]))
+        end
+    end
+
+    return expr
 end
 
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1}, new_stride)
