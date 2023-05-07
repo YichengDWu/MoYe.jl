@@ -351,7 +351,7 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
                     @eval @inline function fma!(op::$_struct_name, d, a, b, c)
                         val = op(a,b,c)
                         ptr = pointer(d)
-                        Base.Cartesian.@nexprs $d_sz i -> unsafe_store!(ptr, getfield(val, i), 1)
+                        Base.Cartesian.@nexprs $d_sz i -> unsafe_store!(ptr, getfield(val, i), i)
                         return d
                     end
                 end
