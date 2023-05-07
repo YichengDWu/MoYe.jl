@@ -103,12 +103,12 @@ Construct a static layout with the given shape and stride.
 """
 macro Layout(expr1, expr2=nothing)
     if expr2 === nothing
-        layout_call = :(make_layout($(static(expr1))))
+        layout_call = :(make_layout(static($expr1)))
     elseif expr2 isa Symbol
-        layout_call = :(make_layout($(static(expr1)), $expr2))
+        layout_call = :(make_layout(static($expr1), $expr2))
     else
         expr2
-        layout_call = :(make_layout($(static(expr1)), $(static(expr2))))
+        layout_call = :(make_layout(static($expr1), static($expr2)))
     end
     return layout_call
 end
