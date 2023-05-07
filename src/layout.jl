@@ -695,10 +695,8 @@ end
 
 @generated function safe_div(::StaticInt{N}, ::StaticInt{M}) where {N, M}
     R = div(N, M)
-    if R * M == N
-        return :(static($R))
-    end
-    throw(DimensionMismatch(LazyString("Cannot divide", N, "by", M)))
+    @assert R * M == N "Safe division failed"
+    return :($(StaticInt{R}()))
 end
 
 @inline safe_div(x::IntType, y::IntType) = div(x, y)
@@ -707,14 +705,14 @@ function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
     return make_layout(shape, stride)
 end
 function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-    return make_layout(shape_div(shape, shape_div(m, abs(stride))), shape_div(stride, m))
+    return make_layout(shape_div(shape, shape_div(m, static_abs(stride))), shape_div(stride, m))
 end
 function upcast(shape::IntType, stride::Int, m::StaticInt)
     return make_layout(shape, safe_div(stride, m))
 end
-function upcast(shape::Tuple, stride::Tuple, ::StaticInt{N}) where N
-    return let N=N
-        transform_layout((x,y)->upcast(x, y, static(N)), shape, stride)
+Base.@assume_effects :total function upcast(shape::Tuple, stride::Tuple, n::StaticInt)
+    return let n=n
+        transform_layout((x,y)->upcast(x, y, n), shape, stride)
     end
 end
 function upcast(layout::Layout, m::StaticInt)
@@ -734,9 +732,9 @@ function downcast(shape::IntType, stride::IntType, n::StaticInt)
     @inline
     return make_layout(shape, stride * n)
 end
-function downcast(shape::Tuple, stride::Tuple, ::StaticInt{N}) where {N}
-    return let N=N
-        transform_layout((x,y)->downcast(x,y,static(N)), shape, stride)
+Base.@assume_effects :total function downcast(shape::Tuple, stride::Tuple, n::StaticInt)
+    return let n=n
+        transform_layout((x,y)->downcast(x,y,n), shape, stride)
     end
 end
 function downcast(layout::Layout, m::StaticInt)

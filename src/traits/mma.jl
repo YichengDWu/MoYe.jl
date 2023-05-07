@@ -84,9 +84,9 @@ function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
     rB = recast(RegTypeB, B)
     rC = recast(RegTypeC, C)
 
-    @assert size(rD) == RegNumD
-    @assert size(rA) == RegNumA
-    @assert size(rB) == RegNumB
-    @assert size(rC) == RegNumC
+    @assert length(rD) == RegNumD
+    @assert length(rA) == RegNumA
+    @assert length(rB) == RegNumB
+    @assert length(rC) == RegNumC
     fma!(traits.mma_op, rD, rA, rB, rC)
 end
