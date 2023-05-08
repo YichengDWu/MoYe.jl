@@ -4,6 +4,7 @@ Mathematically, a `Layout` represents a function that maps a logical coordinate 
 
 For example, we can construct a vector with stride 2 
 ```@repl layout
+using MoYe
 struct StrideVector
    data
    layout
