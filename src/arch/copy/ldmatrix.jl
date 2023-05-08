@@ -36,41 +36,55 @@ julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
 !!! note
-    Would not work with LLVM 14
+    It has bugs with LLVM 14, but was fixed in LLVM 15.
 """
 AbstractLdMatrix
 
-function get_ld_type(d_sz, layout)
+function get_ld_type(dest_sz, layout)
     signature = layout == "" ? "N" : "T"
     e_type = signature == "N" ? "U32" : "U16"
-    sz = signature == "N" ? d_sz : 2d_sz
+    sz = signature == "N" ? dest_sz : 2dest_sz
     ld_type = "LDSM_$(e_type)x$(sz)_$signature"
     return ld_type
 end
 
 function get_ldmatrix_ops()
     ptr_type = LLVMPtr{UInt32, AS.Shared}
-    s_type, s_sz = UInt128, 1 # each thread provides a 128 bits pointer
-    dst_type = UInt32
+    src_type, src_sz = UInt128, 1 # each thread provides a 128 bits pointer
+    dest_type = UInt32
 
     ld_ops = []
-    for (d_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
-        ld_type = get_ld_type(d_sz, layout)
-        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$s_type, $s_sz}, Registers{$dst_type, $d_sz}} end
+    for (dest_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
+        ld_type = get_ld_type(dest_sz, layout)
+        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$src_type, $src_sz}, Registers{$dest_type, $dest_sz}} end
         #@eval export $(Symbol(ld_type))
 
-        intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(d_sz)$layout.b16"
+        intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(dest_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
 
-        llvm_struct = Symbol("LLVMStruct$d_sz")
-        ret_type = @eval $llvm_struct{$dst_type}
-        if isone(d_sz)
+        llvm_struct = Symbol("LLVMStruct$dest_sz")
+        ret_type = @eval $llvm_struct{$dest_type}
+        if isone(dest_sz)
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
-                return ccall($intrinsic, llvmcall, $dst_type, ($ptr_type,), src_addr)
+                return ccall($intrinsic, llvmcall, $dest_type, ($ptr_type,), src_addr)
+            end
+
+            @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
+                src_ptr = pointer(src)
+                val = op(recast(UInt32, src_ptr))
+                return unsafe_store!(dest, val, 1)
             end
         else
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
                 return ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), src_addr)
+            end
+
+            @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
+                src_ptr = pointer(src)
+                val = op(recast(UInt32, src_ptr))
+                dest_ptr = pointer(dest)
+                Base.Cartesian.@nexprs $dest_sz i -> unsafe_store!(dest_ptr, getfield(val, i), i)
+                return dest
             end
         end
     end

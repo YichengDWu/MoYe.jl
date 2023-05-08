@@ -44,9 +44,6 @@ if CUDA.functional() && MoYe.LLVM.version().major>=15
             end
 
             sync_threads()
-          #  cucopyto!(threadtile_smem_A, threadtile_A)
-         #   cucopyto!(threadtile_smem_B, threadtile_B)
-         #   cp_async_wait()
 
             smem_B′ = MoYe.transpose(smem_B) # (N, K) (8, 16)
 
@@ -60,29 +57,18 @@ if CUDA.functional() && MoYe.LLVM.version().major>=15
             ld_A = MoYe.LDSM_U32x4_N()
             ld_B = MoYe.LDSM_U32x2_N()
 
-            # load A from shared memory
             recasted_smem_A = recast(UInt128, smem_A) # 16x2
             recasted_smem_B = recast(UInt128, smem_B′) # 8x2
 
-            ptr_A = pointer(recasted_smem_A, Int(threadIdx().x))
-            ptr_B = pointer(recasted_smem_B, mod1(Int(threadIdx().x), 16))
-
-            recasted_ptr_A = recast(UInt32, ptr_A)
-            recasted_ptr_B = recast(UInt32, ptr_B)
-
-            llvmstruct_A = ld_A(recasted_ptr_A) # 4 UInt32
-            llvmstruct_B = ld_B(recasted_ptr_B) # 2 UInt32
+            # or parallelize then recast
+            copytile_smem_A = @parallelize recasted_smem_A @Layout((16, 2)) threadIdx().x
+            copytile_smem_B = @parallelize recasted_smem_B @Layout((8, 2)) threadIdx().x
 
             recasted_frag_A = recast(UInt32, frag_A)
             recasted_frag_B = recast(UInt32, frag_B)
 
-            recasted_frag_A[1] = getfield(llvmstruct_A, 1)
-            recasted_frag_A[2] = getfield(llvmstruct_A, 2)
-            recasted_frag_A[3] = getfield(llvmstruct_A, 3)
-            recasted_frag_A[4] = getfield(llvmstruct_A, 4)
-
-            recasted_frag_B[1] = getfield(llvmstruct_B, 1)
-            recasted_frag_B[2] = getfield(llvmstruct_B, 2)
+            copyto!(ld_A, recasted_frag_A, copytile_smem_A)
+            copyto!(ld_B, recasted_frag_B, copytile_smem_B)
 
             # good syntax here
             traits = MoYe.MMATraits{MoYe.MMAOP_16x8x16_F16F16F16F16_TN}()
@@ -93,6 +79,7 @@ if CUDA.functional() && MoYe.LLVM.version().major>=15
 
             row, col = fldmod1(Int(threadIdx().x), 4)
 
+            # awkward manual indexing
             recasted_moye_C[row, col] = recasted_frag_C[1]
             recasted_moye_C[row+8, col] = recasted_frag_C[2]
             return nothing

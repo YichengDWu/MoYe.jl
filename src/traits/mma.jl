@@ -61,10 +61,6 @@ function MMATraits{UniversalFMA{D, A, B, C}}() where {D, A, B, C}
                                                            Clayout)
 end
 
-# used for dispatching
-const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
-const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
-
 # again, default implementation, Hooper would need to specialize on it
 function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
                      D::LocalArray{TD}, A::LocalArray{TA},
