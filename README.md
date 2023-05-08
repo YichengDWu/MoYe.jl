@@ -11,5 +11,5 @@ The name **Mo Ye** is derived from an ancient Chinese [legend of swordsmiths](ht
 
 ## Installation
 ```julia
-pkg> add https://github.com/YichengDWu/MoYe.jl
+pkg> add MoYe
 ```
