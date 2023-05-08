@@ -1,12 +1,24 @@
 # Layout 
 
-Mathematically, a `Layout` represents a function that maps logical coordinates to physical 1-D index spaces. It consists of a `Shape` and a `Stride`, wherein the `Shape` determines the domain, and the `Stride` establishes the mapping through an inner product.
+Mathematically, a `Layout` represents a function that maps a logical coordinate to a 1-D index space that can be used to index into an array. It consists of a `shape` and a `stride`, wherein the `shape` determines the domain, and the `stride` establishes the mapping through an inner product. `shape` and `stride`  are both defined by (recursive) tuples of integers.
+
+For example, we can construct a vector with stride 2 
+```@repl layout
+struct StrideVector
+   data
+   layout
+end
+
+Base.getindex(x::StrideVector, i) = x.data[x.layout(i)]
+a = StrideVector(collect(1:8), Layout(4, 2))
+@show a[1] a[2] a[3] a[4];
+```
 
 ## Constructing a `Layout`
 
 ```@repl layout
 using MoYe
-layout_2x4 = make_layout((2, (2, 2)), (4, (1, 2)))
+layout_2x4 = Layout((2, (2, 2)), (4, (1, 2)))
 print("Shape: ", shape(layout_2x4))
 print("Stride: ", stride(layout_2x4))
 print("Size: ", size(layout_2x4)) # the domain is (1,2,...,8)
@@ -26,6 +38,27 @@ typeof(static_layout)
 sizeof(static_layout)
 
 ```
+
+#### Different results from static Layout vs dynamic Layout
+
+It is expected to get results that appears to be different when the layout 
+is static or dynamic. For example,
+
+```@repl layout
+layout = @Layout (2, (1, 6)) (1, (6, 2)) 
+print(coalesce(layout))
+```
+
+is different from
+
+```@repl layout
+layout = Layout((2, (1, 6)), (1, (6, 2))) 
+print(coalesce(layout))
+```
+But they **are** mathematically equivalent. Static information allows us to simplify the
+result as much as possible, whereas dynamic layouts result in dynamic checking hence type 
+instability. 
+
 ## Coordinate space
 
 The coordinate space of a `Layout` is determined by its `Shape`. This coordinate space can be viewed in three different ways:
@@ -65,7 +98,7 @@ print(flatten(layout))
 ### Coalesce
 
 ```@repl layout
-layout = @Layout (2, (1, 6)) (1, (6, 2)) # layout has to be static
+layout = @Layout (2, (1, 6)) (1, (6, 2)) 
 print(coalesce(layout))
 ```
 
