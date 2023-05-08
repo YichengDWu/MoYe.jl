@@ -16,6 +16,8 @@ function Base.propertynames(::AbstractLdMatrix)
 end
 
 """
+    copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
+
 Load data from shared memory to registers. The available `AbstractLdMatrix`s are:
 
 ```julia
@@ -27,7 +29,7 @@ Load data from shared memory to registers. The available `AbstractLdMatrix`s are
 "LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
 "LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
 ```
-You can inspect the number and the type of  registers are used per thread by
+You can inspect the number and the type of  registers used per thread by
 ```julia
 julia> LDSM_U32x4_N()
 LD_U32x4_N()
@@ -36,9 +38,9 @@ julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
 !!! note
-    It has bugs with LLVM 14, but was fixed in LLVM 15.
+    It has bugs in LLVM 14, but was fixed in LLVM 15.
 """
-AbstractLdMatrix
+copyto!
 
 function get_ld_type(dest_sz, layout)
     signature = layout == "" ? "N" : "T"
