@@ -1,22 +1,26 @@
 
 using Test, MoYe, CUDA
 
+@inline _getfirst(x::UInt32) = x
+@inline _getfirst(x) = getfield(x, 1)
+
 if CUDA.functional() && MoYe.LLVM.version().major>=15
     @testset "Compile to LLVM" begin
         function kernel(op)
-            A = CuStaticSharedArray(UInt16, (64,))
-            a_frag = load(op, pointer(A))
-            @cushow Float32(sum(a_frag))
+            A = MoYeSharedArray(UInt32, @Layout((32,32)))
+            a_frag = op(pointer(A, Int(threadIdx().x)*4))
+            @cushow Float32(_getfirst(a_frag))
             return nothing
         end
 
         op_to_intrinsic = Dict(MoYe.get_ldmatrix_ops())
-        for op in Main.subtypes(MoYe.LdMatrix)
+        for op_name in keys(op_to_intrinsic)
+            op = @eval MoYe.$(Symbol(op_name))
             buf = IOBuffer()
-            @device_code_llvm io = buf @cuda threads=1 kernel(op())
+            @device_code_llvm io = buf @cuda launch=false kernel(op())
             asm = String(take!(copy(buf)))
 
-            @test occursin(op_to_intrinsic["$op"], asm)
+            @test occursin(op_to_intrinsic[op_name], asm)
         end
     end
 
