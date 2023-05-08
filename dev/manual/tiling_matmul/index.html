@@ -48,20 +48,19 @@ moye_A = MoYeArray(pointer(A), (M, K))
 moye_B = MoYeArray(pointer(B), (N, K))
 moye_C = MoYeArray(pointer(C), (M, N))
 
-GC.@preserve A B C begin
-    Threads.@threads :static for i in 1:Threads.nthreads()
-        tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)
-        tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, static(1))
-        tile_C = @parallelize moye_C threadlayout Threads.threadid()
+Threads.@threads :static for i in 1:Threads.nthreads()
+    tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)
+    tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, static(1))
+    tile_C = @parallelize moye_C threadlayout Threads.threadid()
 
-        for k in axes(tile_A, 2)
-            for m in axes(tile_C, 1)
-                for n in axes(tile_C, 2)
-                    tile_C[m, n] += tile_A[m, k] * tile_B[n, k]
-                end
+    for k in axes(tile_A, 2)
+        for m in axes(tile_C, 1)
+            for n in axes(tile_C, 2)
+                tile_C[m, n] += tile_A[m, k] * tile_B[n, k]
             end
         end
     end
 end
 
-C ≈ A * transpose(B)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../layout/">« Layout</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 7 May 2023 23:39">Sunday 7 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+
+C ≈ A * transpose(B)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../layout/">« Layout</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Monday 8 May 2023 02:06">Monday 8 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
