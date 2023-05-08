@@ -238,3 +238,8 @@ function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType
         return MoYeArray(recast(NewType, pointer(x)), new_layout)
     end
 end
+
+
+# used for dispatching
+const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
+const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
