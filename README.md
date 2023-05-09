@@ -15,7 +15,7 @@ pkg> add MoYe
 ```
 
 ## Quick Start
-``julia
+```julia
 julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
 6×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{6}, Static.StaticInt{8}}, Tuple{Static.StaticInt{1}, Static.StaticInt{6}}}}:
  1   7  13  19  25  31  37  43
