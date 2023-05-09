@@ -25,13 +25,13 @@ julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
 
-julia> subtile_a = @tile a static((3,4)) (1, 2)
+julia> subtile_a = @tile a static((3,4)) (1, 2) # partition a into subtiles of shape 3 x 4, returns the subtile at (1,2)
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{4}}, Tuple{Static.StaticInt{1}, Static.StaticInt{6}}}}:
  25  31  37  43
  26  32  38  44
  27  33  39  45
 
-julia> workitems_a = @parallelize subtile_a static((3,2)) (1,1)
+julia> workitems_a = @parallelize subtile_a static((3,2)) (1,1) # 3 x 2 threads, returns what thread (1,1) is working on
 1×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{1}, Static.StaticInt{2}}, Tuple{Static.StaticInt{0}, Static.StaticInt{12}}}}:
  25  37
 
