@@ -47,4 +47,10 @@ julia> a
  4  10  16  22  28  34  40  46
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
+ 
+ julia> @tile subtile_a static((3,1)) (1, 2) # if you want, you can always tile a subtile
+3×1 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{1}}, Tuple{Static.StaticInt{1}, Static.StaticInt{0}}}}:
+ 31
+ 32
+ 33
  ```
