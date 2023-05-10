@@ -105,14 +105,13 @@ Threads.@threads :static for i in 1:Threads.nthreads()
     tile_C = @parallelize moye_C threadlayout Threads.threadid()
 
     for k in axes(tile_A, 2)
-        for m in axes(tile_C, 1)
-            for n in axes(tile_C, 2)
+        for n in axes(tile_C, 2)
+            for m in axes(tile_C, 1)
                 tile_C[m, n] += tile_A[m, k] * tile_B[n, k]
             end
         end
     end
 end
-
 
 C ≈ A * transpose(B)
 ```
