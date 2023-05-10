@@ -18,7 +18,7 @@ BroadcastStyle(a::MoYeArrayStyle{N,S,R}, b::MoYeArrayStyle{N,S,R}) where {N,S,R}
 end
 
 # currently only defined for static layouts. Note how we instantiate the layout with types
-function Base.similar(bc::Broadcasted{MoYeArrayStyle{N,S,R}}, ::Type{ElType}) where {ElType, N, S, R}
+@inline function Base.similar(bc::Broadcasted{MoYeArrayStyle{N,S,R}}, ::Type{ElType}) where {ElType, N, S, R}
     return MoYeArray{ElType}(undef, Layout(make_tuple(S), make_tuple(R)))
 end
 
