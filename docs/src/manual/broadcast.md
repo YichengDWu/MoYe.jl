@@ -1,20 +1,21 @@
 # Broadcasting
 
-For now only [`MoYeArray`](@ref) with static layouts are supported.
+Broadcasting is only defined for [`MoYeArray`](@ref)s with static sizes. 
+
+Out-of-place broadcasting always returns a owning array with a col-major compact layout. 
+Because the stride order of the original array is not respected, the performance can be suboptimal.
 
 ```@repl bc
 using MoYe
-a = MoYeArray{Float64}(undef, @Layout((3,2)))
+a = MoYeArray{Float64}(undef, @Layout((3,2), (2,1)))
 fill!(a, 1.0)
 a .* 3
 a .+ a
 ```
 
-Note that if `ndims(a)>ndims(b)`, the layout of `a` wins.
-
 ```@repl bc
-b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) # the stride is 2
-a .- b # but the layout of b is ignored
+b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) # Create a vector
+a .- b 
 ```
 
 Broadcasting on device should also work:

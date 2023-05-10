@@ -88,6 +88,11 @@ end
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
+const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static
+const StaticOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ArrayEngine, L}
+const StaticNonOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ViewEngine, L}
+const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
+const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
 
 engine(x::MoYeArray) = getfield(x, :engine)
 layout(x::MoYeArray) = getfield(x, :layout)
@@ -101,6 +106,20 @@ layout(x::MoYeArray) = getfield(x, :layout)
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
 @inline shape(x::MoYeArray) = shape(layout(x))
+
+# static interface
+@inline function StaticArrayInterface.static_size(x::StaticMoYeArray{T,N,<:ViewEngine}) where {T,N}
+    return map(capacity, shape(layout(x)))
+end
+@inline StaticArrayInterface.static_size(x::StaticMoYeArray) = static_size(MoYeArray(pointer(x), layout(x)))
+
+@inline function StaticArrayInterface.static_axes(x::StaticMoYeArray{T,N,<:ViewEngine}) where {T,N}
+    return map(Base.oneto, static_size(x))
+end
+@inline StaticArrayInterface.static_axes(x::StaticMoYeArray) = static_axes(MoYeArray(pointer(x), layout(x)))
+
+@inline Base.axes(x::StaticMoYeArray) = static_axes(x)
+@inline Base.axes(x::StaticMoYeArray, i::StaticInt) = static_axes(x, i)
 
 @inline function ManualMemory.preserve_buffer(A::MoYeArray)
     return ManualMemory.preserve_buffer(engine(A))
@@ -238,8 +257,3 @@ function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType
         return MoYeArray(recast(NewType, pointer(x)), new_layout)
     end
 end
-
-
-# used for dispatching
-const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
-const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}

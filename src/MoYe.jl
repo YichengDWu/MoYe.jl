@@ -4,6 +4,8 @@ using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
 import Static
 import ManualMemory, LayoutPointers
 import StrideArraysCore
+import StaticArrayInterface
+using StrideArraysCore: static_length, static_size, static_axes
 using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
 using LLVMLoopInfo
