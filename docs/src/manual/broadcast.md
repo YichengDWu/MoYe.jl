@@ -2,7 +2,7 @@
 
 Broadcasting is only defined for [`MoYeArray`](@ref)s with static sizes. 
 
-Out-of-place broadcasting always returns a owning array with a col-major compact layout. 
+Out-of-place broadcasting always returns an owning array with a col-major compact layout. 
 Because the stride order of the original array is not respected, the performance can be suboptimal.
 
 ```@repl bc
