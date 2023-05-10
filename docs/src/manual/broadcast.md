@@ -17,7 +17,8 @@ b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) # the stride is 2
 a .- b # but the layout of b is ignored
 ```
 
-There is limited support for broadcasting on device:
+Broadcasting on device should also work:
+
 ```julia
 julia> function f()
            a = MoYeArray{Float64}(undef, @Layout((3,2)))
