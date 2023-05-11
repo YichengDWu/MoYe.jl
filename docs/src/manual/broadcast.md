@@ -17,8 +17,8 @@ a .+ a
 b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) # Create a vector
 a .- b 
 ```
-
-Broadcasting on device should also work:
+## On GPU
+Broadcasting on device should just work:
 
 ```julia
 julia> function f()
