@@ -45,6 +45,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
+      pages: write
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
