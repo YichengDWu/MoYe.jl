@@ -92,13 +92,6 @@ moye_A = MoYeArray(pointer(A), (M, K))
 moye_B = MoYeArray(pointer(B), (N, K))
 moye_C = MoYeArray(pointer(C), (M, N))
 
-tile_A = @parallelize moye_A threadlayout 1 (static(1), :)
-tile_B = @parallelize moye_B threadlayout 1 (:, static(1))
-
-moye_A = MoYeArray(pointer(A), (M, K))
-moye_B = MoYeArray(pointer(B), (N, K))
-moye_C = MoYeArray(pointer(C), (M, N))
-
 Threads.@threads :static for i in 1:Threads.nthreads()
     tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)
     tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, static(1))
