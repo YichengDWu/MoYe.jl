@@ -71,6 +71,7 @@ julia> x
  10.0
   7.57f-43
  -9.8271385f-36
+```
 """
 mutable struct ArrayEngine{T, L} <: DenseVector{T}
     data::NTuple{L, T}
