@@ -1,4 +1,4 @@
-using MoYe, CUDA
+using MoYe, CUDA, Test
 
 function f()
     a = MoYeArray{Float64}(undef, @Layout((3,2)))
@@ -11,5 +11,5 @@ function f()
 end
 
 if CUDA.functional()
-    @cuda f()
+    @test_nowarn @cuda f()
 end

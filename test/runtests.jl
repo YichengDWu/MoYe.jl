@@ -20,6 +20,7 @@ end
     @safetestset "MMATraits" begin include("device/mmatraits.jl") end
     @safetestset "Pointer" begin include("device/pointer.jl") end
     @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
+    @safetestset "Broadcast" begin include("device/broadcast.jl") end
 end
 
 @testset "Examples" begin
