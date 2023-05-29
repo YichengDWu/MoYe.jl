@@ -55,3 +55,13 @@ julia> a
  32
  33
  ```
+ 
+ # Current Status
+ 
+ `Vectorized Copy & copy_async`: Array-Level Support - see [cucopyto!](https://github.com/YichengDWu/MoYe.jl/blob/main/src/algorithm/copy.jl#L36)
+ 
+ `ldmatrix`: Arch-Level Support - see [ldmatrix](https://github.com/YichengDWu/MoYe.jl/blob/main/src/arch/copy/ldmatrix.jl#L18)
+ 
+ `Tensor Core MMA`: Traits-Level Support - see [mma_unpack](https://github.com/YichengDWu/MoYe.jl/blob/main/test/device/mmatraits.jl#L67)
+ 
+One of the future goals for this project is to enhance the copy operations and mma to Atom-Level Support. For an explanation of terms such as Arch-Level, Traits-Level, and Atom-Level, please refer to NVIDIA's [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cute/00_quickstart.md) documentation. The development of higher-level APIs has been paused due to lack of spare time, but remains a future ambition for the project when it resumes. Contributions from the community are very much welcome and encouraged. If you're interested in helping out, please don't hesitate to get in touch or submit a pull request. 
