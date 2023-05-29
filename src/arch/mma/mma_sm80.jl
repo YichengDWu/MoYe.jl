@@ -47,7 +47,7 @@ MoYe.Registers{Float32, 4}
     Do not use `mma` with `wmma.load` together. Their data layouts do not agree.
     The correct execution chain is ldmatrix + mma.
 """
-function mma end
+function fma! end
 
 # PTX types to LLVM types for registers
 const ptx_to_llvm_reg = Dict(
