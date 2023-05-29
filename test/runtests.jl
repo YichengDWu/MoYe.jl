@@ -18,7 +18,7 @@ end
     @safetestset "Memory" begin include("device/memory.jl") end
     @safetestset "MMA" begin include("device/mmaop.jl") end
     @safetestset "MMATraits" begin include("device/mmatraits.jl") end
-    @safetestset "Pointer" begin include("device/pointer.jl") endss
+    @safetestset "Pointer" begin include("device/pointer.jl") end
     @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
     @safetestset "Broadcast" begin include("device/broadcast.jl") end
 end
@@ -26,6 +26,4 @@ end
 @testset "Examples" begin
     @safetestset "Tiling MatMul" begin include("examples/tiling_matmul.jl") end
     @safetestset "Copy Async" begin include("examples/copy_async.jl") end
-end
-
 end
