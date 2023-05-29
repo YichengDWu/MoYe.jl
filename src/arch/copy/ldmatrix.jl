@@ -38,7 +38,7 @@ julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
 !!! note
-    It has bugs in LLVM 14, but was fixed in LLVM 15.
+    These intrinsics have bugs in LLVM 14, but was fixed in LLVM 15.
 """
 copyto!
 
