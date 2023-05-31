@@ -4,6 +4,7 @@
 all kinds of special arrays. For example, we can create a `FillArray`-like array
 
 ```@repl array
+using MoYe
 MoYeArray{Float64}(one, @Layout((3,4), (0, 0)))
 ans.engine
 ```
