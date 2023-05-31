@@ -86,6 +86,6 @@ if CUDA.functional()
     C = transpose(CUDA.rand(Float16, 8, 16)) # row-major, this is awkward
     @cuda threads=32 kernel(A,B,C, smemlayout_A, smemlayout_B, thread_layout)
     CUDA.synchronize()
-    @test A * B ≈ C
+    @test Array(A*B) ≈ Array(C)
     end
 end

@@ -23,6 +23,19 @@ end
     @test ca2.engine isa ViewEngine
 end
 
+@testset "Static indexing" begin
+    A = MoYeArray{Float64}(undef, @Layout((3,4)))
+    @test A[static(1)] == A[1]
+    A[static(1)] = 1.0
+    @test A[static(1)] == 1.0
+
+    data = rand(3,4)
+    B = MoYeArray(pointer(data), @Layout((3,4)))
+    @test B[static(1)] == B[1]
+    B[static(1)] = 1.0
+    @test B[static(1)] == 1.0
+end
+
 @testset "Array Operations" begin
     @testset "View" begin
         ca = MoYeArray{Float32}(undef, static((2, 3)))

@@ -31,20 +31,20 @@ end
     return Base.unsafe_convert(p, pointer(A))
 end
 
-@inline function Base.getindex(A::ViewEngine{T, <:LLVMPtr{T}}, i::Integer) where {T}
+@inline function Base.getindex(A::ViewEngine{T, <:LLVMPtr{T}}, i::IntType) where {T}
     align = Base.datatype_alignment(T)
-    return unsafe_load(pointer(A), i, Val(align))
+    return unsafe_load(pointer(A), dynamic(i), Val(align))
 end
-@inline function Base.getindex(A::ViewEngine{T}, i::Integer) where {T}
-    return unsafe_load(pointer(A), i)
+@inline function Base.getindex(A::ViewEngine{T}, i::IntType) where {T}
+    return unsafe_load(pointer(A), dynamic(i))
 end
 
-@inline function Base.setindex!(A::ViewEngine{T, <:LLVMPtr{T}}, val, i::Integer) where {T}
+@inline function Base.setindex!(A::ViewEngine{T, <:LLVMPtr{T}}, val, i::IntType) where {T}
     align = Base.datatype_alignment(T)
-    return unsafe_store!(pointer(A), val, i, Val(align))
+    return unsafe_store!(pointer(A), val, dynamic(i), Val(align))
 end
-@inline function Base.setindex!(A::ViewEngine{T}, val, i::Integer) where {T}
-    return unsafe_store!(pointer(A), val, i)
+@inline function Base.setindex!(A::ViewEngine{T}, val, i::IntType) where {T}
+    return unsafe_store!(pointer(A), val, dynamic(i))
 end
 
 @inline ManualMemory.preserve_buffer(::ViewEngine) = nothing
@@ -110,13 +110,13 @@ end
     return ManualMemory.preserve_buffer(getfield(A, :data))
 end
 
-Base.@propagate_inbounds function Base.getindex(A::ArrayEngine, i::Integer)
+Base.@propagate_inbounds function Base.getindex(A::ArrayEngine, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] end
 end
 
-Base.@propagate_inbounds function Base.setindex!(A::ArrayEngine, val, i::Integer)
+Base.@propagate_inbounds function Base.setindex!(A::ArrayEngine, val, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
     GC.@preserve b begin ViewEngine(A)[i] = val end

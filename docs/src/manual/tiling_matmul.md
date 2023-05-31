@@ -26,9 +26,9 @@ A = reshape([i for i in 1:(M*K)], (M, K))
 B = reshape([i for i in 1:(N*K)], (N, K))
 C = zeros(Int, M, N)
 
-moye_A = MoYeArray(pointer(A), (M, K))
-moye_B = MoYeArray(pointer(B), (N, K))
-moye_C = MoYeArray(pointer(C), (M, N))
+moye_A = MoYeArray(A, (M, K))
+moye_B = MoYeArray(B, (N, K))
+moye_C = MoYeArray(C, (M, N))
 ```
 After setting up the initial matrices and thread layouts, we can proceed with the tiling process. The [`@parallelize`](@ref) macro is used with a fourth argument, which is the projection. Specifically, the thread IDs of all columns in the thread layout are projected onto the first column, and only the first column is used for tiling. The static(1) is just a placeholder, representing the dimensions that are preserved in the projection.
 
@@ -88,9 +88,9 @@ C = zeros(M, N)
 
 threadlayout = @Layout (4, 4)
 
-moye_A = MoYeArray(pointer(A), (M, K))
-moye_B = MoYeArray(pointer(B), (N, K))
-moye_C = MoYeArray(pointer(C), (M, N))
+moye_A = MoYeArray(A, (M, K))
+moye_B = MoYeArray(B, (N, K))
+moye_C = MoYeArray(C, (M, N))
 
 Threads.@threads :static for i in 1:Threads.nthreads()
     tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)

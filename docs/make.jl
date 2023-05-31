@@ -14,6 +14,7 @@ makedocs(; modules=[MoYe],
             "Home" => "index.md",
             "Manual" => [
                 "Layout" => "manual/layout.md",
+                "Array" => "manual/array.md",
                 "Broadcasting" => "manual/broadcast.md",
                 "Tiling MatMul" => "manual/tiling_matmul.md",
                 "Data Movement" => [
