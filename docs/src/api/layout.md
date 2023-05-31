@@ -13,8 +13,11 @@ Pages = ["layout.md"]
 ```@docs
 @Layout
 make_layout
-make_ordered_layout
-make_fragment_like
+size
+rank
+stride
+shape
+cosize
 ```
 
 ## Product
