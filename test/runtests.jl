@@ -13,6 +13,7 @@ using Test, SafeTestsets
 end
 
 @safetestset "Tiling" begin include("tiling.jl") end
+@safetestset "Copy" begin include("copy.jl") end
 
 @testset "Device" begin
     @safetestset "Memory" begin include("device/memory.jl") end

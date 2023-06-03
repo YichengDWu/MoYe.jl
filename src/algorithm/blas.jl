@@ -98,8 +98,8 @@ function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::SharedArray{D
     rB = make_fragment_B(mma_atom, B)
 
     @loopinfo unroll for k in axes(A,3)
-        cucopyto!(view(rA, :, :, k), view(A, :, :, k))
-        cucopyto!(view(rB, :, :, k), view(B, :, :, k))
+        copyto!(view(rA, :, :, k), view(A, :, :, k))
+        copyto!(view(rB, :, :, k), view(B, :, :, k))
         gemm!(mma_atom, D, view(rA, :, :, k), view(rB, :, :, k), C)  # (3,2,2,3)
     end
 end

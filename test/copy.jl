@@ -22,8 +22,8 @@ using Core: LLVMPtr
         @testset "Parallized Copy" begin
             function parallelized_copy(a, b, thread_layout)
                 for i in One():size(thread_layout) # on gpu this is parallelized instead of sequential
-                    thread_tile_a = local_partition(a, thread_layout, i)
-                    thread_tile_b = local_partition(b, thread_layout, i)
+                    thread_tile_a = @parallelize a thread_layout i
+                    thread_tile_b = @parallelize b thread_layout i
                     display(thread_tile_a)
                     MoYe.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
@@ -61,18 +61,20 @@ using Core: LLVMPtr
             y = MoYeArray(pb, @Layout((4,2)))
 
             GC.@preserve b a begin
-                cucopyto!(y, x) # should recast to UInt128
+                copyto!(y, x) # should recast to UInt128
                 @test y == x
             end
+
+            @test_deprecated cucopyto!(y, x)
         end
 
         @testset "Parallized Copy" begin
             function parallelized_copy(a, b, thread_layout)
                 for i in One():size(thread_layout) # on gpu this is parallelized instead of sequential
-                    thread_tile_a = local_partition(a, thread_layout, i)
-                    thread_tile_b = local_partition(b, thread_layout, i)
+                    thread_tile_a = @parallelize a thread_layout i
+                    thread_tile_b = @parallelize b thread_layout i
                     display(thread_tile_a)
-                    cucopyto!(thread_tile_b, thread_tile_a)
+                    copyto!(thread_tile_b, thread_tile_a)
                 end
             end
 

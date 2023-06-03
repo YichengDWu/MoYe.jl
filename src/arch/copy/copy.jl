@@ -1,4 +1,4 @@
-abstract type AbstractCPOP{SRegisters, DRegisters} <: PTXOperatrion end
+abstract type AbstractCPOP{SRegisters, DRegisters} <: PTXOperation end
 
 @inline Adapt.adapt(to, x::AbstractCPOP) = x
 

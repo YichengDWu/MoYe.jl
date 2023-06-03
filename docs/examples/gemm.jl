@@ -39,8 +39,8 @@ function gemme_kernel(A, blocklayout_A, threadlayout_A,
 
     for k in 1:k_max
         # copy gmem to smem
-        cucopyto!(threadtile_a, view(threadtile_A, (:, :, k)))
-        cucopyto!(threadtile_b, view(threadtile_B, (:, :, k)))
+        copyto!(threadtile_a, view(threadtile_A, (:, :, k)))
+        copyto!(threadtile_b, view(threadtile_B, (:, :, k)))
         cp_async_wait()
         sync_threads()
         MoYe.gemm!(computetile_A, computetile_B, frg_c) # (2,2,2)

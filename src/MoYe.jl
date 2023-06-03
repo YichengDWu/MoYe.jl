@@ -47,6 +47,9 @@ include("atom/mma.jl")
 include("algorithm/copy.jl")
 include("algorithm/blas.jl")
 
+# Deprecations
+include("deprecated.jl")
+
 # rexport
 export static, @gc_preserve
 

@@ -58,7 +58,7 @@ julia> a
  
  # Current Status
  
- `Vectorized Copy & copy_async`: Array-Level Support - see [cucopyto!](https://github.com/YichengDWu/MoYe.jl/blob/main/src/algorithm/copy.jl#L36)
+ `Vectorized Copy & copy_async`: Array-Level Support - see [copyto!](https://github.com/YichengDWu/MoYe.jl/blob/main/src/algorithm/copy.jl#L36)
  
  `ldmatrix`: Arch-Level Support - see [ldmatrix](https://github.com/YichengDWu/MoYe.jl/blob/main/src/arch/copy/ldmatrix.jl#L18)
  
