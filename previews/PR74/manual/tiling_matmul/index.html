@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tiling MatMul · MoYe.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tiling_matmul/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li class="is-active"><a class="tocitem" href>Tiling MatMul</a></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Data Movement</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../datamovement/gs/">Global Memory &amp; Shared Memory</a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tiling MatMul</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tiling MatMul</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tiling_matmul.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tiling-MatMul"><a class="docs-heading-anchor" href="#Tiling-MatMul">Tiling MatMul</a><a id="Tiling-MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#Tiling-MatMul" title="Permalink"></a></h1><p>This tutorial demonstrates how to perform matrix multiplication <code>C = A * B^T + C</code> using tiling techniques on CPU.</p><p>We follow the convention where the shape of matrix <code>A</code> is <code>(M, K)</code>, matrix <code>B</code> is <code>(N, K)</code>, and matrix <code>C</code> is <code>(M, N)</code>.</p><p>First, we launch Julia with 16 threads:</p><pre><code class="language-julia hljs">julia --threads 16</code></pre><p>Correspondingly, we use a thread layout of</p><pre><code class="language-julia hljs">threadlayout = @Layout (4, 4)</code></pre><p>We start with a simple example, where <code>M = 4, N = 4</code>, and <code>K = 8</code>. In this case, each thread processes one element of matrix <code>C</code>.</p><pre><code class="language-julia hljs">M = 4
+N = 4
+K = 8
+A = reshape([i for i in 1:(M*K)], (M, K))
+B = reshape([i for i in 1:(N*K)], (N, K))
+C = zeros(Int, M, N)
+
+moye_A = MoYeArray(A, (M, K))
+moye_B = MoYeArray(B, (N, K))
+moye_C = MoYeArray(C, (M, N))</code></pre><p>After setting up the initial matrices and thread layouts, we can proceed with the tiling process. The <a href="../../api/tiling/#MoYe.@parallelize"><code>@parallelize</code></a> macro is used with a fourth argument, which is the projection. Specifically, the thread IDs of all columns in the thread layout are projected onto the first column, and only the first column is used for tiling. The static(1) is just a placeholder, representing the dimensions that are preserved in the projection.</p><pre><code class="language-julia hljs">threadlayout = @Layout (4, 4)
+tile_A = @parallelize moye_A threadlayout 1 (static(1), :)
+tile_B = @parallelize moye_B threadlayout 1 (:, static(1))</code></pre><p>Let&#39;s take a look at the contents of tile_A:</p><pre><code class="language-julia hljs">julia&gt; tile_A = @parallelize moye_A threadlayout 1 (static(1), :)
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 1  5  9  13  17  21  25  29</code></pre><p>Thread 1 processes the element in the first row and first column of <code>C</code>, and it needs the elements in the first row of <code>A</code>, which are the contents printed above. Let&#39;s see all the elements of <code>A</code> that Thread 2 needs:</p><pre><code class="language-julia hljs">julia&gt; tile_A = @parallelize moye_A threadlayout 2 (static(1), :)
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 2  6  10  14  18  22  26  30</code></pre><p>This is exactly the second row of <code>A</code>. What about Thread 5? It is processing the entry at the first row and second column of <code>C</code>, so it also needs the first row of <code>A</code>.</p><pre><code class="language-julia hljs">julia&gt; tile_A = @parallelize moye_A threadlayout 5 (static(1), :)
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 1  5  9  13  17  21  25  29</code></pre><p>Great, this is exactly what we want. Now let&#39;s look at <code>tile_B</code>. Threads 1 and 2 both need the first column of <code>B^T</code>, while Thread 5 needs the second column of <code>B^T</code>.</p><pre><code class="language-julia hljs">julia&gt; tile_B = @parallelize moye
+
+julia&gt; tile_B = @parallelize moye_B threadlayout 1 (:, static(1))
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 1  5  9  13  17  21  25  29
+
+julia&gt; tile_B = @parallelize moye_B threadlayout 2 (:, static(1))
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 1  5  9  13  17  21  25  29
+
+julia&gt; tile_B = @parallelize moye_B threadlayout 5 (:, static(1))
+1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
+ 2  6  10  14  18  22  26  30</code></pre><p>Once the tiling is done, we perform the matrix multiplication using three native loops. The outer loop iterates over the reduction mode <code>K</code>, while the inner two loops handle the row and column indices of the resulting matrix C. These loops are responsible for the actual computation of matrix C&#39;s elements by multiplying the corresponding elements of matrices A and B.</p><pre><code class="language-julia hljs">M = 4*32
+N = 4*32
+K = 8*32
+A = rand(M, K)
+B = rand(N, K)
+C = zeros(M, N)
+
+threadlayout = @Layout (4, 4)
+
+moye_A = MoYeArray(A, (M, K))
+moye_B = MoYeArray(B, (N, K))
+moye_C = MoYeArray(C, (M, N))
+
+Threads.@threads :static for i in 1:Threads.nthreads()
+    tile_A = @parallelize moye_A threadlayout Threads.threadid() (static(1), :)
+    tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, static(1))
+    tile_C = @parallelize moye_C threadlayout Threads.threadid()
+
+    for k in axes(tile_A, 2)
+        for n in axes(tile_C, 2)
+            for m in axes(tile_C, 1)
+                tile_C[m, n] += tile_A[m, k] * tile_B[n, k]
+            end
+        end
+    end
+end
+
+C ≈ A * transpose(B)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 3 June 2023 02:15">Saturday 3 June 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
