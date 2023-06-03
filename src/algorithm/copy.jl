@@ -1,14 +1,14 @@
 struct TrivialPred end
 @inline Base.getindex(::TrivialPred, i) = true
 
-@inline function copyifto!(dest::MoYeArray, src::MoYeArray, mask)
+@inline function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @loopinfo unroll  for i in One():size(src.layout)
         if mask[i]
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
     end
-    return nothing
+    return dest
 end
 
 @inline function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
@@ -16,15 +16,15 @@ end
         src_v = recast(TV, src)
         dest_v = recast(TV, dest)
         #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
-        copyifto!(dest_v, src_v, TrivialPred())
+        copyto_if!(dest_v, src_v, TrivialPred())
     else
-        copyifto!(dest, src, TrivialPred())
+        copyto_if!(dest, src, TrivialPred())
     end
-    return nothing
+    return dest
 end
 
 """
-    cucopyto!(dest::MoYeArray, src::MoYeArray)
+    copyto!(dest::StaticNonOwningArray, src::StaticNonOwningArray)
 
 Copy the contents of `src` to `dest`. The function automatically carries out potential
 vectorization. In particular, while transferring data from global memory to shared memory,
@@ -33,14 +33,14 @@ it automatically initiates asynchronous copying, if your device supports so.
 !!! note
     It should be used with @gc_preserve if `dest` or `src` is powered by an ArrayEngine.
 """
-@inline function cucopyto!(dest::MoYeArray{TD}, src::MoYeArray{TS}) where {TD,TS}
+function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
     if N ≤ 1
-        return copyifto!(dest, src, TrivialPred())
+        return copyto_if!(dest, src, TrivialPred())
     else
         vec_bits = N * sizeof(TS) * 8
         TV = uint_bit(static(min(128, vec_bits)))
         return copyto_vec!(dest, src, TV)
     end
-    return nothing
+    return dest
 end

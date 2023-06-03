@@ -11,7 +11,7 @@ Pages = ["copy.md"]
 
 
 ```@docs
-cucopyto!
+copyto!
 cp_async_wait
 cp_async_commit
 ```

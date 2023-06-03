@@ -1,8 +1,8 @@
-abstract type PTXOperatrion end
+abstract type PTXOperation end
 
-@inline apply(op::PTXOperatrion, args...) = op(args...)
+@inline apply(op::PTXOperation, args...) = op(args...)
 
-abstract type AbstractMMAOP{DRegisters, ARegisters, BRegisters, CRegisters} <: PTXOperatrion end
+abstract type AbstractMMAOP{DRegisters, ARegisters, BRegisters, CRegisters} <: PTXOperation end
 
 @inline Adapt.adapt(to, x::AbstractMMAOP) = x
 

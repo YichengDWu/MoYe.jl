@@ -17,9 +17,9 @@ function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
     threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
 
-    cucopyto!(threadtile_smem, threadtile_src)
+    copyto!(threadtile_smem, threadtile_src)
     cp_async_wait()
-    cucopyto!(threadtile_dest, threadtile_smem)
+    copyto!(threadtile_dest, threadtile_smem)
 
     return nothing
 end
@@ -64,14 +64,14 @@ function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
     threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
 
-    cucopyto!(threadtile_smem, threadtile_src)
+    copyto!(threadtile_smem, threadtile_src)
     cp_async_wait()
     sync_threads()
 
     moye_smem′ = MoYe.transpose(moye_smem)
     threadtile_smem′ = @parallelize moye_smem′ threadlayout threadIdx().x
 
-    cucopyto!(threadtile_dest, threadtile_smem′)
+    copyto!(threadtile_dest, threadtile_smem′)
     return nothing
 end
 
