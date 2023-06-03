@@ -8,7 +8,7 @@ struct TrivialPred end
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
     end
-    return nothing
+    return dest
 end
 
 @inline function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
@@ -20,11 +20,11 @@ end
     else
         copyto_if!(dest, src, TrivialPred())
     end
-    return nothing
+    return dest
 end
 
 """
-    copyto!(dest::StaticMoYeArray, src::StaticMoYeArray)
+    copyto!(dest::StaticNonOwningArray, src::StaticNonOwningArray)
 
 Copy the contents of `src` to `dest`. The function automatically carries out potential
 vectorization. In particular, while transferring data from global memory to shared memory,
@@ -33,7 +33,7 @@ it automatically initiates asynchronous copying, if your device supports so.
 !!! note
     It should be used with @gc_preserve if `dest` or `src` is powered by an ArrayEngine.
 """
-function Base.copyto!(dest::StaticMoYeArray{TD}, src::StaticMoYeArray{TS}) where {TD,TS}
+function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
     if N ≤ 1
         return copyto_if!(dest, src, TrivialPred())
@@ -42,5 +42,5 @@ function Base.copyto!(dest::StaticMoYeArray{TD}, src::StaticMoYeArray{TS}) where
         TV = uint_bit(static(min(128, vec_bits)))
         return copyto_vec!(dest, src, TV)
     end
-    return nothing
+    return dest
 end

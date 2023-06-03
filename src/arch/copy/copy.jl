@@ -13,3 +13,9 @@ function (::CPOP_UNIVERSAL{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {
 
     return unsafe_store!(dest, unsafe_load(src, 1, Val(align_src)), 1, Val(align_dst))
 end
+
+# on cpu
+function (::CPOP_UNIVERSAL{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
+    @inline
+    return unsafe_store!(dest, unsafe_load(src, 1), 1)
+end
