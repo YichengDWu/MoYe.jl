@@ -53,8 +53,8 @@ Base.@assume_effects :total function coord_to_index0_horner(coord::Tuple, shape:
 end
 
 function coord_to_index0(coord, shape)
-    iscongruent(coord, shape) ||
-        throw(DimensionMismatch("coord and shape are not congruent"))
+  #  iscongruent(coord, shape) ||
+  #      throw(DimensionMismatch("coord and shape are not congruent"))
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
@@ -133,9 +133,11 @@ Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::T
     return _foldl(CompactLambda{LayoutRight}(), reverse(shape), ((), current))
 end
 function compact(shape::StaticInt{1}, current::StaticInt, ::Type{Major}) where {Major}
+    @inline
     return (Zero(), current)
 end
 function compact(shape::StaticInt{1}, current::Integer, ::Type{Major}) where {Major}
+    @inline
     return (Zero(), current)
 end
 @generated function compact(shape::StaticInt{N}, current::StaticInt{M},
@@ -143,6 +145,7 @@ end
     return :((current, $(StaticInt{N * M}())))
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
+    @inline
     return (current, current * shape)
 end
 
