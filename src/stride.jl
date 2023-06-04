@@ -43,9 +43,9 @@ function coord_to_index0_horner(coord::IntType, shape::IntType)
     @inline
     return coord
 end
-function coord_to_index0_horner(coord::Tuple{}, shape::Tuple{})
+function coord_to_index0_horner(coord::Tuple{IntType}, shape::Tuple{IntType})
     @inline
-    return Zero()
+    return first(coord)
 end
 Base.@assume_effects :total function coord_to_index0_horner(coord::Tuple, shape::Tuple)
     c, s = first(coord), first(shape)
