@@ -1,18 +1,39 @@
-abstract type AbstractCopyTraits <: AbstractTraits end
-struct CopyTraits{C <: AbstractCPOP, TS, TD, LT, LS, LD, LR} <: AbstractCopyTraits
+abstract type AbstractCopyTraits{OP} <: AbstractTraits end
+
+struct CopyTraits{C <: AbstractCopyOperation, LT, LS, LD, LR} <: AbstractCopyTraits{C}
+    copy_op::C
     threadid::LT
     srclayout::LS
     dstlayout::LD
     reflayout::LR
 end
 
-function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {S, D, OP<:AbstractCPOP{S,D}}
-    return CopyTraits{OP, S, D, typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(threadid, srclayout, dstlayout, reflayout)
+function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:AbstractCopyOperation}
+    copy_op = OP()
+    return CopyTraits{typeof(copy_op), typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(copy_op, threadid, srclayout, dstlayout, reflayout)
 end
 
-function CopyTraits{CPOP_UNIVERSAL{S,D}}() where {S,D}
+function CopyTraits{UniversalCopy{S,D}}() where {S,D}
     threadid = make_layout(One())  # 1 thread per operation
     srclayout = make_layout((One(), static(sizeof(S) * 8))) # thr -> bit
     dstlayout = make_layout((One(), static(sizeof(D) * 8)))
-    return CopyTraits{CPOP_UNIVERSAL{S,D}}(threadid, srclayout, dstlayout)
+    return CopyTraits{UniversalCopy{S,D}}(threadid, srclayout, dstlayout)
+end
+
+function copyto_unpack!(::AbstractCopyTraits{OP}, dst::MoYeArray, src::MoYeArray) where {OP}
+    cpop = OP()
+    registers_src = cpop.SRegisters
+    registers_dst = cpop.DRegisters
+
+    regtype_src = eltype(registers_src)
+    regtype_dst = eltype(registers_dst)
+    regnum_src = length(registers_src)
+    regnum_dst = length(registers_dst)
+
+    rs = recast(regtype_src, src)
+    rd = recast(regtype_dst, dst)
+
+    @assert size(rs.layout) == StaticInt{regnum_src}()
+    @assert size(rd.layout) == StaticInt{regnum_dst}()
+    return copyto!(cpop, rd, rs)
 end

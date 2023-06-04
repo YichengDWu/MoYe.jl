@@ -1,12 +1,27 @@
-abstract type AbstractCPOP{SRegisters, DRegisters} <: PTXOperation end
+abstract type AbstractCopyOperation{SRegisters, DRegisters} <: PTXOperation end
 
-@inline Adapt.adapt(to, x::AbstractCPOP) = x
+function Base.getproperty(obj::AbstractCopyOperation{SRegisters, DRegisters},
+                          sym::Symbol) where {SRegisters, DRegisters}
+    if sym === :DRegisters
+        return DRegisters
+    elseif sym === :SRegisters
+        return SRegisters
+    else
+        return getfield(obj,sym)
+    end
+end
 
-struct CPOP_UNIVERSAL{TS, TD} <: AbstractCPOP{Registers{TS, 1}, Registers{TD, 1}} end
+function Base.propertynames(::AbstractCopyOperation)
+    return (:SRegisters, :DRegisters)
+end
 
-@inline CPOP_UNIVERSAL{S}() where {S} = CPOP_UNIVERSAL{S,S}()
+@inline Adapt.adapt(to, x::AbstractCopyOperation) = x
 
-function (::CPOP_UNIVERSAL{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+struct UniversalCopy{TS, TD} <: AbstractCopyOperation{Registers{TS, 1}, Registers{TD, 1}} end
+
+@inline UniversalCopy{S}() where {S} = UniversalCopy{S,S}()
+
+function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
     @inline
     align_src = Base.datatype_alignment(TS)
     align_dst = Base.datatype_alignment(TD)
@@ -15,7 +30,9 @@ function (::CPOP_UNIVERSAL{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {
 end
 
 # on cpu
-function (::CPOP_UNIVERSAL{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
     @inline
     return unsafe_store!(dest, unsafe_load(src, 1), 1)
 end
+
+Base.copyto!(op::UniversalCopy, dest::MoYeArray, src::MoYeArray) = op(pointer(dest), pointer(src))

@@ -1,5 +1,5 @@
 abstract type AbstractTraits end
-abstract type AbstractMMATraits{M, DElType, AElType, BElType, CElType} <: AbstractTraits end
+abstract type AbstractMMATraits{OP, DElType, AElType, BElType, CElType} <: AbstractTraits end
 
 
 # in the future, we might have `HopperMMATraits` and so on.
@@ -62,18 +62,19 @@ function MMATraits{UniversalFMA{D, A, B, C}}() where {D, A, B, C}
 end
 
 # again, default implementation, Hooper would need to specialize on it
-function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
+function mma_unpack!(traits::AbstractMMATraits{OP, TD, TA, TB, TC},
                      D::LocalArray{TD}, A::LocalArray{TA},
-                     B::LocalArray{TB}, C::LocalArray{TC}) where {M, TD, TA, TB, TC}
-    RegTypeD = regtype_d(traits.mma_op)
-    RegTypeA = regtype_a(traits.mma_op)
-    RegTypeB = regtype_b(traits.mma_op)
-    RegTypeC = regtype_c(traits.mma_op)
+                     B::LocalArray{TB}, C::LocalArray{TC}) where {OP, TD, TA, TB, TC}
+    mma_op = OP()
+    RegTypeD = regtype_d(mma_op)
+    RegTypeA = regtype_a(mma_op)
+    RegTypeB = regtype_b(mma_op)
+    RegTypeC = regtype_c(mma_op)
 
-    RegNumD = regnum_d(traits.mma_op)
-    RegNumA = regnum_a(traits.mma_op)
-    RegNumB = regnum_b(traits.mma_op)
-    RegNumC = regnum_c(traits.mma_op)
+    RegNumD = regnum_d(mma_op)
+    RegNumA = regnum_a(mma_op)
+    RegNumB = regnum_b(mma_op)
+    RegNumC = regnum_c(mma_op)
 
     rD = recast(RegTypeD, D)
     rA = recast(RegTypeA, A)
@@ -84,5 +85,5 @@ function mma_unpack!(traits::AbstractMMATraits{M, TD, TA, TB, TC},
     @assert length(rA) == RegNumA
     @assert length(rB) == RegNumB
     @assert length(rC) == RegNumC
-    fma!(traits.mma_op, rD, rA, rB, rC)
+    fma!(mma_op, rD, rA, rB, rC)
 end

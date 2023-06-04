@@ -29,12 +29,14 @@ function depth(@nospecialize x::IntTuple)
     return max(map(depth, x)...) + One()
 end
 
-@inline product(x::IntType) = x
-@inline product(@nospecialize x::IntSequence) = prod(x)
-@inline product(@nospecialize x::IntTuple) = prod(flatten(x))
+@inline shape(x::Tuple) = map(shape, x)
+@inline shape(x) = x
 
-@inline prod_each(@nospecialize x::IntSequence) = prod(x)
-@inline prod_each(@nospecialize x::IntTuple) = map(prod_each, x)
+@inline product(x::IntType) = x
+@inline product(x::IntSequence) = prod(x)
+@inline product(x::IntTuple) = prod(flatten(x))
+
+@inline product_each(x) = map(product, x)
 
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
@@ -56,7 +58,10 @@ function Base.cld(x::IntTuple, y::IntTuple)
     return map(cld, x, y)
 end
 
-#shape_div
+@generated function shape_div(::StaticInt{N}, ::StaticInt{M}) where {N, M}
+    @assert N % M == 0 || M % N == 0 "Cannot divide $(N) by $(M) or vice versa"
+    return :($(StaticInt{shape_div(N, M)}()))
+end
 function shape_div(a::IntType, b::IntType)
     return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
@@ -68,9 +73,7 @@ function shape_div(@nospecialize(a::IntTuple), b::IntType)
                                       shape_div(init[2], ai)), a, ((), b))
     return result
 end
-function shape_div(@nospecialize(a::IntTuple), @nospecialize(b::IntTuple))
-    length(a) == length(b) ||
-        throw(DimensionMismatch("Tuple A and B must have the same rank"))
+function shape_div(a::IntTuple{N}, b::IntTuple{N}) where {N}
     return map(shape_div, a, b)
 end
 

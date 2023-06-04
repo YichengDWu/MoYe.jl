@@ -1,7 +1,3 @@
-function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:AbstractLdMatrix}
-    return CopyTraits{OP, UInt128, UInt32, typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(threadid, srclayout, dstlayout, reflayout)
-end
-
 function CopyTraits{LDSM_U32x1_N}()
     threadid = @Layout 32 # 32 threads per operation
     srclayout = @Layout ((8, 4), 128) ((128, 0), 1) # thr -> bit

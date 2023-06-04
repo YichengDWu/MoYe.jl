@@ -48,7 +48,7 @@ end
 @inline replace_back(t, v) = v
 
 @inline function Base.repeat(x, n)
-    return ntuple(i -> x, n)
+    return ntuple(Returns(x), n)
 end
 
 @inline repeat_like(t, x) = x
@@ -72,8 +72,15 @@ end
     return expr
 end
 
+
+@generated function group(t::Tuple, ::StaticInt{B}, ::StaticInt{E}) where {B,E}
+    return quote
+        @inbounds (t[1:$B-1]..., t[$B:$E], t[$E+1:end]...)
+    end
+end
+
 # Group the elements [B,E] of a T into a single element
-function group(@nospecialize(t::Tuple), b, e)
+function group(t::Tuple, b, e)
     return (getindex(t, Base.OneTo(b - one(b)))..., getindex(t, UnitRange(b, e)),
             getindex(t, UnitRange(e + one(e), length(t)))...)
 end
@@ -148,10 +155,10 @@ end
     return q
 end
 
-@inline function _transpose(@nospecialize(t1::Tuple), @nospecialize(t2::Tuple),
-                            @nospecialize(ts::Tuple...))
-    return tuple(zip(t1, t2, ts...)...)
-end
+@inline _zip(t::Tuple{Vararg{Tuple}}) = tuple(zip(t...)...)
+@inline _zip(t::Tuple) = tuple(t)
+@inline _zip(t) = t
+@inline _zip(t1, t2, t3...) = _zip((t1, t2, t3...))
 
 function zip2_by(t, guide::Tuple)
     TR = length(t)
