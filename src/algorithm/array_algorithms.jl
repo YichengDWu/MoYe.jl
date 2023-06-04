@@ -57,7 +57,7 @@ end
     return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
 end
 
-function compose(@nospecialize(x::MoYeArray), layout1, layouts...)
+function compose(x::MoYeArray, layout1, layouts...)
     return MoYeArray(pointer(x), compose(layout(x), layout1, layouts...))
 end
 

@@ -22,9 +22,11 @@ end
 
 @inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
-@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
+@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N - 1}()
 @inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(Returns(Zero()), Val(N))
-@inline _offset(x::NTuple{N, Int}) where {N} = ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+@inline function _offset(x::NTuple{N, Int}) where {N}
+    return ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+end
 @inline _offset(x::Tuple) = map(_offset, x)
 
 function coord_to_index(coord::IntType, shape, stride)
@@ -80,7 +82,7 @@ function index_to_coord(index::IntType, shape::Tuple, stride::Tuple)
 end
 function index_to_coord(index::IntType, shape::Tuple, stride::IntType)
     return let index = index
-        map((s,d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
+        map((s, d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
     end
 end
 function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
@@ -124,14 +126,21 @@ const GenRowMajor = LayoutRight
 
 struct CompactLambda{Major} end
 
-function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
+Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
     return _foldl(CompactLambda{LayoutLeft}(), shape, ((), current))
 end
-function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
+Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
     return _foldl(CompactLambda{LayoutRight}(), reverse(shape), ((), current))
 end
-function compact(shape::StaticInt{1}, current::IntType, ::Type{Major}) where {Major}
+function compact(shape::StaticInt{1}, current::StaticInt, ::Type{Major}) where {Major}
     return (Zero(), current)
+end
+function compact(shape::StaticInt{1}, current::Integer, ::Type{Major}) where {Major}
+    return (Zero(), current)
+end
+@generated function compact(shape::StaticInt{N}, current::StaticInt{M},
+                            ::Type{Major}) where {Major, N, M}
+    return :((current, $(StaticInt{N * M}())))
 end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
     return (current, current * shape)
@@ -146,11 +155,11 @@ function compact_major(shape, current::IntType, major::Type{Major}) where {Major
     return first(compact(shape, current, major))
 end
 
-function (::CompactLambda{LayoutLeft})(init, si)
+Base.@assume_effects :total function (::CompactLambda{LayoutLeft})(init, si)
     result = compact(si, init[2], LayoutLeft)
     return (append(init[1], result[1]), result[2])
 end
-function (::CompactLambda{LayoutRight})(init, si)
+Base.@assume_effects :total function (::CompactLambda{LayoutRight})(init, si)
     result = compact(si, init[2], LayoutRight)
     return (prepend(init[1], result[1]), result[2])
 end
@@ -165,8 +174,7 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
 end
 function compact_order(shape, order::IntType, old_shape, old_order)
     d = let order = order
-        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape,
-                    old_order))
+        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape, old_order))
     end
     return compact_col_major(shape, d)
 end

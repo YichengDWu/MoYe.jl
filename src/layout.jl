@@ -400,13 +400,15 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType,
 end
 
 # distributivity with concatenation
-Base.@assume_effects :total function composition(lhs_shape, lhs_stride,
-                                                 rhs_shape::IntTuple{N},
-                                                 rhs_stride::IntTuple{N}) where {N}
-    return let lhs_shape = lhs_shape, lhs_stride = lhs_stride
-        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape,
-                        rhs_stride)...)
-    end                                               # we assume rank(lhs) == rank(rhs)
+@generated function composition(lhs_shape, lhs_stride,
+                                rhs_shape::IntTuple{N},
+                                rhs_stride::IntTuple{N}) where {N}
+    expr = Expr(:call, :make_layout)
+    for i in 1:N
+        push!(expr.args, :(MoYe.composition(lhs_shape, lhs_stride,
+                                            rhs_shape[$i], rhs_stride[$i])))
+    end
+    return expr
 end
 
 function composition(lhs::Layout, rhs::Layout)
@@ -740,7 +742,7 @@ function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
     return make_layout(shape, stride)
 end
 function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-    return make_layout(shape_div(shape, shape_div(m, static_abs(stride))),
+    return make_layout(shape_div(shape, shape_div(m, abs(stride))),
                        shape_div(stride, m))
 end
 function upcast(shape::IntType, stride::Int, m::StaticInt)

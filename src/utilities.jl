@@ -11,4 +11,4 @@ uint_bytes(::StaticInt{N}) where {N} = uint_bit(static(8*N))
 @inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
 @inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
 
-@inline @generated static_abs(::StaticInt{N}) where {N} = :($(StaticInt{abs(N)}()))
+@inline @generated Base.abs(::StaticInt{N}) where {N} = :($(StaticInt{abs(N)}()))
