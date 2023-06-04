@@ -127,19 +127,19 @@ function prepend(t::IntType, x::IntType)
 end
 
 # specialize on the operation
-@generated function _foldl(op::G, x::Tuple, init) where {G}
+Base.@assume_effects :total @generated function _foldl(op::G, x::Tuple, init) where {G}
     length(x.parameters) == 0 && return :init
     expr = :(op(init, x[1]))
     for i in 2:length(x.parameters)
         expr = :(op($expr, x[$i]))
     end
     return quote
-        @inline
+        Base.@_inline_meta
         @inbounds $expr
     end
 end
 
-@generated function escan(f::F, x::NTuple{N, T}, init::T) where {F, N, T}
+Base.@assume_effects :total @generated function escan(f::F, x::NTuple{N, T}, init::T) where {F, N, T}
     q = Expr(:block, Expr(:meta, :inline, :propagate_inbounds))
     if N == 1
         push!(q.args, :init)
