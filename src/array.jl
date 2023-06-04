@@ -62,6 +62,9 @@ end
 @inline function MoYeArray{T}(::UndefInitializer, l::StaticLayout) where {T}
     return MoYeArray(ArrayEngine{T}(undef, cosize(l)), l)
 end
+@inline function MoYeArray{T}(::UndefInitializer, l::Layout) where {T}
+    throw(ArgumentError("Owning `MoYeArray` cannot be created from a dynamic layout"))
+end
 @inline function MoYeArray{T}(::UndefInitializer, shape::Union{StaticInt, StaticIntTuple},
                               args...) where {T}
     l = make_layout(shape, args...)

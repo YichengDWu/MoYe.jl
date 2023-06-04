@@ -43,6 +43,7 @@ include("traits/ldmatrix.jl")
 
 # Atom
 include("atom/mma.jl")
+include("atom/copy.jl")
 
 include("algorithm/copy.jl")
 include("algorithm/blas.jl")
@@ -59,7 +60,7 @@ export colex_less, elem_less, increment, capacity
 export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compact_row_major,
        GenColMajor, GenRowMajor, @Layout, make_tuple
 
-# layout
+# Layout
 export Layout, make_layout, shape, rank, depth, cosize, complement, logical_product,
        blocked_product, raked_product, zipped_product, logical_divide, zipped_divide,
        tiled_divide, zeros!, recast, right_inverse
@@ -68,6 +69,9 @@ export print_layout
 # MoYeArray
 export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
 export MoYeSharedArray
+
+# Atom
+export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S
 
 # pointer
 export isgmem, issmem, isrmem

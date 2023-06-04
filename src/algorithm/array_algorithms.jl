@@ -26,7 +26,7 @@ end
 @inline function Base.coalesce(@nospecialize(x::MoYeArray), @nospecialize(trg_profile::IntTuple))
     return MoYeArray(pointer(x), coalesce(layout(x), trg_profile))
 end
-@inline function group(@nospecialize(x::MoYeArray), B::IntType, E::IntType)
+@inline function group_modes(@nospecialize(x::MoYeArray), B::IntType, E::IntType)
     return MoYeArray(pointer(x), group(layout(x), B, E))
 end
 
@@ -55,6 +55,10 @@ end
 end
 @inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Integer, proj)
     return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
+end
+
+function compose(@nospecialize(x::MoYeArray), layout1, layouts...)
+    return MoYeArray(pointer(x), compose(layout(x), layout1, layouts...))
 end
 
 _toint(x::Integer) = Int(x)

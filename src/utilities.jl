@@ -6,6 +6,8 @@ uint_bit(::StaticInt{128}) = UInt128
 
 uint_bytes(::StaticInt{N}) where {N} = uint_bit(static(8*N))
 
+@generated sizeof_bits(::Type{T}) where {T} = :($(static(sizeof(T)*8)))
+
 @inline Base.:(==)(::StaticInt{N}, ::StaticInt{N}) where {N} = true
 @inline Base.:(==)(@nospecialize(x::StaticInt), @nospecialize(y::StaticInt)) = false
 

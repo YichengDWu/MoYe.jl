@@ -1,12 +1,11 @@
-abstract type AbstractAtom{Traits} end
-abstract type AbstractMMAAtom{Traits} <: AbstractAtom{Traits}end
+abstract type AbstractMMAAtom{Traits, OP, DElType, AElType, BElType, CElType} <: AbstractMMATraits{OP, DElType, AElType, BElType, CElType} end
 
 function apply(mma_atom::AbstractMMAAtom, D::MoYeArray{TD,1}, A::MoYeArray{TA,1},
                B::MoYeArray{TB,1}, C::MoYeArray{TC,1}) where {TD, TA, TB, TC}
     return mma_unpack!(mma_atom, D, A, B, C)
 end
-
 function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray)
+    @inline
     return apply(mma_atom, C, A, B, C)
 end
 
@@ -30,19 +29,19 @@ function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T,N}
 end
 
 
-struct MMAAtom{Traits <: MMATraits, ARGS} <: AbstractMMAAtom{Traits}
+struct MMAAtom{Traits <: MMATraits, ARGS, OP, DElType, AElType, BElType, CElType} <: AbstractMMAAtom{Traits, OP, DElType, AElType, BElType, CElType}
     traits::Traits
     args::ARGS
 end
 
 function MMAAtom{Traits}(args...) where {Traits <: MMATraits}
     traits = Traits()
-    return MMAAtom{typeof(traits), typeof(args)}(traits, args)
+    return MMAAtom{typeof(traits), typeof(args), typeof(traits.mma_op), valtype_d(traits), valtype_a(traits), valtype_b(traits), valtype_c(traits)}(traits, args)
 end
 
 function MMAAtom(::Type{OP}, args...) where {OP <: AbstractMMAOP}
     traits = MMATraits{OP}(args...)
-    return MMAAtom{typeof(traits), typeof(args)}(traits, args)
+    return MMAAtom{typeof(traits), typeof(args), typeof(OP), valtype_d(traits), valtype_a(traits), valtype_b(traits), valtype_c(traits)}(traits, args)
 end
 
 function Base.show(io::IO, m::MMAAtom)
