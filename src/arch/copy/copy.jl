@@ -28,11 +28,19 @@ function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {T
 
     return unsafe_store!(dest, unsafe_load(src, 1, Val(align_src)), 1, Val(align_dst))
 end
-
-# on cpu
 function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
     @inline
     return unsafe_store!(dest, unsafe_load(src, 1), 1)
+end
+
+# should be moved if LocalArray has a address space
+function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+    @inline
+    return unsafe_store!(dest, unsafe_load(src, 1), 1, Val(Base.datatype_alignment(TS)))
+end
+function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, TD}
+    @inline
+    return unsafe_store!(dest, unsafe_load(src, 1), 1, Val(Base.datatype_alignment(TD)))
 end
 
 function Base.copyto!(op::UniversalCopy, dest::MoYeArray, src::MoYeArray)

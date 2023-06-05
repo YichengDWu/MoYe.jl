@@ -24,16 +24,27 @@ function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoY
     return dest
 end
 
-@inline function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
+@generated function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
-        src_v = recast(TV, src)
-        dest_v = recast(TV, dest)
-        #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
-        copyto_if!(dest_v, src_v, TrivialPred())
+        return quote
+            src_v = recast(TV, src)
+            dest_v = recast(TV, dest)
+            #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
+            copy_op = select_elementwise_copy(src_v, dest_v)
+            @loopinfo unroll for i in One():size(src_v.layout)
+                apply(copy_op, pointer(dest_v, i), pointer(src_v, i))
+            end
+            return dest
+        end
     else
-        copyto_if!(dest, src, TrivialPred())
+        return quote
+            copy_op = select_elementwise_copy(src, dest)
+            @loopinfo unroll for i in One():size(src.layout)
+                apply(copy_op, pointer(dest, i), pointer(src, i))
+            end
+            return dest
+        end
     end
-    return dest
 end
 
 """

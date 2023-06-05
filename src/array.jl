@@ -105,6 +105,8 @@ end
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
 const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static
+const OwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, L}
+const NonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, L}
 const StaticOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ArrayEngine, L}
 const StaticNonOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ViewEngine, L}
 const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
@@ -169,11 +171,18 @@ Base.@propagate_inbounds function Base.getindex(x::MoYeArray, ids::Union{Integer
     GC.@preserve b begin ViewEngine(engine(x))[index] end
 end
 
-Base.@propagate_inbounds function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+Base.@propagate_inbounds function Base.setindex!(x::OwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
     @boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin ViewEngine(engine(x))[index] = val end
+    GC.@preserve b begin
+        @inbounds ViewEngine(engine(x))[index] = val
+    end
+end
+Base.@propagate_inbounds function Base.setindex!(x::NonOwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...)
+    index = layout(x)(ids...)
+    @inbounds engine(x)[index] = val
 end
 
 function Adapt.adapt_structure(to, x::MoYeArray)
