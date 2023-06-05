@@ -146,7 +146,7 @@ end
 
 @inline function Base.fill!(x::MoYeArray{T, N, <:ArrayEngine}, val) where {T, N}
     b = ManualMemory.preserve_buffer(x)
-    vb = ViewEngine(engine(x))
+    vb = ViewEngine(pointer(x))
     GC.@preserve b begin
         @loopinfo unroll  for i in 1:length(b)
             @inbounds vb[i] = val
@@ -157,7 +157,7 @@ end
 
 @inline function Base.sum(x::MoYeArray{T, N, <:ArrayEngine}) where {T, N}
     b = ManualMemory.preserve_buffer(x)
-    vx = ViewEngine(engine(x))
+    vx = ViewEngine(pointer(x))
     GC.@preserve b begin
         tmp = zero(T)
         @loopinfo unroll for i in 1:length(x)

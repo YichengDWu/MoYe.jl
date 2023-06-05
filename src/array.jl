@@ -202,7 +202,7 @@ function Adapt.adapt_storage(::Type{MoYeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
-@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(engine(A)), layout(A))
+@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(pointer(A)), layout(A))
 
 # Array operations
 # Currently don't support slicing syntax [:,1], but we could make a view and then copy the view
