@@ -164,11 +164,18 @@ end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
-Base.@propagate_inbounds function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+Base.@propagate_inbounds function Base.getindex(x::OwningArray, ids::Union{Integer, StaticInt, IntTuple}...)
     @boundscheck checkbounds(x, ids...) # should fail if ids is hierarchical
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin ViewEngine(engine(x))[index] end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(x))[index]
+    end
+end
+Base.Base.@propagate_inbounds function Base.getindex(x::NonOwningArray, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...)
+    index = layout(x)(ids...)
+    @inbounds engine(x)[index]
 end
 
 Base.@propagate_inbounds function Base.setindex!(x::OwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
@@ -176,7 +183,7 @@ Base.@propagate_inbounds function Base.setindex!(x::OwningArray, val, ids::Union
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
-        @inbounds ViewEngine(engine(x))[index] = val
+        @inbounds ViewEngine(pointer(x))[index] = val
     end
 end
 Base.@propagate_inbounds function Base.setindex!(x::NonOwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
