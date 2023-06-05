@@ -116,13 +116,17 @@ end
 Base.@propagate_inbounds function Base.getindex(A::ArrayEngine, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
-    GC.@preserve b begin ViewEngine(A)[i] end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(A))[i]
+    end
 end
 
 Base.@propagate_inbounds function Base.setindex!(A::ArrayEngine, val, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
-    GC.@preserve b begin ViewEngine(A)[i] = val end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(A))[i] = val
+    end
 end
 
 
