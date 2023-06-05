@@ -86,11 +86,11 @@ end
     l = make_layout(shape, args...)
     return MoYeArray(ptr, l)
 end
-@inline function MoYeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
+@inline function MoYeArray(ptr::LLVMPtr{T}, layout::Layout) where {T}
     engine = ViewEngine(ptr)
     return MoYeArray(engine, layout)
 end
-@inline function MoYeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
+@inline function MoYeArray(ptr::LLVMPtr{T}, shape::GenIntTuple, args...) where {T}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
 @inline function MoYeArray(x::CuDeviceArray)

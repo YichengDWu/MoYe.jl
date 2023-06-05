@@ -88,6 +88,9 @@ end
 @inline function Base.pointer(A::ArrayEngine{T}) where {T}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(A))
 end
+@device_override @inline function Base.pointer(A::ArrayEngine{T}) where {T}
+    return Base.bitcast(LLVMPtr{T, AS.Generic}, pointer_from_objref(A))
+end
 
 @inline Base.size(::ArrayEngine{T, L}) where {T, L} = (L,)
 @inline Base.length(::ArrayEngine{T, L}) where {T, L} = L
