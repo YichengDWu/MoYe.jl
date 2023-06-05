@@ -16,7 +16,7 @@ if CUDA.functional()
     function kernel(A,B,C, smemlayout_A, smemlayout_B, thread_layout)
         moye_A = MoYeArray(pointer(A), @Layout((16,16))) # M-major
         moye_B = MoYeArray(pointer(B), @Layout((16,8)))  # K-major
-        moye_C = MoYeArray(pointer(C.parent), @Layout((16, 8), (8, 1)))
+        moye_C = MoYeArray(pointer(C), @Layout((16, 8), (8, 1)))
 
         smem_A = MoYeSharedArray(Float16, smemlayout_A) # K-major
         smem_B = MoYeSharedArray(Float16, smemlayout_B) # K-major
