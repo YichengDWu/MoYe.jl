@@ -779,59 +779,48 @@ end
 struct Upcast{N<:StaticInt} end
 
 function (::Upcast)(shape::IntType, stride::StaticInt{0})
+    @inline
     return make_layout(shape, stride)
 end
 function (::Upcast{m})(shape::IntType, stride::StaticInt) where m
+    @inline
     return make_layout(shape_div(shape, shape_div(m(), abs(stride))), shape_div(stride, m()))
 end
 function (::Upcast{m})(shape::IntType, stride::Int) where m
+    @inline
     return make_layout(shape, safe_div(stride, m()))
 end
 function (f::Upcast{m})(shape::Tuple, stride::Tuple) where m
     return transform_layout(f, shape, stride)
 end
+
 function upcast(layout::Layout, ::StaticInt{M}) where M
     @inline
     return Upcast{StaticInt{M}}()(layout.shape, layout.stride)
 end
 
-#function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
- #   return make_layout(shape, stride)
-#end
+struct Downcast{N<:StaticInt} end
 
-#function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-#    return make_layout(shape_div(shape, shape_div(m, abs(stride))), shape_div(stride, m))
-#end
-#function upcast(shape::IntType, stride::Int, m::StaticInt)
-#    return make_layout(shape, safe_div(stride, m))
-#end
-#Base.@assume_effects :total function upcast(shape::Tuple, stride::Tuple, n::StaticInt)
-#    return let n = n
-#        transform_layout((x, y) -> upcast(x, y, n), shape, stride)
-#    end
-#end
+function (::Downcast{N})(shape::IntType, stride::StaticInt{1}) where N
+    @inline
+    return make_layout(shape * N(), stride)
+end
+function (::Downcast{N})(shape::IntType, stride::StaticInt{-1}) where N
+    @inline
+    return make_layout(shape * N(), stride)
+end
+function (::Downcast{N})(shape::IntType, stride::IntType) where N
+    @inline
+    return make_layout(shape, stride * N())
+end
+function (f::Downcast{N})(shape::Tuple, stride::Tuple) where N
+    @inline
+    return transform_layout(f, shape, stride)
+end
 
-
-function downcast(shape::IntType, stride::StaticInt{1}, n::StaticInt)
+function downcast(layout::Layout, ::StaticInt{M}) where M
     @inline
-    return make_layout(shape * n, stride)
-end
-function downcast(shape::IntType, stride::StaticInt{-1}, n::StaticInt)
-    @inline
-    return make_layout(shape * n, stride)
-end
-function downcast(shape::IntType, stride::IntType, n::StaticInt)
-    @inline
-    return make_layout(shape, stride * n)
-end
-Base.@assume_effects :total function downcast(shape::Tuple, stride::Tuple, n::StaticInt)
-    return let n = n
-        transform_layout((x, y) -> downcast(x, y, n), shape, stride)
-    end
-end
-function downcast(layout::Layout, m::StaticInt)
-    @inline
-    return downcast(layout.shape, layout.stride, m)
+    return Downcast{StaticInt{M}}()(layout.shape, layout.stride)
 end
 
 @generated function recast(layout::Layout, ::Type{NewType},
