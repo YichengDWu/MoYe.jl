@@ -41,6 +41,12 @@ end
     return (v, Base.tail(t)...)
 end
 @inline replace_front(t, v) = v
+@generated function replace_front(::Type{T}, ::Type{V}) where {T<:Tuple,V}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, V)
+    push!(expr.args, T.parameters[2:end]...)
+    return expr
+end
 
 @inline function replace_back(@nospecialize(t::Tuple), v)
     return (Base.front(t)..., v)
@@ -120,6 +126,18 @@ end
 function prepend(t::Tuple, x)
     @inline
     return (x, t...)
+end
+@generated function prepend(::Type{T}, ::Type{X}) where {T<:Tuple, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, X)
+    push!(expr.args, T.parameters...)
+    return expr
+end
+@generated function prepend(::Type{T}, ::Type{X}) where {T, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, X)
+    push!(expr.args, T)
+    return expr
 end
 function prepend(t::IntType, x::IntType)
     @inline

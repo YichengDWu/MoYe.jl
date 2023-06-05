@@ -306,13 +306,49 @@ end
     return expr
 end
 
+@generated function bw_coalesce(::StaticInt{I}, old_shape::StaticIntTuple,
+                                                old_stride::StaticIntTuple,
+                                                new_shape::GenStaticIntTuple,
+                                                new_stride::GenStaticIntTuple) where {I}
+    for i in I:-1:1
+        if old_shape.parameters[i] == One
+            continue
+        elseif new_shape <: StaticInt && new_shape == One
+            new_shape = old_shape.parameters[i]
+            new_stride = old_stride.parameters[i]
+        elseif old_shape.parameters[i] * old_stride.parameters[i] == ifelse(new_stride <: Tuple, new_stride.parameters[1], new_stride)
+            new_shape = replace_front(new_shape,
+                                      old_shape.parameters[i] * ifelse(new_shape <: Tuple, new_shape.parameters[1], new_shape))
+            new_stride = replace_front(new_stride, old_stride.parameters[i])
+        else
+            new_shape = prepend(new_shape, old_shape.parameters[i])
+            new_stride = prepend(new_stride, old_stride.parameters[i])
+        end
+    end
+
+    if new_shape == One
+        return :($(Layout(One(), Zero())))
+    else
+        return :($(Layout(make_tuple(new_shape), make_tuple(new_stride))))
+    end
+end
+
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::GenStaticIntTuple, new_stride::GenStaticIntTuple)
+    return Layout(new_shape, new_stride)
+end
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::StaticInt{1}, new_stride::StaticInt)
+    return Layout(one(new_shape), zero(new_shape))
+end
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1},
                      new_stride)
-    return Layout(one(new_shape), zero(new_shape))
+    return Layout(One(), Zero())
 end
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape, new_stride)
     return Layout(new_shape, new_stride)
 end
+
 Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_stride,
                                                  new_shape, new_stride)
     if isa(old_shape[I], StaticInt) && old_shape[I] == One()
@@ -400,13 +436,12 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType,
 end
 
 # distributivity with concatenation
-@generated function composition(lhs_shape, lhs_stride,
-                                rhs_shape::IntTuple{N},
+@generated function composition(lhs_shape, lhs_stride, rhs_shape::IntTuple{N},
                                 rhs_stride::IntTuple{N}) where {N}
     expr = Expr(:call, :make_layout)
     for i in 1:N
-        push!(expr.args, :(MoYe.composition(lhs_shape, lhs_stride,
-                                            rhs_shape[$i], rhs_stride[$i])))
+        push!(expr.args,
+              :(MoYe.composition(lhs_shape, lhs_stride, rhs_shape[$i], rhs_stride[$i])))
     end
     return expr
 end
@@ -742,8 +777,7 @@ function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
     return make_layout(shape, stride)
 end
 function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-    return make_layout(shape_div(shape, shape_div(m, abs(stride))),
-                       shape_div(stride, m))
+    return make_layout(shape_div(shape, shape_div(m, abs(stride))), shape_div(stride, m))
 end
 function upcast(shape::IntType, stride::Int, m::StaticInt)
     return make_layout(shape, safe_div(stride, m))
