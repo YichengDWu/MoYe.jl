@@ -35,4 +35,7 @@ function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
     return unsafe_store!(dest, unsafe_load(src, 1), 1)
 end
 
-Base.copyto!(op::UniversalCopy, dest::MoYeArray, src::MoYeArray) = op(pointer(dest), pointer(src))
+function Base.copyto!(op::UniversalCopy, dest::MoYeArray, src::MoYeArray)
+    op(pointer(dest), pointer(src))
+    return dest
+end
