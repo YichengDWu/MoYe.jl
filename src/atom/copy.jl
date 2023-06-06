@@ -56,7 +56,7 @@ end
 
 @inline atom(x::CopyAtom) = x
 
-Base.@assume_effects :total function apply(copy_atom::AbstractCopyAtom, dst::StaticMoYeArray{TD, 1},
+function apply(copy_atom::AbstractCopyAtom, dst::StaticMoYeArray{TD, 1},
                src::StaticMoYeArray{TS, 1}) where {TD, TS}
     if atom(copy_atom).num_val_src == size(src.layout) ||
        atom(copy_atom).num_val_dst == size(dst.layout)
