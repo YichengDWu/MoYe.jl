@@ -204,3 +204,10 @@ end
 
 @generated hascolon(::T) where T = :($(Colon ∈ T.parameters))
 @generated hascolon(::Type{T}) where T = :($(Colon ∈ T.parameters))
+
+@generated function Base.reverse(::Type{T}) where {T<:Tuple}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args,
+          Core._apply_iterate(Base.iterate, Base.revargs, T.parameters)...)
+    return expr
+end

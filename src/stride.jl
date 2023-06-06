@@ -126,6 +126,48 @@ const GenRowMajor = LayoutRight
 
 struct CompactLambda{Major} end
 
+@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutLeft})
+    function compact_inner(init, shape)
+        for si in shape.parameters
+            current = init[2]
+            result = if si == One
+                (Zero, current)
+            elseif si <: StaticInt
+                (current, si * current)
+            elseif si <: Tuple
+                compact_inner((Tuple{}, current), si)
+            end
+            @inbounds init = (append(init[1], result[1]), result[2])
+        end
+        return init
+    end
+    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+end
+
+@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutRight})
+    function compact_inner(init, _shape)
+        shape = reverse(_shape)
+        for si in shape.parameters
+            current = init[2]
+            result = if si == One
+                (Zero, current)
+            elseif si <: StaticInt
+                (current, si * current)
+            elseif si <: Tuple
+                compact_inner((Tuple{}, current), si)
+            end
+            @inbounds init = (prepend(init[1], result[1]), result[2])
+        end
+        return init
+    end
+    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+end
+
+Base.@assume_effects :total function (::CompactLambda{LayoutRight})(init, si)
+    result = compact(si, init[2], LayoutRight)
+    return @inbounds (prepend(init[1], result[1]), result[2])
+end
+
 Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
     return _foldl(CompactLambda{LayoutLeft}(), shape, ((), current))
 end
@@ -149,22 +191,22 @@ function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
     return (current, current * shape)
 end
 
-function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
+function compact_major(shape::Tuple, current::Tuple, ::Type{Major}) where {Major}
     length(shape) == length(current) ||
         throw(DimensionMismatch("shape and current must have the same rank"))
-    return map((s, c) -> compact_major(s, c, major), shape, current)
+    return map((s, c) -> compact_major(s, c, Major), shape, current)
 end
 function compact_major(shape, current::IntType, major::Type{Major}) where {Major}
-    return first(compact(shape, current, major))
+    return @inbounds first(compact(shape, current, major))
 end
 
 Base.@assume_effects :total function (::CompactLambda{LayoutLeft})(init, si)
     result = compact(si, init[2], LayoutLeft)
-    return (append(init[1], result[1]), result[2])
+    return @inbounds (append(init[1], result[1]), result[2])
 end
 Base.@assume_effects :total function (::CompactLambda{LayoutRight})(init, si)
     result = compact(si, init[2], LayoutRight)
-    return (prepend(init[1], result[1]), result[2])
+    return @inbounds (prepend(init[1], result[1]), result[2])
 end
 
 compact_col_major(shape, current=One()) = compact_major(shape, current, LayoutLeft)
