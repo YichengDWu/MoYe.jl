@@ -103,6 +103,18 @@ end
         (t..., ntuple(Returns(val), N-M)...)
     end
 end
+@generated function append(::Type{T}, ::Type{X}) where {T<:Tuple, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, T.parameters...)
+    push!(expr.args, X)
+    return expr
+end
+@generated function append(::Type{T}, ::Type{X}) where {T, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, T)
+    push!(expr.args, X)
+    return expr
+end
 function append(t::Tuple, x)
     @inline
     return (t..., x)
