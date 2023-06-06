@@ -22,9 +22,11 @@ end
 
 @inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
-@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N-1}()
+@inline _offset(x::StaticInt{N}) where {N} = StaticInt{N - 1}()
 @inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(Returns(Zero()), Val(N))
-@inline _offset(x::NTuple{N, Int}) where {N} = ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+@inline function _offset(x::NTuple{N, Int}) where {N}
+    return ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+end
 @inline _offset(x::Tuple) = map(_offset, x)
 
 function coord_to_index(coord::IntType, shape, stride)
@@ -41,9 +43,9 @@ function coord_to_index0_horner(coord::IntType, shape::IntType)
     @inline
     return coord
 end
-function coord_to_index0_horner(coord::Tuple{}, shape::Tuple{})
+function coord_to_index0_horner(coord::Tuple{IntType}, shape::Tuple{IntType})
     @inline
-    return Zero()
+    return first(coord)
 end
 Base.@assume_effects :total function coord_to_index0_horner(coord::Tuple, shape::Tuple)
     c, s = first(coord), first(shape)
@@ -51,8 +53,8 @@ Base.@assume_effects :total function coord_to_index0_horner(coord::Tuple, shape:
 end
 
 function coord_to_index0(coord, shape)
-    iscongruent(coord, shape) ||
-        throw(DimensionMismatch("coord and shape are not congruent"))
+  #  iscongruent(coord, shape) ||
+  #      throw(DimensionMismatch("coord and shape are not congruent"))
     return coord_to_index0_horner(flatten(coord), flatten(shape))
 end
 
@@ -80,7 +82,7 @@ function index_to_coord(index::IntType, shape::Tuple, stride::Tuple)
 end
 function index_to_coord(index::IntType, shape::Tuple, stride::IntType)
     return let index = index
-        map((s,d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
+        map((s, d) -> index_to_coord(index, s, d), shape, compact_col_major(shape, stride))
     end
 end
 function index_to_coord(index::Tuple, shape::Tuple, stride::Tuple)
@@ -119,40 +121,102 @@ end
 struct LayoutLeft end
 struct LayoutRight end
 
+"""
+[`make_layout`](@ref) uses this to create a col-major compact layout.
+```julia
+julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
+((1, (2, 4)), 1):((static(1), (1, 2)), 8)
+```
+"""
 const GenColMajor = LayoutLeft
+
+"""
+[`make_layout`](@ref) uses this to create a row-major compact layout.
+```julia
+julia> make_layout(((1, (2, 4)), 1), MoYe.GenRowMajor)
+((1, (2, 4)), 1):((8, (4, 1)), static(1))
+```
+"""
 const GenRowMajor = LayoutRight
 
 struct CompactLambda{Major} end
 
-function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
+@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutLeft})
+    function compact_inner(init, shape)
+        for si in shape.parameters
+            current = init[2]
+            result = if si == One
+                (Zero, current)
+            elseif si <: StaticInt
+                (current, si * current)
+            elseif si <: Tuple
+                compact_inner((Tuple{}, current), si)
+            end
+            @inbounds init = (append(init[1], result[1]), result[2])
+        end
+        return init
+    end
+    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+end
+
+@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutRight})
+    function compact_inner(init, _shape)
+        shape = reverse(_shape)
+        for si in shape.parameters
+            current = init[2]
+            result = if si == One
+                (Zero, current)
+            elseif si <: StaticInt
+                (current, si * current)
+            elseif si <: Tuple
+                compact_inner((Tuple{}, current), si)
+            end
+            @inbounds init = (prepend(init[1], result[1]), result[2])
+        end
+        return init
+    end
+    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+end
+
+Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
     return _foldl(CompactLambda{LayoutLeft}(), shape, ((), current))
 end
-function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
+Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutRight})
     return _foldl(CompactLambda{LayoutRight}(), reverse(shape), ((), current))
 end
-function compact(shape::StaticInt{1}, current::IntType, ::Type{Major}) where {Major}
+function compact(shape::StaticInt{1}, current::StaticInt, ::Type{Major}) where {Major}
+    @inline
     return (Zero(), current)
 end
+function compact(shape::StaticInt{1}, current::Integer, ::Type{Major}) where {Major}
+    @inline
+    return (Zero(), current)
+end
+@generated function compact(shape::StaticInt{N}, current::StaticInt{M},
+                            ::Type{Major}) where {Major, N, M}
+    return :((current, $(StaticInt{N * M}())))
+end
 function compact(shape::IntType, current::IntType, ::Type{Major}) where {Major}
+    @inline
     return (current, current * shape)
 end
 
-function compact_major(shape::Tuple, current::Tuple, major::Type{Major}) where {Major}
+function compact_major(shape::Tuple, current::Tuple, ::Type{Major}) where {Major}
     length(shape) == length(current) ||
         throw(DimensionMismatch("shape and current must have the same rank"))
-    return map((s, c) -> compact_major(s, c, major), shape, current)
+    return map((s, c) -> compact_major(s, c, Major), shape, current)
 end
 function compact_major(shape, current::IntType, major::Type{Major}) where {Major}
-    return first(compact(shape, current, major))
+    return @inbounds first(compact(shape, current, major))
 end
 
-function (::CompactLambda{LayoutLeft})(init, si)
+Base.@assume_effects :total function (::CompactLambda{LayoutLeft})(init, si)
     result = compact(si, init[2], LayoutLeft)
-    return (append(init[1], result[1]), result[2])
+    return @inbounds (append(init[1], result[1]), result[2])
 end
-function (::CompactLambda{LayoutRight})(init, si)
+Base.@assume_effects :total function (::CompactLambda{LayoutRight})(init, si)
     result = compact(si, init[2], LayoutRight)
-    return (prepend(init[1], result[1]), result[2])
+    return @inbounds (prepend(init[1], result[1]), result[2])
 end
 
 compact_col_major(shape, current=One()) = compact_major(shape, current, LayoutLeft)
@@ -165,8 +229,7 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
 end
 function compact_order(shape, order::IntType, old_shape, old_order)
     d = let order = order
-        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape,
-                    old_order))
+        product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape, old_order))
     end
     return compact_col_major(shape, d)
 end

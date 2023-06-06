@@ -86,11 +86,11 @@ end
     l = make_layout(shape, args...)
     return MoYeArray(ptr, l)
 end
-@inline function MoYeArray(ptr::LLVMPtr{T, A}, layout::Layout) where {T, A}
+@inline function MoYeArray(ptr::LLVMPtr{T}, layout::Layout) where {T}
     engine = ViewEngine(ptr)
     return MoYeArray(engine, layout)
 end
-@inline function MoYeArray(ptr::LLVMPtr{T, AS}, shape::GenIntTuple, args...) where {T, AS}
+@inline function MoYeArray(ptr::LLVMPtr{T}, shape::GenIntTuple, args...) where {T}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
 @inline function MoYeArray(x::CuDeviceArray)
@@ -105,6 +105,8 @@ end
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
 const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static
+const OwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, L}
+const NonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, L}
 const StaticOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ArrayEngine, L}
 const StaticNonOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ViewEngine, L}
 const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
@@ -162,18 +164,32 @@ end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
 
-Base.@propagate_inbounds function Base.getindex(x::MoYeArray, ids::Union{Integer, StaticInt, IntTuple}...)
+Base.@propagate_inbounds function Base.getindex(x::OwningArray, ids::Union{Integer, StaticInt, IntTuple}...)
     @boundscheck checkbounds(x, ids...) # should fail if ids is hierarchical
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin ViewEngine(engine(x))[index] end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(x))[index]
+    end
+end
+Base.Base.@propagate_inbounds function Base.getindex(x::NonOwningArray, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...)
+    index = layout(x)(ids...)
+    @inbounds engine(x)[index]
 end
 
-Base.@propagate_inbounds function Base.setindex!(x::MoYeArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+Base.@propagate_inbounds function Base.setindex!(x::OwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
     @boundscheck checkbounds(x, ids...)
     index = layout(x)(ids...)
     b = ManualMemory.preserve_buffer(x)
-    GC.@preserve b begin ViewEngine(engine(x))[index] = val end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(x))[index] = val
+    end
+end
+Base.@propagate_inbounds function Base.setindex!(x::NonOwningArray, val, ids::Union{Integer, StaticInt, IntTuple}...)
+    @boundscheck checkbounds(x, ids...)
+    index = layout(x)(ids...)
+    @inbounds engine(x)[index] = val
 end
 
 function Adapt.adapt_structure(to, x::MoYeArray)
@@ -186,7 +202,7 @@ function Adapt.adapt_storage(::Type{MoYeArray{T, N, A}},
     return Adapt.adapt_storage(A, xs)
 end
 
-@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(engine(A)), layout(A))
+@inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(pointer(A)), layout(A))
 
 # Array operations
 # Currently don't support slicing syntax [:,1], but we could make a view and then copy the view

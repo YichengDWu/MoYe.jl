@@ -8,6 +8,7 @@ import StaticArrayInterface
 using StrideArraysCore: static_length, static_size, static_axes
 using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
+using CUDA: @device_override
 using LLVMLoopInfo
 using Core: LLVMPtr
 import Adapt

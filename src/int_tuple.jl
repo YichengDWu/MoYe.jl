@@ -9,6 +9,7 @@ const StaticIntTuple{N} = Tuple{
                                 Vararg{
                                        Union{StaticInt,
                                              Tuple{Vararg{Union{StaticInt, Tuple}}}}, N}}
+const GenStaticIntTuple = Union{StaticInt, StaticIntTuple}
 
 Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
                                                 @nospecialize(I::IntSequence{N})) where {N}

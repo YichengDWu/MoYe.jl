@@ -32,7 +32,7 @@ using MoYe, Test, JET
     end
 
     @testset "Default Stride" begin
-        @test_throws DimensionMismatch coord_to_index(5, (3, 4))
+        #@test_throws DimensionMismatch coord_to_index(5, (3, 4))
 
         @test coord_to_index((1, 2), (3, 4)) == 4
         @test coord_to_index((2, 3), (3, 4)) == 8

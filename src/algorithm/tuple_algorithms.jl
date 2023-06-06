@@ -41,6 +41,12 @@ end
     return (v, Base.tail(t)...)
 end
 @inline replace_front(t, v) = v
+@generated function replace_front(::Type{T}, ::Type{V}) where {T<:Tuple,V}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, V)
+    push!(expr.args, T.parameters[2:end]...)
+    return expr
+end
 
 @inline function replace_back(@nospecialize(t::Tuple), v)
     return (Base.front(t)..., v)
@@ -97,6 +103,18 @@ end
         (t..., ntuple(Returns(val), N-M)...)
     end
 end
+@generated function append(::Type{T}, ::Type{X}) where {T<:Tuple, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, T.parameters...)
+    push!(expr.args, X)
+    return expr
+end
+@generated function append(::Type{T}, ::Type{X}) where {T, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, T)
+    push!(expr.args, X)
+    return expr
+end
 function append(t::Tuple, x)
     @inline
     return (t..., x)
@@ -121,25 +139,37 @@ function prepend(t::Tuple, x)
     @inline
     return (x, t...)
 end
+@generated function prepend(::Type{T}, ::Type{X}) where {T<:Tuple, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, X)
+    push!(expr.args, T.parameters...)
+    return expr
+end
+@generated function prepend(::Type{T}, ::Type{X}) where {T, X}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args, X)
+    push!(expr.args, T)
+    return expr
+end
 function prepend(t::IntType, x::IntType)
     @inline
     return (x, t)
 end
 
 # specialize on the operation
-@generated function _foldl(op::G, x::Tuple, init) where {G}
+Base.@assume_effects :total @generated function _foldl(op::G, x::Tuple, init) where {G}
     length(x.parameters) == 0 && return :init
     expr = :(op(init, x[1]))
     for i in 2:length(x.parameters)
         expr = :(op($expr, x[$i]))
     end
     return quote
-        @inline
+        Base.@_inline_meta
         @inbounds $expr
     end
 end
 
-@generated function escan(f::F, x::NTuple{N, T}, init::T) where {F, N, T}
+Base.@assume_effects :total @generated function escan(f::F, x::NTuple{N, T}, init::T) where {F, N, T}
     q = Expr(:block, Expr(:meta, :inline, :propagate_inbounds))
     if N == 1
         push!(q.args, :init)
@@ -174,3 +204,10 @@ end
 
 @generated hascolon(::T) where T = :($(Colon ∈ T.parameters))
 @generated hascolon(::Type{T}) where T = :($(Colon ∈ T.parameters))
+
+@generated function Base.reverse(::Type{T}) where {T<:Tuple}
+    expr = Expr(:curly, Tuple)
+    push!(expr.args,
+          Core._apply_iterate(Base.iterate, Base.revargs, T.parameters)...)
+    return expr
+end

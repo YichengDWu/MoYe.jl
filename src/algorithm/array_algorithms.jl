@@ -57,7 +57,7 @@ end
     return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
 end
 
-function compose(@nospecialize(x::MoYeArray), layout1, layouts...)
+function compose(x::MoYeArray, layout1, layouts...)
     return MoYeArray(pointer(x), compose(layout(x), layout1, layouts...))
 end
 
@@ -144,35 +144,32 @@ macro tile(x, tile, coord, args...)
     end
 end
 
-@inline function Base.fill!(x::MoYeArray{T, N, <:ArrayEngine}, val) where {T, N}
-    b = ManualMemory.preserve_buffer(x)
-    vb = ViewEngine(engine(x))
-    GC.@preserve b begin
-        @loopinfo unroll  for i in 1:length(b)
-            @inbounds vb[i] = val
-        end
+@inline function Base.fill!(x::NonOwningArray, val)
+    vx = engine(x)
+    @loopinfo unroll  for i in eachindex(x)
+        @inbounds vx[i] = val
     end
     return x
 end
+@inline Base.fill!(x::OwningArray, val) = @gc_preserve fill!(x, val)
 
-@inline function Base.sum(x::MoYeArray{T, N, <:ArrayEngine}) where {T, N}
-    b = ManualMemory.preserve_buffer(x)
-    vx = ViewEngine(engine(x))
-    GC.@preserve b begin
-        tmp = zero(T)
-        @loopinfo unroll for i in 1:length(x)
-            @inbounds tmp += vx[i]
-        end
-        return tmp
+@inline function Base.sum(x::NonOwningArray{T}) where T
+    vx = engine(x)
+    tmp = zero(T)
+    @loopinfo unroll for i in 1:length(x)
+        @inbounds tmp += vx[i]
     end
+    return tmp
 end
+@inline Base.sum(x::OwningArray) = @gc_preserve sum(x)
 
 """
     zeros!(x::MoYeArray)
 
 Fill `x` with zeros.
 """
-@inline zeros!(x::MoYeArray) = fill!(x, zero(eltype(x)))
+@inline zeros!(x::NonOwningArray) = fill!(x, zero(eltype(x)))
+@inline zeros!(x::OwningArray) = @gc_preserve zeros!(x)
 
 function max_common_vector(src::MoYeArray{TS}, dst::MoYeArray{TD}) where {TS, TD}
     if sizeof(TS) == sizeof(TD) && isbitstype(TS) && isbitstype(TD)

@@ -43,7 +43,7 @@ end
     align = Base.datatype_alignment(T)
     return unsafe_store!(pointer(A), val, dynamic(i), Val(align))
 end
-@inline function Base.setindex!(A::ViewEngine{T}, val, i::IntType) where {T}
+@inline function Base.setindex!(A::ViewEngine{T, <:Ptr{T}}, val, i::IntType) where {T}
     return unsafe_store!(pointer(A), val, dynamic(i))
 end
 
@@ -88,6 +88,9 @@ end
 @inline function Base.pointer(A::ArrayEngine{T}) where {T}
     return Base.unsafe_convert(Ptr{T}, pointer_from_objref(A))
 end
+#@device_override @inline function Base.pointer(A::ArrayEngine{T}) where {T}
+#    return Base.bitcast(LLVMPtr{T, AS.Generic}, pointer_from_objref(A))
+#end
 
 @inline Base.size(::ArrayEngine{T, L}) where {T, L} = (L,)
 @inline Base.length(::ArrayEngine{T, L}) where {T, L} = L
@@ -113,13 +116,17 @@ end
 Base.@propagate_inbounds function Base.getindex(A::ArrayEngine, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
-    GC.@preserve b begin ViewEngine(A)[i] end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(A))[i]
+    end
 end
 
 Base.@propagate_inbounds function Base.setindex!(A::ArrayEngine, val, i::IntType)
     @boundscheck checkbounds(A, i)
     b = ManualMemory.preserve_buffer(A)
-    GC.@preserve b begin ViewEngine(A)[i] = val end
+    GC.@preserve b begin
+        @inbounds ViewEngine(pointer(A))[i] = val
+    end
 end
 
 

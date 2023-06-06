@@ -295,7 +295,10 @@ end
         end
     end
 
-    return expr
+    return quote
+        Base.@_inline_meta
+        $expr
+    end
 end
 
 @generated function transform_layout(f, t1, t2, ::StaticInt{N}) where {N}
@@ -306,13 +309,49 @@ end
     return expr
 end
 
+@generated function bw_coalesce(::StaticInt{I}, old_shape::StaticIntTuple,
+                                                old_stride::StaticIntTuple,
+                                                new_shape::GenStaticIntTuple,
+                                                new_stride::GenStaticIntTuple) where {I}
+    for i in I:-1:1
+        if old_shape.parameters[i] == One
+            continue
+        elseif new_shape <: StaticInt && new_shape == One
+            new_shape = old_shape.parameters[i]
+            new_stride = old_stride.parameters[i]
+        elseif old_shape.parameters[i] * old_stride.parameters[i] == ifelse(new_stride <: Tuple, new_stride.parameters[1], new_stride)
+            new_shape = replace_front(new_shape,
+                                      old_shape.parameters[i] * ifelse(new_shape <: Tuple, new_shape.parameters[1], new_shape))
+            new_stride = replace_front(new_stride, old_stride.parameters[i])
+        else
+            new_shape = prepend(new_shape, old_shape.parameters[i])
+            new_stride = prepend(new_stride, old_stride.parameters[i])
+        end
+    end
+
+    if new_shape == One
+        return :($(Layout(One(), Zero())))
+    else
+        return :($(Layout(make_tuple(new_shape), make_tuple(new_stride))))
+    end
+end
+
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::GenStaticIntTuple, new_stride::GenStaticIntTuple)
+    return Layout(new_shape, new_stride)
+end
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::StaticInt{1}, new_stride::StaticInt)
+    return Layout(one(new_shape), zero(new_shape))
+end
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1},
                      new_stride)
-    return Layout(one(new_shape), zero(new_shape))
+    return Layout(One(), Zero())
 end
 function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape, new_stride)
     return Layout(new_shape, new_stride)
 end
+
 Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_stride,
                                                  new_shape, new_stride)
     if isa(old_shape[I], StaticInt) && old_shape[I] == One()
@@ -400,13 +439,14 @@ function composition(lhs_shape::Tuple, lhs_stride::Tuple, rhs_shape::IntType,
 end
 
 # distributivity with concatenation
-Base.@assume_effects :total function composition(lhs_shape, lhs_stride,
-                                                 rhs_shape::IntTuple{N},
-                                                 rhs_stride::IntTuple{N}) where {N}
-    return let lhs_shape = lhs_shape, lhs_stride = lhs_stride
-        make_layout(map((s, d) -> composition(lhs_shape, lhs_stride, s, d), rhs_shape,
-                        rhs_stride)...)
-    end                                               # we assume rank(lhs) == rank(rhs)
+@generated function composition(lhs_shape, lhs_stride, rhs_shape::IntTuple{N},
+                                rhs_stride::IntTuple{N}) where {N}
+    expr = Expr(:call, :make_layout)
+    for i in 1:N
+        push!(expr.args,
+              :(MoYe.composition(lhs_shape, lhs_stride, rhs_shape[$i], rhs_stride[$i])))
+    end
+    return expr
 end
 
 function composition(lhs::Layout, rhs::Layout)
@@ -736,46 +776,51 @@ end
 
 @inline safe_div(x::IntType, y::IntType) = div(x, y)
 
-function upcast(shape::IntType, stride::StaticInt{0}, ::StaticInt)
+struct Upcast{N<:StaticInt} end
+
+function (::Upcast)(shape::IntType, stride::StaticInt{0})
+    @inline
     return make_layout(shape, stride)
 end
-function upcast(shape::IntType, stride::StaticInt, m::StaticInt)
-    return make_layout(shape_div(shape, shape_div(m, static_abs(stride))),
-                       shape_div(stride, m))
-end
-function upcast(shape::IntType, stride::Int, m::StaticInt)
-    return make_layout(shape, safe_div(stride, m))
-end
-Base.@assume_effects :total function upcast(shape::Tuple, stride::Tuple, n::StaticInt)
-    return let n = n
-        transform_layout((x, y) -> upcast(x, y, n), shape, stride)
-    end
-end
-function upcast(layout::Layout, m::StaticInt)
+function (::Upcast{m})(shape::IntType, stride::StaticInt) where m
     @inline
-    return upcast(layout.shape, layout.stride, m)
+    return make_layout(shape_div(shape, shape_div(m(), abs(stride))), shape_div(stride, m()))
+end
+function (::Upcast{m})(shape::IntType, stride::Int) where m
+    @inline
+    return make_layout(shape, safe_div(stride, m()))
+end
+function (f::Upcast{m})(shape::Tuple, stride::Tuple) where m
+    return transform_layout(f, shape, stride)
 end
 
-function downcast(shape::IntType, stride::StaticInt{1}, n::StaticInt)
+function upcast(layout::Layout, ::StaticInt{M}) where M
     @inline
-    return make_layout(shape * n, stride)
+    return Upcast{StaticInt{M}}()(layout.shape, layout.stride)
 end
-function downcast(shape::IntType, stride::StaticInt{-1}, n::StaticInt)
+
+struct Downcast{N<:StaticInt} end
+
+function (::Downcast{N})(shape::IntType, stride::StaticInt{1}) where N
     @inline
-    return make_layout(shape * n, stride)
+    return make_layout(shape * N(), stride)
 end
-function downcast(shape::IntType, stride::IntType, n::StaticInt)
+function (::Downcast{N})(shape::IntType, stride::StaticInt{-1}) where N
     @inline
-    return make_layout(shape, stride * n)
+    return make_layout(shape * N(), stride)
 end
-Base.@assume_effects :total function downcast(shape::Tuple, stride::Tuple, n::StaticInt)
-    return let n = n
-        transform_layout((x, y) -> downcast(x, y, n), shape, stride)
-    end
-end
-function downcast(layout::Layout, m::StaticInt)
+function (::Downcast{N})(shape::IntType, stride::IntType) where N
     @inline
-    return downcast(layout.shape, layout.stride, m)
+    return make_layout(shape, stride * N())
+end
+function (f::Downcast{N})(shape::Tuple, stride::Tuple) where N
+    @inline
+    return transform_layout(f, shape, stride)
+end
+
+function downcast(layout::Layout, ::StaticInt{M}) where M
+    @inline
+    return Downcast{StaticInt{M}}()(layout.shape, layout.stride)
 end
 
 @generated function recast(layout::Layout, ::Type{NewType},

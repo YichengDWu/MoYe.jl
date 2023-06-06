@@ -19,7 +19,12 @@ stride
 shape
 cosize
 ```
+## Compact Layout
 
+```
+GenColMajor
+GenRowMajor
+```
 ## Product
 ```@docs
 logical_product
