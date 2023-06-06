@@ -43,7 +43,7 @@ end
     align = Base.datatype_alignment(T)
     return unsafe_store!(pointer(A), val, dynamic(i), Val(align))
 end
-@inline function Base.setindex!(A::ViewEngine{T}, val, i::IntType) where {T}
+@inline function Base.setindex!(A::ViewEngine{T, <:Ptr{T}}, val, i::IntType) where {T}
     return unsafe_store!(pointer(A), val, dynamic(i))
 end
 
