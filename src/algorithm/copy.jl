@@ -69,6 +69,14 @@ function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{
     return dest
 end
 
-function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray, src::MoYeArray)
-    return copyto_if!(copy_atom, dest, src, TrivialPred())
+function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,1}, src::MoYeArray{TS,1}) where {TD,TS}
+    return apply(copy_atom, dest, src)
+end
+function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}) where {TD,TS,N}
+    src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
+    dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
+    @loopinfo unroll for i in One():size(src_v.layout, 2)
+        apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
+    end
+    return dest
 end
