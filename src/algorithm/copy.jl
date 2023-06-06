@@ -1,7 +1,7 @@
 struct TrivialPred end
 @inline Base.getindex(::TrivialPred, i) = true
 
-function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
+Base.@assume_effects :total function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @loopinfo unroll for i in One():size(src.layout)
         if mask[i]
@@ -13,7 +13,7 @@ end
 function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,1}, src::MoYeArray{TS,1}, mask) where {TD,TS}
     return apply(copy_atom, dest, src)
 end
-function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}, mask) where {TD,TS,N}
+Base.@assume_effects :total function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}, mask) where {TD,TS,N}
     src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
     dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
     @loopinfo unroll for i in One():size(src_v.layout, 2)
@@ -24,7 +24,7 @@ function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoY
     return dest
 end
 
-@generated function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
+Base.@assume_effects :total @generated function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
         return quote
             src_v = recast(TV, src)
@@ -69,6 +69,14 @@ function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{
     return dest
 end
 
-function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray, src::MoYeArray)
-    return copyto_if!(copy_atom, dest, src, TrivialPred())
+function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,1}, src::MoYeArray{TS,1}) where {TD,TS}
+    return apply(copy_atom, dest, src)
+end
+Base.@assume_effects :total function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}) where {TD,TS,N}
+    src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
+    dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
+    @loopinfo unroll for i in One():size(src_v.layout, 2)
+        apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
+    end
+    return dest
 end
