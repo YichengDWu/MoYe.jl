@@ -121,7 +121,22 @@ end
 struct LayoutLeft end
 struct LayoutRight end
 
+"""
+[`make_layout`](@ref) uses this to create a col-major compact layout.
+```julia
+julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
+((1, (2, 4)), 1):((static(1), (1, 2)), 8)
+```
+"""
 const GenColMajor = LayoutLeft
+
+"""
+[`make_layout`](@ref) uses this to create a row-major compact layout.
+```julia
+julia> make_layout(((1, (2, 4)), 1), MoYe.GenRowMajor)
+((1, (2, 4)), 1):((8, (4, 1)), static(1))
+```
+"""
 const GenRowMajor = LayoutRight
 
 struct CompactLambda{Major} end
@@ -161,11 +176,6 @@ end
         return init
     end
     return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
-end
-
-Base.@assume_effects :total function (::CompactLambda{LayoutRight})(init, si)
-    result = compact(si, init[2], LayoutRight)
-    return @inbounds (prepend(init[1], result[1]), result[2])
 end
 
 Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})
