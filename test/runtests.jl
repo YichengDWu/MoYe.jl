@@ -1,4 +1,4 @@
-using Test, SafeTestsets
+using Test, SafeTestsets, CUDA
 
 @safetestset "Tuple Algorithms" begin include("tuple_alg.jl") end
 @safetestset "IntTuple" begin include("int_tuple.jl") end
