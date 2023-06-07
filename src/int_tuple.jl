@@ -36,12 +36,18 @@ end
 @inline product(x::IntType) = x
 @inline product(x::IntSequence) = prod(x)
 @inline product(x::IntTuple) = prod(flatten(x))
+@inline @generated function product(::Type{T}) where {T<:StaticIntTuple}
+    t = make_tuple(T)
+    return :($(typeof(prod(flatten(t)))))
+end
 
 @inline product_each(x) = map(product, x)
 
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
 #capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
+@inline capacity(::Type{T}) where {T<:StaticIntTuple} = product(T)
+
 
 @inline flatsum(@nospecialize x::IntTuple) = sum(flatten(x))
 
@@ -104,7 +110,7 @@ function filter_zeros(x::IntTuple{N}, y::IntTuple{N}) where {N}
 end
 filter_zeros(t::Tuple) = filter_zeros(t, t)
 
-function slice(@nospecialize(A::Tuple), @nospecialize(index::Tuple))
+function slice(A::Tuple, index::Tuple)
     length(A) == length(index) ||
         throw(DimensionMismatch("Array and index must have the same rank"))
     return tuple_cat(map(slice, A, index)...)

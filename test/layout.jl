@@ -1,7 +1,7 @@
 using MoYe, Test, JET
 using Static: One
 
-@testset "Macro" begin
+@testset "Macro Layout" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
           make_layout(static((2, (2, 2))), static((4, (1, 2))))
     @test @Layout(2, 4) == make_layout(static(2), static(4))

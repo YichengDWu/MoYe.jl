@@ -114,6 +114,7 @@ const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}
 
 engine(x::MoYeArray) = getfield(x, :engine)
 layout(x::MoYeArray) = getfield(x, :layout)
+layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 
 @inline Base.elsize(x::MoYeArray{T}) where {T} = sizeof(T)
 @inline Base.sizeof(x::MoYeArray) =  Base.elsize(x) * length(x)

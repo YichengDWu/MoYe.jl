@@ -1,10 +1,9 @@
-
 using Test, MoYe, CUDA
 
 @inline _getfirst(x::UInt32) = x
 @inline _getfirst(x) = getfield(x, 1)
 
-if CUDA.functional() && MoYe.LLVM.version().major>=15
+if MoYe.LLVM.version().major>=15
     @testset "Compile to LLVM" begin
         function kernel(op)
             A = MoYeSharedArray(UInt32, @Layout((32,32)))

@@ -51,7 +51,7 @@ function test_copy_async(M, N)
     bN = size(blocklayout, 2)
 
     blocks = (cld(M, bM), cld(N, bN))
-    threads = MoYe.dynamic(size(threadlayout))
+    threads = Int(size(threadlayout))
 
     @cuda blocks=blocks threads=threads copy_kernel(a, b, smemlayout, blocklayout, threadlayout)
     CUDA.synchronize()
@@ -178,7 +178,7 @@ function test_transpose(M, N)
     bN = size(blocklayout, 2)
 
     blocks = (cld(M, bM), cld(N, bN))
-    threads = MoYe.dynamic(size(threadlayout))
+    threads = Int(size(threadlayout))
 
     @cuda blocks=blocks threads=threads transpose_kernel(a, b, smemlayout, blocklayout, threadlayout)
     CUDA.synchronize()
