@@ -15,13 +15,16 @@ end
 @safetestset "Tiling" begin include("tiling.jl") end
 @safetestset "Copy" begin include("copy.jl") end
 
-@testset "Device" begin
-    @safetestset "Memory" begin include("device/memory.jl") end
-    @safetestset "MMA" begin include("device/mmaop.jl") end
-    @safetestset "MMATraits" begin include("device/mmatraits.jl") end
-    @safetestset "Pointer" begin include("device/pointer.jl") end
-    @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
-    @safetestset "Broadcast" begin include("device/broadcast.jl") end
+if CUDA.functional()
+    @testset "Device" begin
+        @safetestset "Memory" begin include("device/memory.jl") end
+        @safetestset "MMA" begin include("device/mmaop.jl") end
+        @safetestset "MMATraits" begin include("device/mmatraits.jl") end
+        @safetestset "Pointer" begin include("device/pointer.jl") end
+        @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
+        @safetestset "Broadcast" begin include("device/broadcast.jl") end
+        @safetestset "Tiled Copy" begin include("device/tiled_copy.jl") end
+    end
 end
 
 @testset "Examples" begin

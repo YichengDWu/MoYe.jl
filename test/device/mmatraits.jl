@@ -11,8 +11,7 @@ using Test, MoYe, CUDA
     end
 end
 
-if CUDA.functional()
-    @testset "16x8x16_F16F16F16F16" begin
+@testset "16x8x16_F16F16F16F16" begin
     function kernel(A,B,C, smemlayout_A, smemlayout_B, thread_layout)
         moye_A = MoYeArray(pointer(A), @Layout((16,16))) # M-major
         moye_B = MoYeArray(pointer(B), @Layout((16,8)))  # K-major
@@ -87,5 +86,4 @@ if CUDA.functional()
     @cuda threads=32 kernel(A,B,C, smemlayout_A, smemlayout_B, thread_layout)
     CUDA.synchronize()
     @test Array(A*B) ≈ Array(C)
-    end
 end

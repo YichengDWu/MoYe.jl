@@ -80,6 +80,7 @@ end
     return ND
 end
 
+#=
 Base.@assume_effects :terminates_globally @generated function apply(copy_atom::CP, dst::StaticMoYeArray{TD, 1},
                           src::StaticMoYeArray{TS, 1}) where {CP <: AbstractCopyAtom, TD, TS
                                                               }
@@ -98,8 +99,7 @@ Base.@assume_effects :terminates_globally @generated function apply(copy_atom::C
                     MoYeArray(pointer(src), $src_layout))
         end
     else
-        throw(ArgumentError("Cannot copy from $src to $dst, $(num_val_src(copy_atom))!= $(size(layout(src)))
-                             $(shape(layout(src)) <: Tuple) is not a tuple, and $(shape(layout(dst)) <: Tuple) "))
+        throw(ArgumentError("Cannot copy from $src to $dst, $(num_val_src(copy_atom))!= $(size(layout(src)))"))
     end
 end
 
@@ -108,6 +108,7 @@ function apply(copy_atom::AbstractCopyAtom, dst::MoYeArray{TD, 1, ED, <:Layout{1
     return copyto!(copy_atom, MoYeArray(pointer(dst), layout(dst)[One()]),
                    MoYeArray(pointer(src), layout(src)[One()]))
 end
+=#
 
 struct TiledCopy{Traits, T, OP, CP, LT, ST} <: AbstractCopyAtom{Traits, T, OP}
     copy_atom::CP
