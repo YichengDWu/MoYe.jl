@@ -73,11 +73,15 @@ Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::Abstr
     apply(copy_atom, dest, src)
     return dest
 end
+Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,2}, src::MoYeArray{TS,2}) where {TD,TS}
+    @loopinfo unroll for i in One():size(src.layout, 2)
+        apply(copy_atom, view(dest, :, i), view(src, :, i))
+    end
+    return dest
+end
 Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}) where {TD,TS,N}
     src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
     dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
-    @loopinfo unroll for i in One():size(src_v.layout, 2)
-        apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
-    end
+    copyto!(copy_atom, dest_v, src_v)
     return dest
 end
