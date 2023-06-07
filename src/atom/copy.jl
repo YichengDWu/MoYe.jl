@@ -43,10 +43,13 @@ function CopyAtom{Traits, T}() where {OP, Traits <: CopyTraits{OP}, T}
 
     num_val_src = size(val_layout_src, 2)
     num_val_dst = size(val_layout_dst, 2)
-    return CopyAtom{typeof(traits), T, OP, typeof(val_layout_src),
-                    typeof(val_layout_dst), typeof(val_layout_ref), typeof(num_val_src),
-                    typeof(num_val_dst)}(traits, val_layout_src, val_layout_dst,
-                                         val_layout_ref, num_val_src, num_val_dst)
+    return CopyAtom{typeof(traits), T, OP, typeof(val_layout_src), typeof(val_layout_dst),
+                    typeof(val_layout_ref), typeof(num_val_src), typeof(num_val_dst)}(traits,
+                                                                                      val_layout_src,
+                                                                                      val_layout_dst,
+                                                                                      val_layout_ref,
+                                                                                      num_val_src,
+                                                                                      num_val_dst)
 end
 
 function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOperation, T}
@@ -54,18 +57,49 @@ function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOperation, T}
     return CopyAtom{CopyTraits{CPOP}, T}()
 end
 
-@inline atom(x::CopyAtom) = x
+@inline function num_val_src(::Type{CopyAtom{Traits, T, OP, VS, VD, VR, NS, ND}}) where {
+                                                                                         Traits,
+                                                                                         T,
+                                                                                         OP,
+                                                                                         VS,
+                                                                                         VD,
+                                                                                         VR,
+                                                                                         NS,
+                                                                                         ND}
+    return NS
+end
+@inline function num_val_dst(::Type{CopyAtom{Traits, T, OP, VS, VD, VR, NS, ND}}) where {
+                                                                                         Traits,
+                                                                                         T,
+                                                                                         OP,
+                                                                                         VS,
+                                                                                         VD,
+                                                                                         VR,
+                                                                                         NS,
+                                                                                         ND}
+    return ND
+end
 
-Base.@assume_effects :total function apply(copy_atom::AbstractCopyAtom, dst::StaticMoYeArray{TD, 1},
-               src::StaticMoYeArray{TS, 1}) where {TD, TS}
-    if atom(copy_atom).num_val_src == size(src.layout) ||
-       atom(copy_atom).num_val_dst == size(dst.layout)
-        return copyto_unpack!(copy_atom, dst, src)
-    elseif isa(shape(src), Tuple) && isa(shape(dst), Tuple)
-        return copyto!(copy_atom, MoYeArray(pointer(dst), layout(dst)[One()]),
-                       MoYeArray(pointer(src), layout(src)[One()]))
+Base.@assume_effects :terminates_globally @generated function apply(copy_atom::CP, dst::StaticMoYeArray{TD, 1},
+                          src::StaticMoYeArray{TS, 1}) where {CP <: AbstractCopyAtom, TD, TS
+                                                              }
+    if num_val_src(copy_atom) == size(layout(src)) ||
+       num_val_dst(copy_atom) == size(layout(dst))
+        return quote
+            Base.@_inline_meta
+            copyto_unpack!(copy_atom, dst, src)
+        end
+    elseif shape(layout(src)) <: Tuple && shape(layout(dst)) <: Tuple
+        dst_layout = layout(dst)[One()]()
+        src_layout = layout(src)[One()]()
+        return quote
+            Base.@_inline_meta
+            copyto!(copy_atom, MoYeArray(pointer(dst), $dst_layout),
+                    MoYeArray(pointer(src), $src_layout))
+        end
     else
-        throw(ArgumentError("Cannot copy from $src to $dst"))
+        throw(ArgumentError("Cannot copy from $src to $dst, $(num_val_src(copy_atom))!= $(size(layout(src)))
+                             $(shape(layout(src)) <: Tuple) is not a tuple, and $(shape(layout(dst)) <: Tuple) "))
     end
 end
 
@@ -100,7 +134,25 @@ function Base.propertynames(::TiledCopy)
             :atom_layout_dst, :atom_layout_ref)
 end
 
-@inline atom(tile_copy::TiledCopy) = atom(tile_copy.copy_atom)
+function num_val_src(::Type{<:TiledCopy{Traits, T, OP, CP}}) where {Traits, T, OP, VS, VD,
+                                                                    VR, NS, ND,
+                                                                    CP <:
+                                                                    CopyAtom{Traits, T, OP,
+                                                                             VS, VD, VR, NS,
+                                                                             ND}}
+    @inline
+    return NS
+end
+
+function num_val_dst(::Type{<:TiledCopy{Traits, T, OP, CP}}) where {Traits, T, OP, VS, VD,
+                                                                    VR, NS, ND,
+                                                                    CP <:
+                                                                    CopyAtom{Traits, T, OP,
+                                                                             VS, VD, VR, NS,
+                                                                             ND}}
+    @inline
+    return ND
+end
 
 function TiledCopy(atom::CopyAtom{Traits, T, OP}, tiled_layout_TV::Layout,
                    tiler_MN) where {Traits, T, OP}
@@ -188,8 +240,6 @@ struct ThrCopy{Traits, T, OP, TC, TI} <: AbstractCopyAtom{Traits, T, OP}
         return new{Traits, T, OP, typeof(tiled_copy), typeof(thr_idx)}(tiled_copy, thr_idx)
     end
 end
-
-@inline atom(thr_copy::ThrCopy) = atom(thr_copy.tiled_copy)
 
 function partition_S(thr_copy::ThrCopy, s::MoYeArray{T, N}) where {T, N}
     thr_tensor = MoYeArray(pointer(s), tidfrg_S(thr_copy.tiled_copy, layout(s)))

@@ -29,8 +29,10 @@ end
 
 shape(l::Layout) = getfield(l, :shape)
 shape(l, i::IntType) = getindex(shape(l), i)
+shape(l::Type{<:StaticLayout{N, S, R}}) where {N, S, R} = S
 Base.stride(l::Layout) = getfield(l, :stride)
 Base.stride(l::Layout, i::IntType) = getindex(stride(l), i)
+Base.stride(l::Type{<:StaticLayout{N, S, R}}) where {N, S, R} = R
 Static.static(l::Layout) = make_layout(static(shape(l)), static(stride(l)))
 
 Static.is_static(l::Layout) = dynamic(is_static(shape(l))) && dynamic(is_static(stride(l)))
@@ -99,6 +101,11 @@ end
 function make_layout(shape::GenIntTuple, ::Type{GenRowMajor})
     return make_layout(shape, compact_row_major(shape))
 end
+function make_layout(shape::Type{S}, stride::Type{D}) where {N, S <: StaticIntTuple{N},
+                                                             D <: StaticIntTuple{N}}
+    @inline
+    return Layout{N, S, D}
+end
 
 """
     Layout(shape, stride=nothing)
@@ -157,6 +164,10 @@ function Base.getindex(@nospecialize(t::Layout), r::AbstractUnitRange)
     @inline
     return ntuple(i -> t[i + first(r) - 1], length(r))
 end
+function Base.getindex(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
+    @inline
+    return make_layout(getindex(shape(layout).parameters, I), getindex(stride(layout).parameters, I))
+end
 
 # Layout as iterator
 function Base.firstindex(l::Layout)
@@ -198,6 +209,12 @@ function Base.size(layout::Layout)
 end
 function Base.size(layout::Layout, i::Int)
     return capacity(shape(layout)[i])
+end
+function Base.size(layout::Type{<:StaticLayout})
+    return capacity(shape(layout))
+end
+function Base.size(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
+    return capacity(shape(layout).parameters[i])
 end
 
 function rank(layout::Layout)
