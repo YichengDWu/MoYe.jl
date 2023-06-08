@@ -80,36 +80,6 @@ end
     return ND
 end
 
-#=
-Base.@assume_effects :terminates_globally @generated function apply(copy_atom::CP, dst::StaticMoYeArray{TD, 1},
-                          src::StaticMoYeArray{TS, 1}) where {CP <: AbstractCopyAtom, TD, TS
-                                                              }
-    if num_val_src(copy_atom) == size(layout(src)) ||
-       num_val_dst(copy_atom) == size(layout(dst))
-        return quote
-            Base.@_inline_meta
-            copyto_unpack!(copy_atom, dst, src)
-        end
-    elseif shape(layout(src)) <: Tuple && shape(layout(dst)) <: Tuple
-        dst_layout = layout(dst)[One()]()
-        src_layout = layout(src)[One()]()
-        return quote
-            Base.@_inline_meta
-            copyto!(copy_atom, MoYeArray(pointer(dst), $dst_layout),
-                    MoYeArray(pointer(src), $src_layout))
-        end
-    else
-        throw(ArgumentError("Cannot copy from $src to $dst, $(num_val_src(copy_atom))!= $(size(layout(src)))"))
-    end
-end
-
-function apply(copy_atom::AbstractCopyAtom, dst::MoYeArray{TD, 1, ED, <:Layout{1, <:Tuple}},
-               src::MoYeArray{TS, 1, ES, <:Layout{1, <:Tuple}}) where {TD, TS, ED, ES}
-    return copyto!(copy_atom, MoYeArray(pointer(dst), layout(dst)[One()]),
-                   MoYeArray(pointer(src), layout(src)[One()]))
-end
-=#
-
 struct TiledCopy{Traits, T, OP, CP, LT, ST} <: AbstractCopyAtom{Traits, T, OP}
     copy_atom::CP
     tiled_layout_TV::LT

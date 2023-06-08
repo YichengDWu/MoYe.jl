@@ -10,6 +10,4 @@ function f()
     return nothing
 end
 
-if CUDA.functional()
-    @test_nowarn @cuda f()
-end
+@test_nowarn @cuda f()
