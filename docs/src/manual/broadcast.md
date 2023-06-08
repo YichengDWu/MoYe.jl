@@ -10,7 +10,7 @@ Because the stride order of the original array is not respected, the performance
 ```@repl bc
 using MoYe
 a = MoYeArray{Float64}(undef, @Layout((3,2), (2,1)))
-fill!(a, 1.0)
+fill!(a, 1.0);
 a .* 3
 a .+ a
 ```
