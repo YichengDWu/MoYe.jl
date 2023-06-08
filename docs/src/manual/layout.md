@@ -73,9 +73,9 @@ layout_2x4(2, (1, 2)) # h-D coordinate
 layout_2x4(2, 3) # R-D coordinate
 layout_2x4(6) # 1-D coordinate
 ```
+## Layout Algebra
 
-
-## Concatenation
+### Concatenation
 
 A `layout` can be expressed as the concatenation of its sublayouts.
 
@@ -89,7 +89,7 @@ end
 ```
 
 
-## Flatten
+### Flatten
 
 ```@repl layout
 layout = make_layout(((4, 3), 1), ((3, 1), 0))
@@ -103,7 +103,7 @@ layout = @Layout (2, (1, 6)) (1, (6, 2))
 print(coalesce(layout))
 ```
 
-## Composition
+### Composition
 
 Layouts are functions and thus can possibly be composed.
 ```@repl layout
@@ -111,16 +111,16 @@ make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
 make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 ```
 
-## Complement
+### Complement
 
 ```@repl layout
 complement(@Layout(4, 1), static(24))
 complement(@Layout(6, 4), static(24))
 ```
 
-## Product
+### Product
 
-### Logical product
+#### Logical product
 
 ```@repl layout
 tile = @Layout((2,2), (1,2));
@@ -130,21 +130,21 @@ print_layout(matrix_of_tiles)
 print_layout(logical_product(tile, matrix_of_tiles))
 ```
 
-### Blocked product
+#### Blocked product
 
 ```@repl layout
 print_layout(blocked_product(tile, matrix_of_tiles))
 ```
 
-### Raked product
+#### Raked product
 
 ```@repl layout
 print_layout(raked_product(tile, matrix_of_tiles))
 ```
 
-## Division
+### Division
 
-### Logical division
+#### Logical division
 
 ```@repl layout
 raked_prod = raked_product(tile, matrix_of_tiles);
@@ -152,7 +152,7 @@ subtile = (Layout(2,3), Layout(2,4));
 print_layout(logical_divide(raked_prod, subtile))
 ```
 
-### Zipped division
+#### Zipped division
 
 ```@repl layout
 print_layout(zipped_divide(raked_prod, subtile))
