@@ -69,28 +69,8 @@ function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{
     return dest
 end
 
-#=
-Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,1}, src::MoYeArray{TS,1}) where {TD,TS}
-    apply(copy_atom, dest, src)
-    return dest
-end
-Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,2}, src::MoYeArray{TS,2}) where {TD,TS}
-    @loopinfo unroll for i in One():size(src.layout, 2)
-        apply(copy_atom, view(dest, :, i), view(src, :, i))
-    end
-    return dest
-end
-Base.@assume_effects :terminates_globally function Base.copyto!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}) where {TD,TS,N}
-    src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
-    dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
-    copyto!(copy_atom, dest_v, src_v)
-    return dest
-end
-=#
-
 group_tail(l::Layout{2}) = l
 group_tail(l::Layout{N}) where {N} = group(l, StaticInt{2}(), StaticInt{N}())
-
 
 function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst, d=1)
     expr = Expr(:block)
