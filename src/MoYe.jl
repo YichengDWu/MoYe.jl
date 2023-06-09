@@ -64,7 +64,7 @@ export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compac
 # Layout
 export Layout, make_layout, shape, rank, depth, cosize, compose, complement, logical_product,
        blocked_product, raked_product, zipped_product, logical_divide, zipped_divide,
-       tiled_divide, zeros!, recast, right_inverse
+       tiled_divide, zeros!, recast, right_inverse, left_inverse
 export print_layout
 
 # MoYeArray
