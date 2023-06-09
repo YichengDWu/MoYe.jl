@@ -158,7 +158,7 @@ Construct a static layout with the given shape and stride.
 ## Arguments
 
   - `shape`: a tuple of integers or a single integer
-  - `stride`: a tuple of integers, a single integer, `GenColMajor` or `GenRowMajor`
+  - `stride`: a tuple of integers, a single integer, [`GenColMajor`](@ref) or [`GenRowMajor`](@ref)
 """
 macro Layout(expr1, expr2=nothing)
     if expr2 === nothing
