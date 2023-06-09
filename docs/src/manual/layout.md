@@ -15,7 +15,7 @@ a = StrideVector(collect(1:8), Layout(4, 2))
 @show a[1] a[2] a[3] a[4];
 ```
 
-## Constructing a `Layout`
+## Fundamentals
 
 ```@repl layout
 using MoYe

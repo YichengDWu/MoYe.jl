@@ -35,7 +35,8 @@ GenRowMajor
 
 ### Concatenation 
 ```@docs
- cat(::Layout...)
+cat(::Layout...)
+make_layout(::Layout...)
 ```
 ### Composition
 ```@docs

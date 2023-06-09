@@ -15,8 +15,8 @@ dimension.
 A `Layout` can be indexed with three types of indices:
 
   - `Int`: a linear index.
-  - `IntTuple`: a hierarchical index.
-  - `IntTuple`: a congruent index.
+  - `IntTuple`: a hierarchical index. It has the exact hierarchical structure as defined by the `Shape`.
+  - `IntTuple`: a congruent index. A tuple of `N` mixes hierarchical and linear indices along each dimension.
 
 ## Examples
 ```julia
@@ -127,6 +127,12 @@ function make_layout(shape::GenIntTuple)
     @inline
     return Layout(shape, compact_col_major(shape))
 end
+
+"""
+    make_layout(::Layouts...)
+
+Concatenate layouts into a single layout.
+"""
 function make_layout(layouts::Layout...)
     return make_layout(map(shape, layouts), map(stride, layouts)) # concatenation
 end
