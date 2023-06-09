@@ -504,6 +504,16 @@ function withshape(l::Layout, s1, s2, s3...)
     return composition(l, make_layout((s1, s2, s3...)))
 end
 
+function _complement_inner(init, i)
+    _curr_stride = Static.reduce_tup(min, init[2])
+    _curr_idx = static_findfirst(==(_curr_stride), init[2])
+    _curr_shape = init[1][_curr_idx]
+
+    return (remove(init[1], _curr_idx), remove(init[2], _curr_idx),
+            append(init[3], _curr_stride ÷ init[4][i]),
+            append(init[4], _curr_shape * _curr_stride))
+end
+
 function _complement(shape::IntType, stride::StaticInt{0}, cosize_hi::IntType)
     return make_layout(cosize_hi)
 end
@@ -527,18 +537,7 @@ function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R},
 
     _result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
                tuple(One(), curr_shape * curr_stride))
-
-    function f(init, i)
-        _curr_stride = Static.reduce_tup(min, init[2])
-        _curr_idx = static_findfirst(==(_curr_stride), init[2])
-        _curr_shape = init[1][_curr_idx]
-
-        return (remove(init[1], _curr_idx), remove(init[2], _curr_idx),
-                append(init[3], _curr_stride ÷ init[4][i]),
-                append(init[4], _curr_shape * _curr_stride))
-    end
-
-    result = _foldl(f, ntuple(x -> x + 1, Val(R - 2)), _result)
+    result = _foldl(_complement_inner, ntuple(x -> x + 1, Val(R - 2)), _result)
     result_stride = last(result)
     result_shape = append(result[3], result[2][1] ÷ back(result_stride))
 
