@@ -1,3 +1,38 @@
+"""
+    Layout{N, Shape, Stride}
+
+A `Layout` is a pair of `Shape` and `Stride` tuples.  The `Shape` tuple
+contains the number of elements in each dimension, and the `Stride` tuple
+contains the number of elements to skip to get to the next element in each
+dimension.
+
+## Fields
+  - `shape`.
+  - `stride`.
+
+## Indexing
+
+A `Layout` can be indexed with three types of indices:
+
+  - `Int`: a linear index.
+  - `IntTuple`: a hierarchical index.
+  - `IntTuple`: a congruent index.
+
+## Examples
+```julia
+julia> layout = Layout((4, (2, 2)), (2, (1, 8)))
+(4, (2, 2)):(2, (1, 8))
+
+julia> layout(6) # linear index
+4
+
+julia> layout((2,2)) # hierarchical index
+4
+
+julia> layout((2,(2,1))) # congruent index
+4
+```
+"""
 struct Layout{N, Shape, Stride}
     shape::Shape
     stride::Stride
@@ -108,7 +143,15 @@ function make_layout(shape::Type{S}, stride::Type{D}) where {N, S <: StaticIntTu
 end
 
 """
-    Layout(shape, stride=nothing)
+    cat(::Layouts...)
+
+Concatenate layouts into a single layout.
+"""
+function Base.cat(layouts::Layout...)
+    return make_layout(map(shape, layouts), map(stride, layouts))
+end
+"""
+    @Layout(shape, stride=nothing)
 
 Construct a static layout with the given shape and stride.
 
@@ -204,6 +247,12 @@ function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
 end
 
+"""
+    size(::Layout)
+    size(::Layout, i::Union{Int, StaticInt})
+
+Get the cardinality of the domain of the layout. See also [`cosize`](@ref).
+"""
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
@@ -217,6 +266,12 @@ function Base.size(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
     return capacity(shape(layout).parameters[i])
 end
 
+"""
+    rank(::Layout)
+    rank(::Layout, i::Union{Int, StaticInt})
+
+Get the rank, i.e., the dimensionality, of the layout.
+"""
 function rank(layout::Layout)
     return rank(shape(layout))
 end
@@ -234,9 +289,14 @@ function depth(layout::Layout, i::Int)
     return depth(shape(layout)[i])
 end
 
-## cosize, negative stride is not supported
+"""
+    cosize(::Layout)
+    cosize(::Layout, i::Union{Int, StaticInt})
+
+Get the cardinality of the codomain of the layout. See also [`size`](@ref).
+"""
 function cosize(layout::Layout)
-    return layout(size(layout))
+    return layout(size(layout)) ## Note: negative stride is not supported
 end
 
 function coord_to_index(layout::Layout, coord)
