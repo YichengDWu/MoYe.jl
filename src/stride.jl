@@ -145,41 +145,43 @@ const GenRowMajor = LayoutRight
 
 struct CompactLambda{Major} end
 
-@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutLeft})
-    function compact_inner(init, shape)
-        for si in shape.parameters
-            current = init[2]
-            result = if si == One
-                (Zero, current)
-            elseif si <: StaticInt
-                (current, si * current)
-            elseif si <: Tuple
-                compact_inner((Tuple{}, current), si)
-            end
-            @inbounds init = (append(init[1], result[1]), result[2])
+function compact_inner_left(init, shape)
+    for si in shape.parameters
+        current = init[2]
+        result = if si == One
+            (Zero, current)
+        elseif si <: StaticInt
+            (current, si * current)
+        elseif si <: Tuple
+            compact_inner_left((Tuple{}, current), si)
         end
-        return init
+        @inbounds init = (append(init[1], result[1]), result[2])
     end
-    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+    return init
+end
+
+@generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutLeft})
+    return :($(map(make_tuple, compact_inner_left((Tuple{}, current), shape))))
+end
+
+function compact_inner_right(init, _shape)
+    shape = reverse(_shape)
+    for si in shape.parameters
+        current = init[2]
+        result = if si == One
+            (Zero, current)
+        elseif si <: StaticInt
+            (current, si * current)
+        elseif si <: Tuple
+            compact_inner_right((Tuple{}, current), si)
+        end
+        @inbounds init = (prepend(init[1], result[1]), result[2])
+    end
+    return init
 end
 
 @generated function compact(shape::StaticIntTuple, current::StaticInt, ::Type{LayoutRight})
-    function compact_inner(init, _shape)
-        shape = reverse(_shape)
-        for si in shape.parameters
-            current = init[2]
-            result = if si == One
-                (Zero, current)
-            elseif si <: StaticInt
-                (current, si * current)
-            elseif si <: Tuple
-                compact_inner((Tuple{}, current), si)
-            end
-            @inbounds init = (prepend(init[1], result[1]), result[2])
-        end
-        return init
-    end
-    return :($(map(make_tuple, compact_inner((Tuple{}, current), shape))))
+    return :($(map(make_tuple, compact_inner_right((Tuple{}, current), shape))))
 end
 
 Base.@assume_effects :total function compact(shape::Tuple, current::IntType, ::Type{LayoutLeft})

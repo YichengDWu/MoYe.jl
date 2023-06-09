@@ -62,20 +62,19 @@ end
     return repeat_like(typeof(t), x)
 end
 
-@generated function repeat_like(::Type{T}, x) where {T<:Tuple}
-    expr = Expr(:tuple)
-    function repeat_inner(expr, T)
-        for i in T.parameters
-            if i <: IntType
-                push!(expr.args, :x)
-            elseif i <: Tuple
-                push!(expr.args, repeat_inner(Expr(:tuple), i))
-            end
+function repeat_inner(expr, T)
+    for i in T.parameters
+        if i <: IntType
+            push!(expr.args, :x)
+        elseif i <: Tuple
+            push!(expr.args, repeat_inner(Expr(:tuple), i))
         end
-        return expr
     end
-    repeat_inner(expr, T)
     return expr
+end
+
+@generated function repeat_like(::Type{T}, x) where {T<:Tuple}
+    return repeat_inner(Expr(:tuple), T)
 end
 
 
