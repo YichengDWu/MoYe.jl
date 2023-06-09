@@ -110,10 +110,11 @@ function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticI
 end
 
 """
-    make_layout(shape, stride)
+    make_layout(shape::IntTuple, stride::IntTuple)
+    make_layout(shape::IntTuple, major=GenColMajor)
 
 Construct a layout with the given shape and stride. If the stride is not given, it is set to
-col-major compact stride.
+col-major compact stride. See alse [`GenColMajor`](@ref) and [`GenRowMajor`](@ref).
 """
 function make_layout(shape::IntTuple, stride::IntTuple)
     @inline
