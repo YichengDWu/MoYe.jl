@@ -40,7 +40,7 @@ Registers{UInt32, 4}
 !!! note
     These intrinsics have bugs in LLVM 14, but was fixed in LLVM 15.
 """
-copyto!
+function copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128}) end
 
 function get_ld_type(dest_sz, layout)
     signature = layout == "" ? "N" : "T"
