@@ -1,3 +1,38 @@
+"""
+    Layout{N, Shape, Stride}
+
+A `Layout` is a pair of `Shape` and `Stride` tuples.  The `Shape` tuple
+contains the number of elements in each dimension, and the `Stride` tuple
+contains the number of elements to skip to get to the next element in each
+dimension.
+
+## Fields
+  - `shape`.
+  - `stride`.
+
+## Indexing
+
+A `Layout` can be indexed with three types of indices:
+
+  - `Int`: a linear index.
+  - `IntTuple`: a hierarchical index. It has the exact hierarchical structure as defined by the `Shape`.
+  - `IntTuple`: a congruent index. A tuple of `N` mixes hierarchical and linear indices along each dimension.
+
+## Examples
+```julia
+julia> layout = Layout((4, (2, 2)), (2, (1, 8)))
+(4, (2, 2)):(2, (1, 8))
+
+julia> layout(6) # linear index
+4
+
+julia> layout((2,2)) # hierarchical index
+4
+
+julia> layout((2,(2,1))) # congruent index
+4
+```
+"""
 struct Layout{N, Shape, Stride}
     shape::Shape
     stride::Stride
@@ -75,10 +110,11 @@ function get_linear_coord(l::Layout, @nospecialize index::Union{Integer, StaticI
 end
 
 """
-    make_layout(shape, stride)
+    make_layout(shape::IntTuple, stride::IntTuple)
+    make_layout(shape::IntTuple, major=GenColMajor)
 
 Construct a layout with the given shape and stride. If the stride is not given, it is set to
-col-major compact stride.
+col-major compact stride. See alse [`GenColMajor`](@ref) and [`GenRowMajor`](@ref).
 """
 function make_layout(shape::IntTuple, stride::IntTuple)
     @inline
@@ -92,6 +128,12 @@ function make_layout(shape::GenIntTuple)
     @inline
     return Layout(shape, compact_col_major(shape))
 end
+
+"""
+    make_layout(::Layouts...)
+
+Concatenate layouts into a single layout.
+"""
 function make_layout(layouts::Layout...)
     return make_layout(map(shape, layouts), map(stride, layouts)) # concatenation
 end
@@ -108,14 +150,22 @@ function make_layout(shape::Type{S}, stride::Type{D}) where {N, S <: StaticIntTu
 end
 
 """
-    Layout(shape, stride=nothing)
+    cat(::Layouts...)
+
+Concatenate layouts into a single layout.
+"""
+function Base.cat(layouts::Layout...)
+    return make_layout(map(shape, layouts), map(stride, layouts))
+end
+"""
+    @Layout(shape, stride=nothing)
 
 Construct a static layout with the given shape and stride.
 
 ## Arguments
 
   - `shape`: a tuple of integers or a single integer
-  - `stride`: a tuple of integers, a single integer, `GenColMajor` or `GenRowMajor`
+  - `stride`: a tuple of integers, a single integer, [`GenColMajor`](@ref) or [`GenRowMajor`](@ref)
 """
 macro Layout(expr1, expr2=nothing)
     if expr2 === nothing
@@ -155,7 +205,11 @@ end
 # make_layout_like
 
 # make_identity_layout
+"""
+    getindex(layout::Layout, Is...)
 
+Get the sub-layout of `layout` with the given indices.
+"""
 function Base.getindex(layout::Layout, Is::IntType...)
     @inline
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
@@ -200,10 +254,31 @@ function Base.iterate(x::Layout{N}, state) where {N}
     return (x[new_state], new_state)
 end
 
+"""
+    flatten(layout::Layout)
+
+Remove the hierarchy of the layout and make it a flat layout.
+## Examples
+
+```julia
+julia> layout = make_layout(((4, 3), 1), ((3, 1), 0))
+((4, 3), 1):((3, 1), 0)
+
+
+julia> print(flatten(layout))
+(4, 3, 1):(3, 1, 0)
+```
+"""
 function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
 end
 
+"""
+    size(::Layout)
+    size(::Layout, i::Union{Int, StaticInt})
+
+Get the cardinality of the domain of the layout. See also [`cosize`](@ref).
+"""
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
@@ -217,6 +292,12 @@ function Base.size(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
     return capacity(shape(layout).parameters[i])
 end
 
+"""
+    rank(::Layout)
+    rank(::Layout, i::Union{Int, StaticInt})
+
+Get the rank, i.e., the dimensionality, of the layout.
+"""
 function rank(layout::Layout)
     return rank(shape(layout))
 end
@@ -227,16 +308,27 @@ function rank(::Type{<:Layout{N}}) where {N}
     return N
 end
 
+"""
+    depth(::Layout)
+    depth(::Layout, i::Union{Int, StaticInt})
+
+Get the depth of the hierarchy of the layout. For example, the depth of `(1,2)` is 1, and the depth of `((1,2),3)` is 2.
+"""
 function depth(layout::Layout)
     return depth(shape(layout))
 end
-function depth(layout::Layout, i::Int)
+function depth(layout::Layout, i::IntType)
     return depth(shape(layout)[i])
 end
 
-## cosize, negative stride is not supported
+"""
+    cosize(::Layout)
+    cosize(::Layout, i::Union{Int, StaticInt})
+
+Get the cardinality of the codomain of the layout. See also [`size`](@ref).
+"""
 function cosize(layout::Layout)
-    return layout(size(layout))
+    return layout(size(layout)) ## Note: negative stride is not supported
 end
 
 function coord_to_index(layout::Layout, coord)
@@ -386,6 +478,22 @@ Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_st
     end
 end
 
+"""
+    coalesce(layout::Layout)
+
+Coalesce the layout by merging adjacent dimensions with stride 1.
+
+## Examples
+
+```julia
+julia> layout = @Layout (2, (1, 6)) (1, (6, 2))
+(static(2), (static(1), static(6))):(static(1), (static(6), static(2)))
+
+
+julia> print(coalesce(layout))
+static(12):static(1)
+```
+"""
 function Base.coalesce(layout::Layout)
     flat_shape = flatten(shape(layout))
     flat_stride = flatten(stride(layout))
@@ -483,6 +591,21 @@ function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
 end
 
+"""
+    compose(l1::Layout, l2::Layout)
+
+Compose two layouts as composing two functions. You can use `∘` operator as well.
+
+## Examples
+
+```julia
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
+(4, 5):(2, 8)
+
+
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+(4, 5):(10, 2)
+"""
 function compose(l1::Layout, l2::Layout)
     return composition(l1, l2)
 end
@@ -580,6 +703,13 @@ function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt,
 end
 
 @inline right_inverse(x::Colon) = x
+
+"""
+    right_inverse(layout::Layout)
+
+Return the right inverse of `layout`, i.e. a layout `layout′` such that `(layout ∘ layout′)(i) == (i)`.
+The domain of `layout′` is chosen to be the maximum continues squence of the codomain of `layout`.
+"""
 function right_inverse(layout::Layout)
     flat_layout = coalesce(layout)
     astride = map(abs, flat_layout.stride)
@@ -596,6 +726,7 @@ function right_inverse(layout::Layout)
 end
 
 left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
+left_inverse(::Colon) = Colon()
 
 function max_common_layout(a::StaticLayout, b::StaticLayout)
     inv_b = right_inverse(b)
