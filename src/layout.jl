@@ -254,6 +254,21 @@ function Base.iterate(x::Layout{N}, state) where {N}
     return (x[new_state], new_state)
 end
 
+"""
+    flatten(layout::Layout)
+
+Remove the hierarchy of the layout and make it a flat layout.
+## Examples
+
+```julia
+julia> layout = make_layout(((4, 3), 1), ((3, 1), 0))
+((4, 3), 1):((3, 1), 0)
+
+
+julia> print(flatten(layout))
+(4, 3, 1):(3, 1, 0)
+```
+"""
 function flatten(layout::Layout)
     return make_layout(flatten(shape(layout)), flatten(stride(layout)))
 end
@@ -471,8 +486,13 @@ Coalesce the layout by merging adjacent dimensions with stride 1.
 ## Examples
 
 ```julia
-julia> coalesce(Layout((3,4), (1,3)))
-12:1
+julia> layout = @Layout (2, (1, 6)) (1, (6, 2))
+(static(2), (static(1), static(6))):(static(1), (static(6), static(2)))
+
+
+julia> print(coalesce(layout))
+static(12):static(1)
+```
 """
 function Base.coalesce(layout::Layout)
     flat_shape = flatten(shape(layout))
@@ -574,13 +594,17 @@ end
 """
     compose(l1::Layout, l2::Layout)
 
-Compose two layouts as composing two functions.
+Compose two layouts as composing two functions. You can use `∘` operator as well.
 
 ## Examples
 
 ```julia
-julia> compose(Layout(20, 2), Layout(5, 4))
-5:8
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
+(4, 5):(2, 8)
+
+
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+(4, 5):(10, 2)
 """
 function compose(l1::Layout, l2::Layout)
     return composition(l1, l2)

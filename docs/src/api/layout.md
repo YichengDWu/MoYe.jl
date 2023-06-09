@@ -67,4 +67,5 @@ tiled_divide
 ### Miscellaneous
 ```@docs
 coalesce
+flatten(layout::Layout)
 ```

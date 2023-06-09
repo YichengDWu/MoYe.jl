@@ -88,29 +88,6 @@ for sublayout in layout_2x4 # iterating a layout
 end
 ```
 
-
-## Flatten
-
-```@repl layout
-layout = make_layout(((4, 3), 1), ((3, 1), 0))
-print(flatten(layout))
-```
-
-### Coalesce
-
-```@repl layout
-layout = @Layout (2, (1, 6)) (1, (6, 2)) 
-print(coalesce(layout))
-```
-
-## Composition
-
-Layouts are functions and thus can possibly be composed.
-```@repl layout
-make_layout(20, 2) ∘ make_layout((4, 5), (1, 4)) 
-make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
-```
-
 ## Complement
 
 ```@repl layout
