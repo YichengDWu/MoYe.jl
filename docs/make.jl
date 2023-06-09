@@ -25,6 +25,7 @@ makedocs(; modules=[MoYe],
                     "Layout" => "api/layout.md",
                     "MoYeArray" => "api/array.md",
                     "Tiling" => "api/tiling.md",
+                    "Data Movement" => "api/copy.md"
                 ],
          ])
 

@@ -122,6 +122,8 @@ struct LayoutLeft end
 struct LayoutRight end
 
 """
+    GenColMajor
+            
 [`make_layout`](@ref) uses this to create a col-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
@@ -131,6 +133,8 @@ julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
 const GenColMajor = LayoutLeft
 
 """
+    GenRowMajo
+            
 [`make_layout`](@ref) uses this to create a row-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenRowMajor)
