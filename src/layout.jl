@@ -703,6 +703,13 @@ function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt,
 end
 
 @inline right_inverse(x::Colon) = x
+
+"""
+    right_inverse(layout::Layout)
+
+Return the right inverse of `layout`, i.e. a layout `layout′` such that `(layout ∘ layout′)(i) == (i)`.
+The domain of `layout′` is chosen to be the maximum continues squence of the codomain of `layout`.
+"""
 function right_inverse(layout::Layout)
     flat_layout = coalesce(layout)
     astride = map(abs, flat_layout.stride)
@@ -719,6 +726,7 @@ function right_inverse(layout::Layout)
 end
 
 left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
+left_inverse(::Colon) = Colon()
 
 function max_common_layout(a::StaticLayout, b::StaticLayout)
     inv_b = right_inverse(b)
