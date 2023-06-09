@@ -198,7 +198,11 @@ end
 # make_layout_like
 
 # make_identity_layout
+"""
+    getindex(layout::Layout, Is...)
 
+Get the sub-layout of `layout` with the given indices.
+"""
 function Base.getindex(layout::Layout, Is::IntType...)
     @inline
     return make_layout(getindex(shape(layout), Is...), getindex(stride(layout), Is...))
@@ -282,10 +286,16 @@ function rank(::Type{<:Layout{N}}) where {N}
     return N
 end
 
+"""
+    depth(::Layout)
+    depth(::Layout, i::Union{Int, StaticInt})
+
+Get the depth of the hierarchy of the layout. For example, the depth of `(1,2)` is 1, and the depth of `((1,2),3)` is 2.
+"""
 function depth(layout::Layout)
     return depth(shape(layout))
 end
-function depth(layout::Layout, i::Int)
+function depth(layout::Layout, i::IntType)
     return depth(shape(layout)[i])
 end
 
@@ -446,6 +456,17 @@ Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_st
     end
 end
 
+"""
+    coalesce(layout::Layout)
+
+Coalesce the layout by merging adjacent dimensions with stride 1.
+
+## Examples
+
+```julia
+julia> coalesce(Layout((3,4), (1,3)))
+12:1
+"""
 function Base.coalesce(layout::Layout)
     flat_shape = flatten(shape(layout))
     flat_stride = flatten(stride(layout))
@@ -543,6 +564,17 @@ function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
 end
 
+"""
+    compose(l1::Layout, l2::Layout)
+
+Compose two layouts as composing two functions.
+
+## Examples
+
+```julia
+julia> compose(Layout(20, 2), Layout(5, 4))
+5:8
+"""
 function compose(l1::Layout, l2::Layout)
     return composition(l1, l2)
 end

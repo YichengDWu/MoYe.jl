@@ -42,7 +42,7 @@ sizeof(static_layout)
 
 #### Different results from static Layout vs dynamic Layout
 
-It is expected to get results that appears to be different when the layout 
+It is expected to get results that **appears** to be different when the layout 
 is static or dynamic. For example,
 
 ```@repl layout

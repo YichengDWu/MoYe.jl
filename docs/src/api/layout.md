@@ -21,7 +21,9 @@ make_layout
 ```@docs
 size(::Layout)
 rank(::Layout)
+depth(::Layout)
 cosize(::Layout)
+getindex(layout::Layout, Is::IntType...)
 ```
 ## Compact Layout
 
@@ -59,4 +61,9 @@ raked_product
 logical_divide
 zipped_divide
 tiled_divide
+```
+
+### Miscellaneous
+```@docs
+coalesce
 ```
