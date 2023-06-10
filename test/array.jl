@@ -80,6 +80,30 @@ end
         @test ca4.engine isa ArrayEngine
         @test ca4.layout == ca3.layout
     end
+
+    @testset "recast" begin
+        data = collect(1:12)
+        a = MoYeArray(pointer(data), @Layout((4,3)))
+
+        @testset "downcast" begin
+            b = recast(Int32, a)
+            @test b.layout == @Layout((8,3))
+            @test b.engine isa ViewEngine
+
+            @testset "dynamic layout" begin
+                a′ = MoYeArray(pointer(data), make_layout((4,3)))
+                b′ = recast(Int32, a′)
+                @test b′.layout == make_layout((8,3))
+                @test b′.engine isa ViewEngine
+            end
+        end
+
+        @testset "upcast" begin
+            c = recast(UInt128, a)
+            @test c.layout == @Layout((2,3))
+            @test c.engine isa ViewEngine
+        end
+    end
 end
 
 @testset "BLAS" begin
