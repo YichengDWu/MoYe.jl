@@ -14,14 +14,26 @@ dimension.
 
 A `Layout` can be indexed with three types of indices:
 
-  - `Int`: a linear index.
+  - `Int`: a linear index in a column-major order.
   - `IntTuple`: a hierarchical index. It has the exact hierarchical structure as defined by the `Shape`.
   - `IntTuple`: a congruent index. A tuple of `N` mixes hierarchical and linear indices along each dimension.
 
 ## Examples
 ```julia
-julia> layout = Layout((4, (2, 2)), (2, (1, 8)))
+julia> layout = Layout((4, (2, 2)), (2, (1, 8)));
+
+julia> print_layout(ans)
 (4, (2, 2)):(2, (1, 8))
+       1    2    3    4
+    +----+----+----+----+
+ 1  |  1 |  2 |  9 | 10 |
+    +----+----+----+----+
+ 2  |  3 |  4 | 11 | 12 |
+    +----+----+----+----+
+ 3  |  5 |  6 | 13 | 14 |
+    +----+----+----+----+
+ 4  |  7 |  8 | 15 | 16 |
+    +----+----+----+----+
 
 julia> layout(6) # linear index
 4
@@ -940,7 +952,6 @@ end
 function (f::Upcast{m})(shape::Tuple, stride::Tuple) where m
     return transform_layout(f, shape, stride)
 end
-
 function upcast(layout::Layout, ::StaticInt{M}) where M
     @inline
     return Upcast{StaticInt{M}}()(layout.shape, layout.stride)
@@ -956,9 +967,17 @@ function (::Downcast{N})(shape::IntType, stride::StaticInt{-1}) where N
     @inline
     return make_layout(shape * N(), stride)
 end
-function (::Downcast{N})(shape::IntType, stride::IntType) where N
+function (::Downcast{N})(shape::IntType, stride::StaticInt) where N
     @inline
     return make_layout(shape, stride * N())
+end
+function (::Downcast{N})(shape::Int, stride::Int) where N
+    @inline
+    if isone(stride)
+        return make_layout(shape * N(), stride)
+    else
+        return make_layout(shape, stride * N())
+    end
 end
 function (f::Downcast{N})(shape::Tuple, stride::Tuple) where N
     @inline
