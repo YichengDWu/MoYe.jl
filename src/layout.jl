@@ -301,7 +301,7 @@ function Base.size(layout::Type{<:StaticLayout})
     return capacity(shape(layout))
 end
 function Base.size(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
-    return capacity(shape(layout).parameters[i])
+    return capacity(shape(layout).parameters[I])
 end
 
 """
