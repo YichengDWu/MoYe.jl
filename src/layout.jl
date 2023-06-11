@@ -458,7 +458,11 @@ end
 end
 
 function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
-                     new_shape::GenStaticIntTuple, new_stride::GenStaticIntTuple)
+                     new_shape::StaticIntTuple, new_stride::StaticIntTuple)
+    return Layout(new_shape, new_stride)
+end
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::StaticInt, new_stride::StaticInt)
     return Layout(new_shape, new_stride)
 end
 function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
