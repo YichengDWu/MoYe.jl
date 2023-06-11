@@ -493,7 +493,7 @@ end
 """
     coalesce(layout::Layout)
 
-Coalesce the layout by merging adjacent dimensions with stride 1.
+Coalesce the layout by merging adjacent dimensions with stride 1.                                                                       
 
 ## Examples
 
@@ -778,7 +778,7 @@ end
 """
     logical_product(A::Layout, B::Layout)
 
-Compute the logical product of two layouts. Indexing through the first mode of the new layout
+Compute the logical product of two layouts. Indexing through the first mode of the resulting layout
 corresponds to indexing through `A` and indexing through the second mode corresponds to indexing
 through `B`.
 
@@ -847,7 +847,7 @@ end
 """
     blocked_product(tile::Layout, matrix_of_tiles::Layout, coalesce_result::Bool=false)
 
-Compute the blocked product of two layouts. Indexing through the first mode of the new layout
+Compute the blocked product of two layouts. Indexing through the first mode of the resulting layout
 corresponds to indexing through the cartesian product of the first mode of `tile` and the first
 mode of `matrix_of_tiles`. Indexing through the second mode is similar. If `coalesce_result` is
 true, then the result is coalesced.
@@ -1065,7 +1065,7 @@ end
 """
     zipped_divide(layout::Layout, tile::Tile)
 
-Compute the logical division of `layout` by `tile`, then zip the blocks into the first
+Compute the logical division of `layout` by `tile`, then group the resulting tiles into the first
 mode and the rest into the second mode.
 
 ```julia
