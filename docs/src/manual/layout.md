@@ -94,11 +94,11 @@ end
 Let's assume that we are dealing with a vector of 24 elements.
 Our goal is to partition this vector into six tiles, each consisting of four elements, following a specific pattern 
 
-```@exmaple complement
+```@exmaple
 import Term: Panel # hide
 panel = Panel(fit=true) # hide
-red_panel = Panel(style="red",fit=true)  # hide
-red_panel * panel * red_panel * panel * red_panel * panel * red_panel * panel * foldl(*, [panel for _ in 1:16])  # hide
+red_panel = Panel(style="red",fit=true) # hide
+red_panel * panel * red_panel * panel * red_panel * panel * red_panel * panel * foldl(*, [panel for _ in 1:16])  
 ```
 
 This operation creates a new layout where we collect every second element until we have four elements, and then repeat this process for the rest of the vector.
