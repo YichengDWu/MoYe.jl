@@ -123,7 +123,7 @@ struct LayoutRight end
 
 """
     GenColMajor
-            
+
 [`make_layout`](@ref) uses this to create a col-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
@@ -134,7 +134,7 @@ const GenColMajor = LayoutLeft
 
 """
     GenRowMajo
-            
+
 [`make_layout`](@ref) uses this to create a row-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenRowMajor)
@@ -152,7 +152,7 @@ function compact_inner_left(init, shape)
             (Zero, current)
         elseif si <: StaticInt
             (current, si * current)
-        elseif si <: Tuple
+        else # if si <: Tuple
             compact_inner_left((Tuple{}, current), si)
         end
         @inbounds init = (append(init[1], result[1]), result[2])
@@ -172,7 +172,7 @@ function compact_inner_right(init, _shape)
             (Zero, current)
         elseif si <: StaticInt
             (current, si * current)
-        elseif si <: Tuple
+        else # if si <: Tuple
             compact_inner_right((Tuple{}, current), si)
         end
         @inbounds init = (prepend(init[1], result[1]), result[2])

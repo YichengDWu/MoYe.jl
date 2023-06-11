@@ -148,15 +148,15 @@ end
 
 # make_int_tuple_from
 
-function to_array(::Type{T}, @nospecialize(x::IntTuple)) where {T}
-    x = flatten(x)
-    N = length(x)
-    result = Array{T}(undef, N)
-    ntuple(N) do i
-        @inbounds result[i] = x[i]
-    end
-    return result
-end
+#function to_array(::Type{T}, @nospecialize(x::IntTuple)) where {T}
+#    x = flatten(x)
+#    N = length(x)
+#    result = Array{T}(undef, N)
+#    ntuple(N) do i
+#        @inbounds result[i] = x[i]
+#    end
+#    return result
+#end
 
 # comparison
 # Base.:(<)(x::Int, y::Tuple) = x < product(y)?  maybe we need this for non congruent shapes
@@ -262,7 +262,7 @@ function Base.getindex(x::StaticInt, i::Integer)
     x
 end
 @inline Base.getindex(x::StaticInt, ::StaticInt{1}) = x
-@inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))
+# @inline Base.getindex(x::StaticInt, ::StaticInt{N}) where {N} = throw(BoundsError(x, N))
 
 # static findfirst, returns StaticInt, returns N+1 if not found, specialized on `f`
 function static_findfirst(f::G, t::IntSequence, I::IntSequence) where {G}

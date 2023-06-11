@@ -1067,7 +1067,7 @@ function logical_divide(layout::Layout, tile::IntType)
 end
 
 """
-    zipped_divide(layout::Layout, tile::Tile)
+    zipped_divide(layout::Layout, tile)
 
 Compute the logical division of `layout` by `tile`, then group the resulting subtiles into the first
 mode and the rest into the second mode.
@@ -1108,23 +1108,23 @@ julia> print_layout(zipped_divide(raked_prod, subtile))
     +----+----+----+----+----+----+----+----+----+----+----+----+
 ```
 """
-function zipped_divide(layout::Layout, tile::Tile)
+function zipped_divide(layout::Layout, tile)
     return tile_unzip(logical_divide(layout, tile), tile)
 end
 
 """
-    tiled_divide(layout::Layout, tile::Tile)
+    tiled_divide(layout::Layout, tile)
 
 Similar to `zipped_divide`, but upack the second mode into multiple modes.
 """
-function tiled_divide(layout::Layout, tile::Tile)
+function tiled_divide(layout::Layout, tile)
     d = zipped_divide(layout, tile)
     R = rank(d, 2)
     return d(:, repeat(:, R))
 end
 
 function tile(l1::Layout, l2::Layout)
-    return tiled_divide(l1, l2)  # FIXME
+    return tiled_divide(l1, l2)
 end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
     return tiled_divide(l1, (l2, l3...))

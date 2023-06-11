@@ -594,6 +594,12 @@ end
               @Layout(((2, 2), (3, 4)), ((1, 2), (16, 4)))
         @test_opt zipped_divide(static(raked_prod), static(subtile))
     end
+
+    @testset "Tiled division" begin
+        @test tiled_divide(raked_prod, subtile) ==
+              @Layout(((2, 2), 3, 4), ((1, 2), 16, 4))
+        @test_opt zipped_divide(static(raked_prod), static(subtile))
+    end
 end
 
 @testset "Inverse" begin
