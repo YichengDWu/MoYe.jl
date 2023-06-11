@@ -1,3 +1,4 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 MoYe = "57a5148a-7bb8-46c0-adfc-97cbfb31d94c"
+Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
