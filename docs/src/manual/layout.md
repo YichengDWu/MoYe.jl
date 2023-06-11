@@ -91,10 +91,36 @@ end
 
 
 ### Complement
+Let's assume that we are dealing with a vector of 24 elements.
+Our goal is to partition this vector into six tiles, each consisting of four elements, following a specific pattern: gather every 4 elements at even indices to a tile.
+
+This operation creates a new layout where we collect every second element until we have four elements, and then repeat this process for the rest of the vector.
+
+The resulting layout would resemble:
+
+```julia
+       1    2    3    4    5    6
+    +----+----+----+----+----+----+
+ 1  |  1 |  2 |  9 | 10 | 17 | 18 |
+    +----+----+----+----+----+----+
+ 2  |  3 |  4 | 11 | 12 | 19 | 20 |
+    +----+----+----+----+----+----+
+ 3  |  5 |  6 | 13 | 14 | 21 | 22 |
+    +----+----+----+----+----+----+
+ 4  |  7 |  8 | 15 | 16 | 23 | 24 |
+    +----+----+----+----+----+----+
+```
+
+`complement` computes the first row of this new layout. 
 
 ```@repl layout
-complement(@Layout(4, 1), static(24))
-complement(@Layout(6, 4), static(24))
+print_layout(complement(Layout(4,2), 24))
+```
+
+The layout `Layout(4,2)` and it complement gives us the desired new layout.
+
+```@repl layout
+print_layout(make_layout(Layout(4, 2),complement(Layout(4, 2), 24)))
 ```
 
 ### Product
