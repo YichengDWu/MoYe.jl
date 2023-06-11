@@ -56,6 +56,37 @@ julia> a
  33
  ```
  
+## Tile Iterator
+
+```julia
+julia> data = collect(1:36);
+
+julia> A = MoYeArray(data, @Layout((4,9)))
+4×9 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices static(1):static(4)×static(1):static(9):
+ 1  5   9  13  17  21  25  29  33
+ 2  6  10  14  18  22  26  30  34
+ 3  7  11  15  19  23  27  31  35
+ 4  8  12  16  20  24  28  32  36
+
+julia> tiled_A = zipped_divide(A, (@Layout(2), @Layout(3))) # 2 × 3 tile
+6×6 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Tuple{Static.StaticInt{2}, Static.StaticInt{3}}, Tuple{Static.StaticInt{2}, Static.StaticInt{3}}}, Tuple{Tuple{Static.StaticInt{1}, Static.StaticInt{4}}, Tuple{Static.StaticInt{2}, Static.StaticInt{12}}}}} with indices static(1):static(6)×static(1):static(6):
+  1   3  13  15  25  27
+  2   4  14  16  26  28
+  5   7  17  19  29  31
+  6   8  18  20  30  32
+  9  11  21  23  33  35
+ 10  12  22  24  34  36
+
+julia> for i in axes(tiled_A, 2)
+           @show view(tiled_A, :, i)
+       end
+view(tiled_A, :, i) = [1, 2, 5, 6, 9, 10]
+view(tiled_A, :, i) = [3, 4, 7, 8, 11, 12]
+view(tiled_A, :, i) = [13, 14, 17, 18, 21, 22]
+view(tiled_A, :, i) = [15, 16, 19, 20, 23, 24]
+view(tiled_A, :, i) = [25, 26, 29, 30, 33, 34]
+view(tiled_A, :, i) = [27, 28, 31, 32, 35, 36]
+```
  # Current Status
  
  `Vectorized Copy & copy_async`: Array-Level Support - see [copyto!](https://github.com/YichengDWu/MoYe.jl/blob/main/src/algorithm/copy.jl#L36)
