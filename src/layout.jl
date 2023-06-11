@@ -831,7 +831,7 @@ end
 function logical_product(layout::Layout, tile::IntType)
     return logical_product(layout, make_layout(tile))
 end
-function logical_product(layout::Layout, @nospecialize(tile::Tuple))
+function logical_product(layout::Layout, tile::Tuple)
     return transform_layout(logical_product, layout, tile)
 end
 

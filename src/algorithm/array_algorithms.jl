@@ -8,13 +8,13 @@ end
     return make_moyearray_like(T, x)
 end
 
-@inline function make_fragment_like(::Type{T}, @nospecialize(layout::Layout)) where {T}
+@inline function make_fragment_like(::Type{T}, layout::Layout) where {T}
     return MoYeArray{T}(undef, make_fragment_like(layout))
 end
-@inline function make_fragment_like(::Type{T}, @nospecialize(x::MoYeArray)) where {T}
+@inline function make_fragment_like(::Type{T}, x::MoYeArray) where {T}
     return make_fragment_like(T, layout(x))
 end
-@inline function make_fragment_like(@nospecialize x::MoYeArray{T}) where {T}
+@inline function make_fragment_like(x::MoYeArray{T}) where {T}
     return make_fragment_like(T, x)
 end
 
