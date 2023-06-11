@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Global Memory &amp; Shared Memory · MoYe.jl</title><script data-outdated-warner src="../../../assets/warner.js"></script><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/datamovement/gs/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">MoYe.jl</a></span></div><form class="docs-search" action="../../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../../layout/">Layout</a></li><li><a class="tocitem" href="../../array/">Array</a></li><li><a class="tocitem" href="../../broadcast/">Broadcasting</a></li><li><a class="tocitem" href="../../tiling_matmul/">Tiling MatMul</a></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox" checked/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Data Movement</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href>Global Memory &amp; Shared Memory</a><ul class="internal"><li><a class="tocitem" href="#Copy-Kernel"><span>Copy Kernel</span></a></li><li><a class="tocitem" href="#Code-Explanation"><span>Code Explanation</span></a></li><li><a class="tocitem" href="#Padding-Shared-Memory"><span>Padding Shared Memory</span></a></li><li><a class="tocitem" href="#Transpose-kernel"><span>Transpose kernel</span></a></li></ul></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../../api/copy/">Data Movement</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li><a class="is-disabled">Data Movement</a></li><li class="is-active"><a href>Global Memory &amp; Shared Memory</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Global Memory &amp; Shared Memory</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/datamovement/gs.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Matrix-Transpose-Tutorial"><a class="docs-heading-anchor" href="#Matrix-Transpose-Tutorial">Matrix Transpose Tutorial</a><a id="Matrix-Transpose-Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Matrix-Transpose-Tutorial" title="Permalink"></a></h1><p>This tutorial illustrates the process copying data between global memory and shared memory using <code>MoYe</code>. </p><p>In this tutorial, we will use the following configuration:</p><ul><li>Array size: 2048 x 2048</li><li>Block size: 32 x 32</li><li>Thread size: 32 x 8</li></ul><h2 id="Copy-Kernel"><a class="docs-heading-anchor" href="#Copy-Kernel">Copy Kernel</a><a id="Copy-Kernel-1"></a><a class="docs-heading-anchor-permalink" href="#Copy-Kernel" title="Permalink"></a></h2><p>We start with a copy kernel.</p><pre><code class="language-julia hljs">using MoYe, Test, CUDA
+
+function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
+
+    moye_dest = MoYeArray(dest)
+    moye_src = MoYeArray(src)
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocktile_dest = @tile moye_dest (bM, bN) (blockIdx().x, blockIdx().y)
+    blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
+
+    threadtile_dest = @parallelize blocktile_dest threadlayout threadIdx().x
+    threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
+    threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
+
+    for i in eachindex(threadtile_smem)
+        threadtile_smem[i] = threadtile_src[i]
+    end
+    
+    for i in eachindex(threadtile_dest)
+        threadtile_dest[i] = threadtile_smem[i]
+    end
+    return nothing
+end
+
+function test_copy_async(M, N)
+    a = CUDA.rand(Float32, M, N)
+    b = CUDA.rand(Float32, M, N)
+
+    blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
+    smemlayout = @Layout (32, 32)  # 32 * 32 elements in shared memory
+    threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocks = (cld(M, bM), cld(N, bN))
+    threads = Int(size(threadlayout))
+
+    @cuda blocks=blocks threads=threads copy_kernel(a, b, smemlayout, blocklayout, threadlayout)
+    CUDA.synchronize()
+    @test a == b
+end
+
+test_copy_async(2048, 2048)</code></pre><h2 id="Code-Explanation"><a class="docs-heading-anchor" href="#Code-Explanation">Code Explanation</a><a id="Code-Explanation-1"></a><a class="docs-heading-anchor-permalink" href="#Code-Explanation" title="Permalink"></a></h2><p>The device function follows these steps:</p><ol><li>Allocate shared memory using <code>MoYeSharedArray</code> with a static layout.</li><li>Wrap the destination and source arrays with dynamic layouts.</li><li>Get the size of each block in the grid (bM and bN).</li><li>Create local tiles for the destination and source arrays using <a href="../../../api/tiling/#MoYe.@tile"><code>@tile</code></a>.</li><li>Partition the local tiles into thread tiles using <a href="../../../api/tiling/#MoYe.@parallelize"><code>@parallelize</code></a>.</li><li>Copy data from the source thread tile to the shared memory thread tile.</li><li>Synchronize threads.</li><li>Copy data back from the shared memory thread tile to the destination thread tile.</li></ol><p>The host function tests the copy_kernel function with the following steps:</p><ol><li>Define the dimensions M and N for the source and destination arrays.</li><li>Create random GPU arrays a and b with the specified dimensions using CUDA.rand.</li><li>Define the block and thread layouts using <a href="../../../api/layout/#MoYe.@Layout"><code>@Layout</code></a> for creating <strong>static</strong> layouts.</li><li>Calculate the number of blocks in the grid using <code>cld</code>. Here we assume the divisibility.</li></ol><p>A few things to notice here:</p><ol><li><a href="../../../api/tiling/#MoYe.@tile"><code>@tile</code></a> means that all of our blocks cover the entire array.</li><li>Each block contains 32 x 32 elements of the original array, but we have 32 x 8 threads per block, which means that each thread processes 4 elements. The code</li></ol><pre><code class="language-julia hljs">@parallelize blocktile_dest threadlayout threadIdx().x</code></pre><p>returns the set of elements that the thread corresponding to threadIdx().x is processing, which in this case is an array of length 4.</p><ol><li>Once we have completed all the tiling, we just perform computations as if we were dealing with a regular array:</li></ol><pre><code class="language-julia hljs">for i in eachindex(threadtile_smem)
+    threadtile_smem[i] = threadtile_src[i]
+end</code></pre><p>You need not concern yourself with index bookkeeping, it is implicitly handled by the layout; instead, concentrate on the computation aspect, as it is a fundamental objective of MoYe.jl.</p><p>Additionally, you can use the <a href="../../../api/copy/#Base.copyto!-Tuple{MoYeArray{T, N, &lt;:ViewEngine, L} where {T, N, L}, MoYeArray{T, N, &lt;:ViewEngine, L} where {T, N, L}}"><code>copyto!</code></a> function for static <code>MoYeArray</code> with two key feature: copying from global memory to shared memory automatically calls <code>cp.async</code> (Requires <code>sm_80</code> or higher), and automatic vectorization when possible.</p><p>Here is how it would look like using <code>copyto!</code>.</p><pre><code class="language-julia hljs">function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
+
+    moye_dest = MoYeArray(dest)
+    moye_src = MoYeArray(src)
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocktile_dest = @tile moye_dest (bM, bN) (blockIdx().x, blockIdx().y)
+    blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
+
+    threadtile_dest = @parallelize blocktile_dest threadlayout threadIdx().x
+    threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
+    threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
+
+    copyto!(threadtile_smem, threadtile_src)
+    cp_async_wait()
+    copyto!(threadtile_dest, threadtile_smem)
+
+    return nothing
+end</code></pre><h2 id="Padding-Shared-Memory"><a class="docs-heading-anchor" href="#Padding-Shared-Memory">Padding Shared Memory</a><a id="Padding-Shared-Memory-1"></a><a class="docs-heading-anchor-permalink" href="#Padding-Shared-Memory" title="Permalink"></a></h2><p>Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array to avoid bank conflicts. We just need to change one line of code:</p><pre><code class="language-julia hljs">smemlayout = @Layout (32, 32) (1, 31)  # pad one row</code></pre><p>Also note that our kernel will recompile for different static layout parameters.</p><h2 id="Transpose-kernel"><a class="docs-heading-anchor" href="#Transpose-kernel">Transpose kernel</a><a id="Transpose-kernel-1"></a><a class="docs-heading-anchor-permalink" href="#Transpose-kernel" title="Permalink"></a></h2><p>Now we turn to the transpose kernel.</p><pre><code class="language-julia hljs">function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
+    moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
+
+    moye_src = MoYeArray(src)
+    moye_dest = MoYeArray(dest)
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocktile_src  = @tile moye_src  (bM, bN) (blockIdx().x, blockIdx().y)
+    blocktile_dest = @tile moye_dest (bN, bM) (blockIdx().y, blockIdx().x)
+
+    threadtile_dest = @parallelize blocktile_dest threadlayout threadIdx().x
+    threadtile_src  = @parallelize blocktile_src  threadlayout threadIdx().x
+    threadtile_smem = @parallelize moye_smem      threadlayout threadIdx().x
+
+    copyto!(threadtile_smem, threadtile_src)
+    cp_async_wait()
+    sync_threads()
+
+    moye_smem′ = MoYe.transpose(moye_smem)
+    threadtile_smem′ = @parallelize moye_smem′ threadlayout threadIdx().x
+
+    copyto!(threadtile_dest, threadtile_smem′)
+    return nothing
+end
+
+
+function test_transpose(M, N)
+    a = CUDA.rand(Float32, M, N)
+    b = CUDA.rand(Float32, N, M)
+
+    blocklayout = @Layout (32, 32)
+    smemlayout = @Layout (32, 32) (1, 33)
+    threadlayout = @Layout (32, 8)
+
+    bM = size(blocklayout, 1)
+    bN = size(blocklayout, 2)
+
+    blocks = (cld(M, bM), cld(N, bN))
+    threads = Int(size(threadlayout))
+
+    @cuda blocks=blocks threads=threads transpose_kernel(a, b, smemlayout, blocklayout, threadlayout)
+    CUDA.synchronize()
+    @test a == transpose(b)
+end
+
+test_transpose(2048, 2048)</code></pre><p>It is almost identical to the copy kernel， but we would need to transpose the shared memory by simply transposing its layout</p><pre><code class="language-julia hljs">    moye_smem′ = MoYe.transpose(moye_smem)</code></pre><p>and then compute the new thread tiles. Note that each thread would work on different elements now so we need to call <code>sync_threads()</code>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../tiling_matmul/">« Tiling MatMul</a><a class="docs-footer-nextpage" href="../../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 11 June 2023 22:07">Sunday 11 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
