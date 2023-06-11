@@ -301,7 +301,7 @@ function Base.size(layout::Type{<:StaticLayout})
     return capacity(shape(layout))
 end
 function Base.size(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
-    return capacity(shape(layout).parameters[i])
+    return capacity(shape(layout).parameters[I])
 end
 
 """
@@ -458,7 +458,11 @@ end
 end
 
 function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
-                     new_shape::GenStaticIntTuple, new_stride::GenStaticIntTuple)
+                     new_shape::StaticIntTuple, new_stride::StaticIntTuple)
+    return Layout(new_shape, new_stride)
+end
+function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
+                     new_shape::StaticInt, new_stride::StaticInt)
     return Layout(new_shape, new_stride)
 end
 function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
@@ -493,7 +497,7 @@ end
 """
     coalesce(layout::Layout)
 
-Coalesce the layout by merging adjacent dimensions with stride 1.                                                                       
+Coalesce the layout by merging adjacent dimensions with stride 1.
 
 ## Examples
 
@@ -771,7 +775,7 @@ end
     return make_layout(l[2], l[1])
 end
 
-function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
+function tile_unzip(layout::Layout, tile)
     return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
@@ -835,13 +839,13 @@ function logical_product(layout::Layout, @nospecialize(tile::Tuple))
     return transform_layout(logical_product, layout, tile)
 end
 
-function zipped_product(layout::Layout, tile::Tile)
+function zipped_product(layout::Layout, tile)
     return tile_unzip(logical_product(layout, tile), tile)
 end
 
-function tiled_product(layout::Layout, tile::Tile{N}) where {N}
+function tiled_product(layout::Layout, tile)
     d = zipped_product(layout, tile)
-    return d(:, repeat(:, N))
+    return d(:, repeat(:, rank(tile)))
 end
 
 """
@@ -1063,7 +1067,7 @@ function logical_divide(layout::Layout, tile::IntType)
 end
 
 """
-    zipped_divide(layout::Layout, tile::Tile)
+    zipped_divide(layout::Layout, tile)
 
 Compute the logical division of `layout` by `tile`, then group the resulting subtiles into the first
 mode and the rest into the second mode.
@@ -1104,23 +1108,23 @@ julia> print_layout(zipped_divide(raked_prod, subtile))
     +----+----+----+----+----+----+----+----+----+----+----+----+
 ```
 """
-function zipped_divide(layout::Layout, tile::Tile)
+function zipped_divide(layout::Layout, tile)
     return tile_unzip(logical_divide(layout, tile), tile)
 end
 
 """
-    tiled_divide(layout::Layout, tile::Tile)
+    tiled_divide(layout::Layout, tile)
 
 Similar to `zipped_divide`, but upack the second mode into multiple modes.
 """
-function tiled_divide(layout::Layout, tile::Tile)
+function tiled_divide(layout::Layout, tile)
     d = zipped_divide(layout, tile)
     R = rank(d, 2)
     return d(:, repeat(:, R))
 end
 
 function tile(l1::Layout, l2::Layout)
-    return tiled_divide(l1, l2)  # FIXME
+    return tiled_divide(l1, l2)
 end
 function tile(l1::Layout, l2::Layout, l3::Layout...)
     return tiled_divide(l1, (l2, l3...))
