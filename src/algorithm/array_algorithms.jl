@@ -31,18 +31,17 @@ end
 end
 
 # Algebra
-@inline function logical_divide(@nospecialize(x::MoYeArray), tile::Tile)
+@inline function logical_divide(@nospecialize(x::MoYeArray), tile)
     return MoYeArray(pointer(x), logical_divide(layout(x), tile))
 end
 
-@inline function zipped_divide(@nospecialize(x::MoYeArray), tile::Tile)
+@inline function zipped_divide(@nospecialize(x::MoYeArray), tile)
     return MoYeArray(pointer(x), zipped_divide(layout(x), tile))
 end
 
-@inline function tiled_divide(@nospecialize(x::MoYeArray), tile::Tile)
+@inline function tiled_divide(@nospecialize(x::MoYeArray), tile)
     return MoYeArray(pointer(x), tiled_divide(layout(x), tile))
 end
-
 
 @inline function local_partition(x::MoYeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
     return view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
