@@ -493,7 +493,7 @@ end
 """
     coalesce(layout::Layout)
 
-Coalesce the layout by merging adjacent dimensions with stride 1.                                                                       
+Coalesce the layout by merging adjacent dimensions with stride 1.
 
 ## Examples
 
@@ -771,7 +771,7 @@ end
     return make_layout(l[2], l[1])
 end
 
-function tile_unzip(layout::Layout, @nospecialize(tile::Tuple))
+function tile_unzip(layout::Layout, tile)
     return make_layout(zip2_by(shape(layout), tile), zip2_by(stride(layout), tile))
 end
 
@@ -835,13 +835,13 @@ function logical_product(layout::Layout, @nospecialize(tile::Tuple))
     return transform_layout(logical_product, layout, tile)
 end
 
-function zipped_product(layout::Layout, tile::Tile)
+function zipped_product(layout::Layout, tile)
     return tile_unzip(logical_product(layout, tile), tile)
 end
 
-function tiled_product(layout::Layout, tile::Tile{N}) where {N}
+function tiled_product(layout::Layout, tile)
     d = zipped_product(layout, tile)
-    return d(:, repeat(:, N))
+    return d(:, repeat(:, rank(tile)))
 end
 
 """

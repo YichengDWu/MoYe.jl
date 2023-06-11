@@ -479,6 +479,22 @@ end
 
         @test_opt raked_product(static(tile), static(matrix_of_tiles), true)
     end
+
+    @testset "Zipped product" begin
+        result = zipped_product(tile, matrix_of_tiles)
+        @test shape(result) == ((2, 2), (3, 4))
+        @test stride(result) == ((1, 2), (16, 4))
+
+        @test_opt zipped_product(static(tile), static(matrix_of_tiles))
+    end
+
+    @testset "Tiled product" begin
+        result = tiled_product(tile, matrix_of_tiles)
+        @test shape(result) == ((2, 2), 3, 4)
+        @test stride(result) == ((1, 2), 16, 4)
+
+        @test_opt tiled_product(static(tile), static(matrix_of_tiles))
+    end
 end
 
 @testset "Division" begin
