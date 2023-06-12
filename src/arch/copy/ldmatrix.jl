@@ -32,7 +32,7 @@ function get_ldmatrix_ops()
     for (dest_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
         ld_type = get_ld_type(dest_sz, layout)
         @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$src_type, $src_sz}, Registers{$dest_type, $dest_sz}} end
-        #@eval export $(Symbol(ld_type))
+        @eval export $(Symbol(ld_type))
 
         intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(dest_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
@@ -47,7 +47,7 @@ function get_ldmatrix_ops()
             @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
                 src_ptr = pointer(src)
                 val = op(recast(UInt32, src_ptr))
-                return unsafe_store!(dest, val, 1)
+                return unsafe_store!(pointer(dest), val, 1)
             end
         else
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)

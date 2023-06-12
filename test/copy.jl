@@ -24,7 +24,7 @@ using Core: LLVMPtr
                 for i in 1:size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = @parallelize a thread_layout i
                     thread_tile_b = @parallelize b thread_layout i
-                    display(thread_tile_a)
+                    #display(thread_tile_a)
                     MoYe.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
             end
@@ -73,7 +73,7 @@ using Core: LLVMPtr
                 for i in 1:size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = @parallelize a thread_layout i
                     thread_tile_b = @parallelize b thread_layout i
-                    display(thread_tile_a)
+                    #display(thread_tile_a)
                     copyto!(thread_tile_b, thread_tile_a)
                 end
             end
@@ -100,28 +100,29 @@ using Core: LLVMPtr
     end
 end
 
+function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
+    t_g_in = MoYeArray(pointer(g_in), smem_layout)
+    t_g_out = MoYeArray(pointer(g_out), smem_layout)
+    t_smem=MoYeArray{UInt16}(undef, smem_layout)
+
+    for tid in 1:32
+        for i in tid:size(tiled_copy):size(t_smem.layout)
+            t_smem[i] = t_g_in[i]
+        end
+    end
+
+    for tid in 1:size(tiled_copy)
+        thr_copy = get_thread_slice(tiled_copy, tid)
+        tXsX = partition_S(thr_copy, t_smem)
+        tXgX = partition_D(thr_copy, t_g_out)
+        tXrX = MoYeArray{UInt16}(undef, tXgX.layout.shape)
+        copyto!(tiled_copy, tXrX, tXsX)
+        copyto!(tXgX, tXrX)
+    end
+end
+
 @testset "Tiled Copy" begin
     @testset "UniversalCopy" begin
-        function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
-            t_g_in = MoYeArray(pointer(g_in), smem_layout)
-            t_g_out = MoYeArray(pointer(g_out), smem_layout)
-            t_smem=MoYeArray{UInt16}(undef, smem_layout)
-
-            for tid in 1:32
-                for i in tid:size(tiled_copy):size(t_smem.layout)
-                    t_smem[i] = t_g_in[i]
-                end
-            end
-
-            for tid in 1:size(tiled_copy)
-                thr_copy = get_thread_slice(tiled_copy, tid)
-                tXsX = partition_S(thr_copy, t_smem)
-                tXgX = partition_D(thr_copy, t_g_out)
-                tXrX = MoYeArray{UInt16}(undef, tXgX.layout.shape)
-                copyto!(tiled_copy, tXrX, tXsX)
-                copyto!(tXgX, tXrX)
-            end
-        end
         @testset "32 x 32" begin
             g_in = [UInt16(i) for i in 1:32*32]
             g_out = zeros(UInt16, 32*32)
@@ -139,6 +140,26 @@ end
             smem_layout = @Layout (32, (2, 4)) (2, (1, 64))
             tiled_copy = make_tiled_copy(MoYe.CopyAtom{MoYe.UniversalCopy{UInt16, UInt16}, UInt16}(),
                                          @Layout((32,1)), @Layout((1,8)))
+            tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
+            @test g_out == g_in
+        end
+    end
+
+    @testset "LDMATRIX" begin
+        @testset "32 x 32" begin
+            g_in = [UInt16(i) for i in 1:32*32]
+            g_out = zeros(UInt16, 32*32)
+            smem_layout = @Layout (32,32) (1,32)
+            for ldmatrix in [:LDSM_U32x1_N, :LDSM_U32x2_N, :LDSM_U32x4_N]
+                @testset "$ldmatrix" begin
+                    @eval tiled_copy = make_tiled_copy(MoYe.CopyAtom{$ldmatrix, UInt16}(),
+                                                      @Layout((16,2)), @Layout((2,4)))
+                end
+
+            end
+            tiled_copy = make_tiled_copy(MoYe.CopyAtom{MoYe.UniversalCopy{UInt16, UInt16}, UInt16}(),
+                                         @Layout((16,2)), @Layout((2,4)))
+
             tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
             @test g_out == g_in
         end

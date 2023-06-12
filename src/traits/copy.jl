@@ -35,6 +35,6 @@ function copyto_unpack!(::AbstractCopyTraits{OP}, dst::MoYeArray, src::MoYeArray
 
     @assert size(rs.layout) == StaticInt{regnum_src}()
     @assert size(rd.layout) == StaticInt{regnum_dst}()
-    copyto!(rd, rs)
+    copyto!(cpop, rd, rs)
     return dst
 end
