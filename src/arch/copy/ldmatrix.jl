@@ -47,7 +47,7 @@ function get_ldmatrix_ops()
             @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
                 src_ptr = pointer(src)
                 val = op(recast(UInt32, src_ptr))
-                return unsafe_store!(dest, val, 1)
+                return unsafe_store!(pointer(dest), val, 1)
             end
         else
             @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
