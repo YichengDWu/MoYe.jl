@@ -32,7 +32,7 @@ function get_ldmatrix_ops()
     for (dest_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
         ld_type = get_ld_type(dest_sz, layout)
         @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$src_type, $src_sz}, Registers{$dest_type, $dest_sz}} end
-        #@eval export $(Symbol(ld_type))
+        @eval export $(Symbol(ld_type))
 
         intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(dest_sz)$layout.b16"
         push!(ld_ops, ld_type => intrinsic)
