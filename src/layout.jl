@@ -695,7 +695,24 @@ function complement(l::Layout)
     return _complement(shape(filter_layout), stride(filter_layout), cosize(filter_layout))
 end
 
-# need this specialization to avoid type instability
+@generated function inverse_seq(shape::StaticIntTuple{N}, stride::StaticIntTuple{N}, I::StaticInt{II}) where {II, N}
+    if N < II
+        return :((Is))
+    else
+        next_stride = stride.parameters[II] * shape.parameters[II]
+        next_idx = static_findfirst(==(next_stride), tuple(stride.parameters...))
+        Is = (I(),)
+
+        while N >= dynamic(next_idx)
+            Is = (Is..., next_idx)
+            next_stride = stride.parameters[dynamic(next_idx)] * shape.parameters[dynamic(next_idx)]
+            next_idx = static_findfirst(==(next_stride), tuple(stride.parameters...))
+        end
+        return :($Is)
+    end
+end
+
+# need this specialization to avoid type instability...
 Base.@assume_effects :total function inverse_seq(shape, stride, I::StaticInt)
     length(shape) < I && return ()
     @inbounds next_stride = stride[I] * shape[I]
@@ -712,12 +729,11 @@ function inverse_seq(shape, stride, I::StaticInt, I′::StaticInt,
     @inbounds next_stride = stride[I] * shape[I]
     if isa(next_stride, StaticInt)
         next_idx = static_findfirst(==(next_stride), stride)
-        return inverse_seq(shape, stride, next_idx, (I′, Is..., I)...)
+        return inverse_seq(shape, stride, next_idx, I′, Is..., I)
     else
         return (I′, Is..., I)
     end
 end
-
 @inline right_inverse(x::Colon) = x
 
 """

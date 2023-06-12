@@ -53,9 +53,6 @@ end
 Copy the contents of `src` to `dest`. The function automatically carries out potential
 vectorization. In particular, while transferring data from global memory to shared memory,
 it automatically initiates asynchronous copying, if your device supports so.
-
-!!! note
-    It should be used with @gc_preserve if `dest` or `src` is powered by an ArrayEngine.
 """
 function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{TS}) where {TD,TS}
     N = max_common_vector(src, dest)
@@ -65,6 +62,21 @@ function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{
         vec_bits = N * sizeof(TS) * 8
         TV = uint_bit(static(min(128, vec_bits)))
         return copyto_vec!(dest, src, TV)
+    end
+    return dest
+end
+
+@inline function Base.copyto!(dest::StaticNonOwningArray, src::StaticOwningArray)
+    buffer = ManualMemory.preserve_buffer(src)
+    GC.@preserve buffer begin
+        copyto!(dest, StrideArraysCore.maybe_ptr_array(src))
+    end
+    return dest
+end
+@inline function Base.copyto!(dest::StaticOwningArray, src::StaticNonOwningArray)
+    buffer = ManualMemory.preserve_buffer(dest)
+    GC.@preserve buffer begin
+        copyto!(StrideArraysCore.maybe_ptr_array(dest), src)
     end
     return dest
 end
@@ -109,7 +121,6 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
 end
 
 @generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticMoYeArray, src::StaticMoYeArray)
-
     expr = generate_copy_atom_loops(:dst, :src,  layout(dst)(), layout(src)(), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
         $expr

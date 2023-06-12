@@ -51,6 +51,7 @@ julia> a
 ## Tile Iterator
 
 ```@repl
+using MoYe 
 data = collect(1:36);
 A = MoYeArray(data, @Layout((4,9)))
 tiled_A = zipped_divide(A, (@Layout(2), @Layout(3))) # 2 × 3 tile

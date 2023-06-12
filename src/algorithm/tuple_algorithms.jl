@@ -167,6 +167,7 @@ Base.@assume_effects :total @generated function _foldl(op::G, x::Tuple, init) wh
         @inbounds $expr
     end
 end
+_foldl(op::G, x::IntType, init) where {G} = op(init, x)
 
 Base.@assume_effects :total @generated function escan(f::F, x::NTuple{N, T}, init::T) where {F, N, T}
     q = Expr(:block, Expr(:meta, :inline, :propagate_inbounds))

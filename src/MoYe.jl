@@ -45,6 +45,7 @@ include("traits/ldmatrix.jl")
 # Atom
 include("atom/mma.jl")
 include("atom/copy.jl")
+include("atom/ldmatrix.jl")
 
 include("algorithm/copy.jl")
 include("algorithm/blas.jl")
