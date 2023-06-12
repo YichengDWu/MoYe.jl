@@ -24,7 +24,7 @@ using Core: LLVMPtr
                 for i in 1:size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = @parallelize a thread_layout i
                     thread_tile_b = @parallelize b thread_layout i
-                    display(thread_tile_a)
+                    #display(thread_tile_a)
                     MoYe.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
             end
@@ -73,7 +73,7 @@ using Core: LLVMPtr
                 for i in 1:size(thread_layout) # on gpu this is parallelized instead of sequential
                     thread_tile_a = @parallelize a thread_layout i
                     thread_tile_b = @parallelize b thread_layout i
-                    display(thread_tile_a)
+                    #display(thread_tile_a)
                     copyto!(thread_tile_b, thread_tile_a)
                 end
             end
