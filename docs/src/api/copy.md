@@ -12,7 +12,7 @@ Pages = ["copy.md"]
 
 ```@docs
 copyto!(dest::StaticNonOwningArray, src::StaticNonOwningArray)
-copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
+copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray src::MoYeArray)
 cp_async_wait
 cp_async_commit
 ```

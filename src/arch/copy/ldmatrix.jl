@@ -15,33 +15,6 @@ function Base.propertynames(::AbstractLdMatrix)
     return (:SRegisters, :DRegisters)
 end
 
-"""
-    copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
-
-Load data from shared memory to registers. The available `AbstractLdMatrix`s are:
-
-```julia
-# Type => LLVM intrinsic
-"LDSM_U32x1_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.b16"
-"LDSM_U32x2_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.b16"
-"LDSM_U32x4_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.b16"
-"LDSM_U16x2_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.trans.b16"
-"LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
-"LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
-```
-You can inspect the number and the type of  registers used per thread by
-```julia
-julia> LDSM_U32x4_N()
-LD_U32x4_N()
-
-julia> ans.DRegisters
-Registers{UInt32, 4}
-```
-!!! note
-    These intrinsics have bugs in LLVM 14, but was fixed in LLVM 15.
-"""
-function Base.copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128}) end
-
 function get_ld_type(dest_sz, layout)
     signature = layout == "" ? "N" : "T"
     e_type = signature == "N" ? "U32" : "U16"
@@ -94,3 +67,32 @@ function get_ldmatrix_ops()
 end
 
 get_ldmatrix_ops()
+
+"""
+    copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
+
+Load data from shared memory to registers. The available `AbstractLdMatrix`s are:
+
+```julia
+# Type => LLVM intrinsic
+"LDSM_U32x1_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.b16"
+"LDSM_U32x2_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.b16"
+"LDSM_U32x4_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.b16"
+"LDSM_U16x2_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.trans.b16"
+"LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
+"LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
+```
+You can inspect the number and the type of  registers used per thread by
+```julia
+julia> LDSM_U32x4_N()
+LD_U32x4_N()
+
+julia> ans.DRegisters
+Registers{UInt32, 4}
+```
+!!! note
+    These intrinsics have bugs in LLVM 14, but was fixed in LLVM 15.
+"""
+function Base.copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray, src::MoYeArray)
+    throw(MethodError(copyto!, (ldmatrix, dest, src)))
+end
