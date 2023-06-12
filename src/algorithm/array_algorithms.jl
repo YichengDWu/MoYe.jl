@@ -57,6 +57,11 @@ end
 end
 
 function compose(x::MoYeArray, layout1, layouts...)
+    @inline
+    return MoYeArray(pointer(x), compose(layout(x), layout1, layouts...))
+end
+function Base.:(∘)(x::MoYeArray, layout1, layouts...)
+    @inline
     return MoYeArray(pointer(x), compose(layout(x), layout1, layouts...))
 end
 
