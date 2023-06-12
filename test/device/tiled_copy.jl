@@ -15,10 +15,10 @@ function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
     tXrX = MoYeArray{UInt16}(undef, tXgX.layout.shape)
 
     # smem to rmem
-    @gc_preserve copyto!(tiled_copy, tXrX, tXsX)
+    copyto!(tiled_copy, tXrX, tXsX)
     # rmem to gmem
-    @gc_preserve copyto!(tXgX, tXrX)
-
+    copyto!(tXgX, tXrX)
+    @inbounds tXrX.engine[1] # bug, have to load
     return nothing
 end
 
