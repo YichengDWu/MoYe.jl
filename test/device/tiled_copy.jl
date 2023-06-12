@@ -64,8 +64,8 @@ end
                                                   @Layout((16,2)), @Layout((2,4)))
                 @cuda threads=32 tiled_copy_kernel(cu_g_in, cu_g_out, tiled_copy, smem_layout)
                 @test cu_g_out == cu_g_in
+                fill!(cu_g_out, zero(UInt16))
             end
-
         end
     end
 
@@ -82,6 +82,7 @@ end
                                                   @Layout((32,1)), @Layout((1,8)))
                 @cuda threads=32 tiled_copy_kernel(cu_g_in, cu_g_out, tiled_copy, smem_layout)
                 @test cu_g_out == cu_g_in
+                fill!(cu_g_out, zero(UInt16))
             end
         end
     end
