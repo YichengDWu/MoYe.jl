@@ -14,7 +14,7 @@ of that array is calculated by [`cosize`](@ref):
 cosize(@Layout((3,4), (0, 0)))
 ```
 
-The underlying implementation of MoYeArray determines that its index is actually periodic.
+The underlying implementation of MoYeArray determines that linear indexing is actually periodic.
 ```@repl array
 function f()
     B = MoYeArray([1,2,3], @Layout((3,), (1,)))
