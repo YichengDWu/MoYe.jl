@@ -408,7 +408,9 @@ end
         @test shape(result) == ((2, 2), (3, 4))
         @test stride(result) == ((1, 2), (16, 4))
 
-        @test_opt logical_product(static(tile), static(matrix_of_tiles)) # note that `complement` requires a static layout to avoid dynamic dispatch
+        @test_opt logical_product(tile, matrix_of_tiles)
+
+        @test logical_product(@Layout(1), @Layout((2,2))) == @Layout((1,(2,2)))
 
         function test_logical_product(A,B)
             @test_opt logical_product(A,B)
