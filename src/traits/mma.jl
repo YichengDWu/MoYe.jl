@@ -64,13 +64,13 @@ function MMATraits{UniversalFMA{D, A, B, C}}() where {D, A, B, C}
                                                            Clayout)
 end
 
-@inline mma_op(mma_traits::AbstractMMATraits) = mma_traits.mma_op
+@inline get_mma_op(mma_traits::MMATraits) = mma_traits.mma_op
 
 # again, default implementation, Hooper would need to specialize on it
 function mma_unpack!(traits::MMATraits{OP, TD, TA, TB, TC}, D::LocalArray{TD},
                      A::LocalArray{TA}, B::LocalArray{TB},
                      C::LocalArray{TC}) where {OP, TD, TA, TB, TC}
-    mma_op = mma_op(traits)
+    mma_op = get_mma_op(traits)
     RegTypeD = regtype_d(mma_op)
     RegTypeA = regtype_a(mma_op)
     RegTypeB = regtype_b(mma_op)

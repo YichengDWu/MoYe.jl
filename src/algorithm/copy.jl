@@ -10,20 +10,20 @@ function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
     end
     return dest
 end
-function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,1}, src::MoYeArray{TS,1}, mask) where {TD,TS}
+#=function copyto_if!(copy_atom::AbstractCopyAtom, dest::StaticNonOwningArray{TD,1}, src::StaticNonOwningArray{TS,1}, mask) where {TD,TS}
     return apply(copy_atom, dest, src)
 end
-function copyto_if!(copy_atom::AbstractCopyAtom, dest::MoYeArray{TD,N}, src::MoYeArray{TS,N}, mask) where {TD,TS,N}
+function copyto_if!(copy_atom::AbstractCopyAtom, dest::StaticNonOwningArray{TD,N}, src::StaticNonOwningArray{TS,N}, mask) where {TD,TS,N}
     src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
     dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
-    @loopinfo unroll for i in One():size(src_v.layout, 2)
+    @loopinfo unroll for i in One():size(layout(src_v), 2)
         if mask[i]
             apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
         end
     end
     return dest
 end
-
+=#
 @generated function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
         return quote
@@ -120,7 +120,7 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     return expr
 end
 
-@generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticMoYeArray, src::StaticMoYeArray)
+@generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticOwningArray, src::StaticOwningArray)
     expr = generate_copy_atom_loops(:dst, :src,  layout(dst)(), layout(src)(), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
         $expr

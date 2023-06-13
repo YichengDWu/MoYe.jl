@@ -621,6 +621,7 @@ julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
 
 julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
 (4, 5):(10, 2)
+```
 """
 function compose(l1::Layout, l2::Layout)
     return composition(l1, l2)
