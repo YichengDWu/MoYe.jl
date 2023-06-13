@@ -120,10 +120,24 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     return expr
 end
 
-@generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticOwningArray, src::StaticOwningArray)
+@generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticNonOwningArray)
     expr = generate_copy_atom_loops(:dst, :src,  layout(dst)(), layout(src)(), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
         $expr
         return dst
     end
+end
+function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticOwningArray)
+    buffer = ManualMemory.preserve_buffer(src)
+    GC.@preserve buffer begin
+        copyto!(copy_atom, dst, StrideArraysCore.maybe_ptr_array(src))
+    end
+    return dst
+end
+function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticOwningArray, src::StaticNonOwningArray)
+    buffer = ManualMemory.preserve_buffer(dst)
+    GC.@preserve buffer begin
+        copyto!(copy_atom, StrideArraysCore.maybe_ptr_array(dst), src)
+    end
+    return dst
 end

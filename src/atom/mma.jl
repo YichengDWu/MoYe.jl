@@ -195,19 +195,19 @@ end
 function partition_C(m::ThrMMA, C::MoYeArray)
     thr_array = MoYeArray(pointer(C), thrfrg_C(m.tiled_mma, layout(C)))
     thr_vmn = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[3]))
-    return view(thr_array, thr_vmn, (:, repeat(:, rank(shape(layout(thr_array)[1][1])))))
+    return view(thr_array, thr_vmn, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
 end
 
 function partition_A(m::ThrMMA, A::MoYeArray)
     thr_array = MoYeArray(pointer(A), thrfrg_A(m.tiled_mma, layout(A)))
     thr_vmk = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[4]))
-    return view(thr_array, thr_vmk, (:, repeat(:, rank(shape(layout(thr_array)[1][1])))))
+    return view(thr_array, thr_vmk, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
 end
 
 function partition_B(m::ThrMMA, B::MoYeArray)
     thr_array = MoYeArray(pointer(B), thrfrg_B(m.tiled_mma, layout(B)))
     thr_vnk = (m.thr_vmnk[1], (m.thr_vmnk[3], m.thr_vmnk[4]))
-    return view(thr_array, thr_vnk, (:, repeat(:, rank(shape(layout(thr_array)[1][1])))))
+    return view(thr_array, thr_vnk, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
 end
 
 function partiton_fragment_C(m::ThrMMA, C::MoYeArray)
