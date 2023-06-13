@@ -844,7 +844,7 @@ julia> print_layout(logical_product(tile, matrix_of_tiles))
 """
 function logical_product(layout::Layout, tile::Layout)
     return make_layout(layout,
-                       composition(complement(layout, size(layout) * cosize(layout)), tile))
+                       composition(complement(layout, size(layout) * cosize(tile)), tile))
 end
 function logical_product(layout::Layout, tile::Colon)
     return layout
