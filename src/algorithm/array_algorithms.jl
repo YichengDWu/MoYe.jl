@@ -195,7 +195,7 @@ end
     end
     return nothing
 end
-@device_override @inline function map!(f::F, x::MoYeArray)
+@device_override @inline function map!(f::F, x::MoYeArray) where {F}
     @loopinfo unroll for i in eachindex(x)
         x[i] = f(x[i])
     end
