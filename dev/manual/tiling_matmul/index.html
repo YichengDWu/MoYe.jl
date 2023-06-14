@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tiling MatMul · MoYe.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tiling_matmul/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li class="is-active"><a class="tocitem" href>Tiling MatMul</a></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Data Movement</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../datamovement/gs/">Global Memory &amp; Shared Memory</a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tiling MatMul</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tiling MatMul</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tiling_matmul.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tiling-MatMul"><a class="docs-heading-anchor" href="#Tiling-MatMul">Tiling MatMul</a><a id="Tiling-MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#Tiling-MatMul" title="Permalink"></a></h1><p>This tutorial demonstrates how to perform matrix multiplication <code>C = A * B^T + C</code> using tiling techniques on CPU.</p><p>We follow the convention where the shape of matrix <code>A</code> is <code>(M, K)</code>, matrix <code>B</code> is <code>(N, K)</code>, and matrix <code>C</code> is <code>(M, N)</code>.</p><p>First, we launch Julia with 16 threads:</p><pre><code class="language-julia hljs">julia --threads 16</code></pre><p>Correspondingly, we use a thread layout of</p><pre><code class="language-julia hljs">threadlayout = @Layout (4, 4)</code></pre><p>We start with a simple example, where <code>M = 4, N = 4</code>, and <code>K = 8</code>. In this case, each thread processes one element of matrix <code>C</code>.</p><pre><code class="language-julia hljs">M = 4
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>MatMul · MoYe.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tiling_matmul/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li class="is-active"><a class="tocitem" href>MatMul</a><ul class="internal"><li><a class="tocitem" href="#On-CPU"><span>On CPU</span></a></li><li><a class="tocitem" href="#On-GPU"><span>On GPU</span></a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Data Movement</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../datamovement/gs/">Global Memory &amp; Shared Memory</a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>MatMul</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>MatMul</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tiling_matmul.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="MatMul"><a class="docs-heading-anchor" href="#MatMul">MatMul</a><a id="MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#MatMul" title="Permalink"></a></h1><p>This tutorial demonstrates how to perform matrix multiplication <code>C = A * B^T</code> using <code>MoYe</code>.</p><p>We follow the convention where the shape of matrix <code>A</code> is <code>(M, K)</code>, matrix <code>B</code> is <code>(N, K)</code>, and matrix <code>C</code> is <code>(M, N)</code>.</p><h2 id="On-CPU"><a class="docs-heading-anchor" href="#On-CPU">On CPU</a><a id="On-CPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-CPU" title="Permalink"></a></h2><p>First, we launch Julia with 16 threads:</p><pre><code class="language-julia hljs">julia --threads 16</code></pre><p>Correspondingly, we use a thread layout of</p><pre><code class="language-julia hljs">threadlayout = @Layout (4, 4)</code></pre><p>We start with a simple example, where <code>M = 4, N = 4</code>, and <code>K = 8</code>. In this case, each thread processes one element of matrix <code>C</code>.</p><pre><code class="language-julia hljs">M = 4
 N = 4
 K = 8
 A = reshape([i for i in 1:(M*K)], (M, K))
@@ -55,4 +55,105 @@ Threads.@threads :static for i in 1:Threads.nthreads()
     end
 end
 
-C ≈ A * transpose(B)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Tuesday 13 June 2023 19:12">Tuesday 13 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+C ≈ A * transpose(B)</code></pre><h2 id="On-GPU"><a class="docs-heading-anchor" href="#On-GPU">On GPU</a><a id="On-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-GPU" title="Permalink"></a></h2><pre><code class="language-julia hljs">using MoYe, CUDA, Test
+using MoYe: @loopinfo
+
+const X = MoYe.One()
+
+function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
+                       C, blocklayout_C, threadlayout_C)
+    sA = MoYeSharedArray(eltype(A), blocklayout_A)
+    sB = MoYeSharedArray(eltype(B), blocklayout_B)
+
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
+
+    mA = MoYeArray(A, (M, K))
+    mB = MoYeArray(B, (N, K))
+    mC = MoYeArray(C, (M, N))
+
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+    bK = size(blocklayout_B, 2)
+
+    blocktile_A = @tile mA (bM, bK) (blockIdx().x, :) # (bM,bK,k)
+    blocktile_B = @tile mB (bN, bK) (blockIdx().y, :) # (bN,bK,k)
+    blocktile_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
+
+    # Tiles for loading data A and B from gmem to smem
+    threadtile_gA = @parallelize blocktile_A threadlayout_A threadIdx().x # (tM,tK,k)
+    threadtile_sA = @parallelize sA threadlayout_A threadIdx().x # (tM,tK）
+
+    threadtile_gB = @parallelize blocktile_B threadlayout_B threadIdx().x # (tN,tK,k)
+    threadtile_sB = @parallelize sB threadlayout_B threadIdx().x # (tN,tK）
+
+    # For mma computation
+    computetile_sA = @parallelize sA threadlayout_C threadIdx().x (X, :)
+    computetile_sB = @parallelize sB threadlayout_C threadIdx().x (:, X)
+    computetile_gC = @parallelize blocktile_C threadlayout_C threadIdx().x # (128 ÷ 16, 128 ÷ 16)
+
+    frg_c = make_fragment_like(computetile_gC)
+    zeros!(frg_c)
+
+    k_max = size(threadtile_gA, 3)
+
+    for i in 1:k_max
+        # copy gmem to smem
+        copyto!(threadtile_sA, view(threadtile_gA, :, :, i))
+        copyto!(threadtile_sB, view(threadtile_gB, :, :, i))
+        cp_async_wait()
+        sync_threads()
+
+        # classic three nested for loops
+        for k in axes(computetile_sA, 2)
+            @loopinfo unroll for m in axes(computetile_sA, 1)
+                @loopinfo unroll for n in axes(computetile_sB, 1)
+                    @inbounds frg_c[m, n] += computetile_sA[m, k] * computetile_sB[n, k]
+                end
+            end
+        end
+
+        sync_threads()
+    end
+    # copy rmem to gmem
+    copyto!(computetile_gC, frg_c)
+    return nothing
+end
+
+function matmul(A, B, C)
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
+
+    blocklayout_A = @Layout (128, 8)
+    blocklayout_B = @Layout (128, 8)
+    blocklayout_C = @Layout (128, 128)
+
+    threadlayout_A = @Layout (32, 8)
+    threadlayout_B = @Layout (32, 8)
+    threadlayout_C = @Layout (32, 8)
+
+    threads = Int(size(threadlayout_C))
+
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+
+    blocks = (cld(M, bM), cld(N, bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A,
+                                                      B, blocklayout_B, threadlayout_B,
+                                                      C, blocklayout_C, threadlayout_C)
+end
+
+function test()
+    A = CUDA.randn(Float32, 2048, 256)
+    B = CUDA.randn(Float32, 2048, 256)
+    C = CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B&#39;
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 14 June 2023 03:42">Wednesday 14 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
