@@ -151,7 +151,7 @@ function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threa
     # For mma computation
     computetile_sA = @parallelize sA threadlayout_C threadIdx().x (X, :)
     computetile_sB = @parallelize sB threadlayout_C threadIdx().x (:, X)
-    computetile_gC = @parallelize blocktile_C threadlayout_C threadIdx().x # (128 ÷ 16, 128 ÷ 16)
+    computetile_gC = @parallelize blocktile_C threadlayout_C threadIdx().x 
 
     frg_c = make_fragment_like(computetile_gC)
     zeros!(frg_c)
