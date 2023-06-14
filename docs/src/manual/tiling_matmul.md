@@ -201,9 +201,9 @@ function matmul(A, B, C)
 
     blocks = (cld(M, bM), cld(N, bN))
 
-    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A, B,
-                                                      blocklayout_B, threadlayout_B, C,
-                                                      blocklayout_C, threadlayout_C)
+    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A,
+                                                      B, blocklayout_B, threadlayout_B,
+                                                      C, blocklayout_C, threadlayout_C)
 end
 
 function test()
@@ -211,6 +211,7 @@ function test()
     B = CUDA.randn(Float32, 2048, 256)
     C = CUDA.randn(Float32, 2048, 2048)
     matmul(A, B, C)
+    CUDA.synchronize()
     @test C == A * B'
     CUDA.unsafe_free!(A)
     CUDA.unsafe_free!(B)

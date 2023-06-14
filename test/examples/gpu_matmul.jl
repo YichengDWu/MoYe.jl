@@ -1,13 +1,12 @@
 using MoYe, CUDA, Test
 using MoYe: @loopinfo
 
-const X = MoYe.One()
-
 function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
                        C, blocklayout_C, threadlayout_C)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
 
+    X = MoYe.One()
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
@@ -84,16 +83,21 @@ function matmul(A, B, C)
 
     blocks = (cld(M, bM), cld(N, bN))
 
-    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A, B,
-                                                      blocklayout_B, threadlayout_B, C,
-                                                      blocklayout_C, threadlayout_C)
+    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A,
+                                                      B, blocklayout_B, threadlayout_B,
+                                                      C, blocklayout_C, threadlayout_C)
 end
 
-A = CUDA.randn(Float32, 2048, 256)
-B = CUDA.randn(Float32, 2048, 256)
-C = CUDA.randn(Float32, 2048, 2048)
-matmul(A, B, C)
-@test C == A * B'
-CUDA.unsafe_free!(A)
-CUDA.unsafe_free!(B)
-CUDA.unsafe_free!(C)
+function test()
+    A =  CUDA.randn(Float32, 2048, 256)
+    B =  CUDA.randn(Float32, 2048, 256)
+    C =  CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B'
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()
