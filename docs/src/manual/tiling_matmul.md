@@ -156,9 +156,7 @@ function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threa
     frg_c = make_fragment_like(computetile_gC)
     zeros!(frg_c)
 
-    k_max = size(threadtile_gA, 3)
-
-    for i in 1:k_max
+    for i in axes(threadtile_gA, 3)
         # copy gmem to smem
         copyto!(threadtile_sA, view(threadtile_gA, :, :, i))
         copyto!(threadtile_sB, view(threadtile_gB, :, :, i))
