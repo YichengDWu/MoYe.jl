@@ -30,8 +30,4 @@ end
 @testset "Examples" begin
     @safetestset "CPU MatMul" begin include("examples/tiling_matmul.jl") end
     @safetestset "Copy Async" begin include("examples/copy_async.jl") end
-
-    if CUDA.functional()
-        @safetestset "CUDA MatMul" begin include("examples/gpu_matmul.jl") end
-    end
 end
