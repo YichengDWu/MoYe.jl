@@ -181,3 +181,23 @@ function max_common_vector(src::MoYeArray{TS}, dst::MoYeArray{TD}) where {TS, TD
         return Zero()
     end
 end
+
+@device_override function foreach(f::F, x::MoYeArray) where {F}
+    @loopinfo unroll for i in eachindex(x)
+        f(x[i])
+    end
+    return nothing
+end
+
+@device_override function map!(f::F, x::MoYeArray, y::MoYeArray) where {F}
+    @loopinfo unroll for i in eachindex(x)
+        x[i] = f(y[i])
+    end
+    return nothing
+end
+@device_override @inline function map!(f::F, x::MoYeArray) where {F}
+    @loopinfo unroll for i in eachindex(x)
+        x[i] = f(x[i])
+    end
+    return nothing
+end
