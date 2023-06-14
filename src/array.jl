@@ -127,10 +127,8 @@ layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 @inline shape(x::MoYeArray) = shape(layout(x))
 
 # static interface
-@inline function StaticArrayInterface.static_size(x::StaticMoYeArray{T,N,<:ViewEngine}) where {T,N}
-    return map(capacity, shape(layout(x)))
-end
-@inline StaticArrayInterface.static_size(x::StaticMoYeArray) = static_size(MoYeArray(pointer(x), layout(x)))
+@inline StaticArrayInterface.static_size(x::StaticMoYeArray) = map(capacity, shape(layout(x)))
+@inline StaticArrayInterface.static_size(x::StaticMoYeArray, i::IntType) = size(layout(x), i)
 
 @inline function StaticArrayInterface.static_axes(x::StaticMoYeArray{T,N,<:ViewEngine}) where {T,N}
     return map(Base.oneto, static_size(x))
@@ -160,6 +158,10 @@ Return a pointer to the element at the logical index `i` in `A`, not the physica
 """
 @inline function Base.pointer(x::MoYeArray{T}, i::IntType) where {T}
     idx = x.layout(convert(Int, i))
+    return pointer(x) + (idx-one(idx))*sizeof(T)
+end
+@inline function Base.pointer(x::MoYeArray{T}, coord::Tuple) where {T}
+    idx = x.layout(coord)
     return pointer(x) + (idx-one(idx))*sizeof(T)
 end
 

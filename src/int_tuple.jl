@@ -247,8 +247,9 @@ function Base.iterate(x::ForwardCoordUnitRange, state)
     return (new_state, new_state)
 end
 
-@generated make_tuple(::Type{StaticInt{N}}) where {N} = StaticInt{N}()
-@generated function make_tuple(::Type{S}) where {S<:StaticIntTuple}
+make_tuple(::Type{StaticInt{N}}) where {N} = StaticInt{N}()
+make_tuple(::Type{Colon}) = Colon()
+@generated function make_tuple(::Type{S}) where {S<:Tuple}
     expr = Expr(:tuple)
     for p in S.parameters
         push!(expr.args, make_tuple(p))

@@ -323,7 +323,7 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d, signatures)
 
                 _struct_name = Symbol(struct_name)
                 @eval struct $_struct_name <: AbstractMMAOP{$DRegisters, $ARegisters, $BRegisters, $CRegisters} end
-                #@eval export $_struct_name
+                @eval export $_struct_name
 
                 intrinsic_signature = mma_signature(type_d, type_a, type_b, type_c)
                 layout = op_signature_to_layout[signature]

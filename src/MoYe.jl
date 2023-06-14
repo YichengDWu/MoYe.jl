@@ -54,7 +54,7 @@ include("algorithm/blas.jl")
 include("deprecated.jl")
 
 # rexport
-export static, @gc_preserve
+export static, @gc_preserve, static_size
 
 # tuple algorithms
 export flatten
@@ -74,7 +74,8 @@ export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @ti
 export MoYeSharedArray
 
 # Atom
-export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S
+export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA
+export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size
 
 # pointer
 export isgmem, issmem, isrmem

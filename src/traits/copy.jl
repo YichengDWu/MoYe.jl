@@ -1,4 +1,4 @@
-abstract type AbstractCopyTraits{OP} <: AbstractTraits end
+abstract type AbstractCopyTraits{OP} <: AbstractTraits{OP} end
 
 struct CopyTraits{C <: AbstractCopyOperation, LT, LS, LD, LR} <: AbstractCopyTraits{C}
     copy_op::C

@@ -199,6 +199,7 @@ function zip2_by(t, guide::Tuple)
     return (result[1], (result[2]..., t[(GR + 1):end]...))
 end
 function zip2_by(t, guide)
+    @assert length(t) == 2
     return t
 end
 

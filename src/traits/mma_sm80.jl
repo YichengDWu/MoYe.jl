@@ -38,9 +38,9 @@ end
 function make_mmatraits(mmaops)
     for mmaop in mmaops
         mnk, eltypes, major = mmaop_to_layoutargs(mmaop)
-        DElType, AElType, BElType, CElType= eltypes
+        DElType, AElType, BElType, CElType = eltypes
         layouts = _get_layouts(mnk, AElType, CElType, major)
-        @eval function MMATraits{$(Symbol(mmaop))}()
+        @eval function MMATraits{@eval($(Symbol(mmaop)))}()
             return MMATraits{$(Symbol(mmaop)), $DElType, $AElType, $BElType, $CElType}($mnk,
                                                                                        $(layouts...))
         end

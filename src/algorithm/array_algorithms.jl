@@ -8,13 +8,13 @@ end
     return make_moyearray_like(T, x)
 end
 
-@inline function make_fragment_like(::Type{T}, @nospecialize(layout::Layout)) where {T}
+@inline function make_fragment_like(::Type{T}, layout::Layout) where {T}
     return MoYeArray{T}(undef, make_fragment_like(layout))
 end
-@inline function make_fragment_like(::Type{T}, @nospecialize(x::MoYeArray)) where {T}
+@inline function make_fragment_like(::Type{T}, x::MoYeArray) where {T}
     return make_fragment_like(T, layout(x))
 end
-@inline function make_fragment_like(@nospecialize x::MoYeArray{T}) where {T}
+@inline function make_fragment_like(x::MoYeArray{T}) where {T}
     return make_fragment_like(T, x)
 end
 
@@ -172,8 +172,7 @@ end
 
 Fill `x` with zeros.
 """
-@inline zeros!(x::NonOwningArray) = fill!(x, zero(eltype(x)))
-@inline zeros!(x::OwningArray) = @gc_preserve zeros!(x)
+@inline zeros!(x::MoYeArray) = fill!(x, zero(eltype(x)))
 
 function max_common_vector(src::MoYeArray{TS}, dst::MoYeArray{TD}) where {TS, TD}
     if sizeof(TS) == sizeof(TD) && isbitstype(TS) && isbitstype(TD)
