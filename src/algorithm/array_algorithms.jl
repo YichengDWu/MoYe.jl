@@ -172,8 +172,7 @@ end
 
 Fill `x` with zeros.
 """
-@inline zeros!(x::NonOwningArray) = fill!(x, zero(eltype(x)))
-@inline zeros!(x::OwningArray) = @gc_preserve zeros!(x)
+@inline zeros!(x::MoYeArray) = fill!(x, zero(eltype(x)))
 
 function max_common_vector(src::MoYeArray{TS}, dst::MoYeArray{TD}) where {TS, TD}
     if sizeof(TS) == sizeof(TD) && isbitstype(TS) && isbitstype(TD)

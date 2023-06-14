@@ -72,7 +72,7 @@ function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::LocalArray{DA
     end
 end
 
-#=
+# dispatch to (3,3,3,3)
 function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::SharedArray{DA,2},
                B::SharedArray{DB,2}, C::LocalArray{DC,2}) where {DT,DA,DB,DC}
     @assert size(A.layout, 1) == size(C.layout, 1) == size(D.layout, 1) # M
@@ -87,7 +87,6 @@ function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::SharedArray{D
          prepend_dim(D,  StaticInt{3}()), prepend_dim(A,  StaticInt{3}()),
          prepend_dim(B,  StaticInt{3}()), prepend_dim(C,  StaticInt{3}()))
 end
-
 
 function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::SharedArray{DA,3},
                B::SharedArray{DB,3}, C::LocalArray{DC,3}) where {DT,DA,DB,DC}
@@ -105,7 +104,6 @@ function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::SharedArray{D
         gemm!(mma_atom, D, view(rA, :, :, k), view(rB, :, :, k), C)  # (3,2,2,3)
     end
 end
-=#
 
 function gemm!(thr_mma::ThrMMA, alpha, A::SharedArray{TA,2}, B::SharedArray{TB,2},
                beta, C::SharedArray{TC,2}, transform_A, transform_B) where {TA,TB,TC}
