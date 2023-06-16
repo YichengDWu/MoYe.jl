@@ -75,7 +75,8 @@ export MoYeSharedArray
 
 # Atom
 export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA
-export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size
+export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size,
+       partition_fragment_C, partition_fragment_A, partition_fragment_B
 
 # pointer
 export isgmem, issmem, isrmem

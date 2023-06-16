@@ -31,3 +31,7 @@ end
     @safetestset "CPU MatMul" begin include("examples/tiling_matmul.jl") end
     @safetestset "Copy Async" begin include("examples/copy_async.jl") end
 end
+
+@testset "Tiled MMA" begin
+    @safetestset "Tiled MMA" begin include("tiled_mma.jl") end
+end

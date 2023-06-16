@@ -1157,7 +1157,7 @@ following the given order.
 make_fragment_like(layout::StaticLayout{1}) = make_layout(shape(layout))
 function make_fragment_like(layout::StaticLayout{R}) where {R}
     return tiled_product(make_layout(shape(layout)[1]),
-                         tuple(make_ordered_layout(make_layout(layout[2:end]...))...))
+                         make_ordered_layout(make_layout(layout[2:end]...)))
 end
 make_fragment_like(layout::Layout) = make_layout(shape(layout))
 make_fragment_like(shape::GenIntTuple) = make_layout(shape)
