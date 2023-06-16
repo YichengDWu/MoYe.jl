@@ -5,18 +5,25 @@ function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
     @assert size(layout(C), 1) == size(get_mma_traits(m).Clayout, 2)
     return MoYeArray{frgtype_c(get_mma_traits(m))}(undef, shape(C)) # (V, M, N)
 end
-
-# Hopper needs to specialize on make_fragment_A and make_fragment_B
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(get_mma_traits(m).Alayout, 2)
     return make_fragment_like(frgtype_a(get_mma_traits(m)), A) # (V, M, K)
 end
-
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(get_mma_traits(m).Blayout, 2)
     return make_fragment_like(frgtype_b(get_mma_traits(m)), B) # (V, N, K)
+end
+
+function partition_fragment_C(m::AbstractMMAAtom, C::MoYeArray)
+    return make_fragment_C(m, partition_C(m, C))
+end
+function partition_fragment_A(m::AbstractMMAAtom, A::MoYeArray)
+    return make_fragment_A(m, partition_A(m, A))
+end
+function partition_fragment_B(m::AbstractMMAAtom, B::MoYeArray)
+    return make_fragment_B(m, partition_B(m, B))
 end
 
 struct MMAAtom{Traits} <: AbstractMMAAtom
@@ -208,18 +215,6 @@ function partition_B(m::ThrMMA, B::MoYeArray)
     thr_array = MoYeArray(pointer(B), thrfrg_B(m.tiled_mma, layout(B)))
     thr_vnk = (m.thr_vmnk[1], (m.thr_vmnk[3], m.thr_vmnk[4]))
     return view(thr_array, thr_vnk, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
-end
-
-function partiton_fragment_C(m::ThrMMA, C::MoYeArray)
-    return make_fragment_C(m.tiled_mma.mma_atom, partition_C(m, C))
-end
-
-function partiton_fragment_A(m::ThrMMA, A::MoYeArray)
-    return make_fragment_A(m.tiled_mma.mma_atom, partition_A(m, A))
-end
-
-function partiton_fragment_B(m::ThrMMA, B::MoYeArray)
-    return make_fragment_B(m.tiled_mma.mma_atom, partition_B(m, B))
 end
 
 function Base.show(io::IO, m::ThrMMA{TA, ThrVMNK}) where {TA, ThrVMNK}
