@@ -33,5 +33,5 @@ end
 end
 
 @testset "Tiled MMA" begin
-    @safetestset "Tiled MMA" begin include("examples/tiled_mma.jl") end
+    @safetestset "Tiled MMA" begin include("tiled_mma.jl") end
 end
