@@ -60,7 +60,7 @@ end
         Base.@_inline_meta
         @loopinfo unroll for n in axes(B, 2)
             @loopinfo unroll for m in axes(A, 2)
-                ms = Bool(n & 1) ? m : $(M()+𝟏)-m
+                ms = !Bool(n & 1) ? m : $(M()+𝟏)-m
                 gemm!(mma_atom, view(D, :, ms, n), view(A, :, ms), view(B, :, n), view(C, :, ms, n))
             end
         end
