@@ -19,6 +19,7 @@ end
 # element-wise multiplication (1,1,1,1)
 function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,1},  A::LocalArray{DA,1},
                B::LocalArray{DB,1}, C::LocalArray{DC,1}) where {DT,DA,DB,DC}
+    @inline
     apply(mma_atom, D, A, B, C)
     return nothing
 end
@@ -53,14 +54,14 @@ end
                           B::LocalArray{DB,2}, C::LocalArray{DC,3}) where {DT,DA,DB,DC}
     @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
     @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
-    @assert size(layout(A), 𝟏) == size(layout(B), 𝟏) == size(layout(C), 𝟏) == size(layout(D), 𝟏) # V
+    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
 
     M = size(layout(A), 𝟐)
     return quote
         Base.@_inline_meta
         @loopinfo unroll for n in axes(B, 2)
             @loopinfo unroll for m in axes(A, 2)
-                ms = !Bool(n & 1) ? m : $(M()+𝟏)-m
+                ms = Bool(n & 1) ? m : $(M()+𝟏)-m
                 gemm!(mma_atom, view(D, :, ms, n), view(A, :, ms), view(B, :, n), view(C, :, ms, n))
             end
         end
@@ -74,7 +75,7 @@ end
     @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
     @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
     @assert size(layout(A), 𝟑) == size(layout(B), 𝟑) # K
-    @assert size(layout(A), 𝟏) == size(layout(B), 𝟏) == size(layout(C), 𝟏) == size(layout(D), 𝟏) # V
+    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
 
     return quote
         Base.@_inline_meta
@@ -106,7 +107,7 @@ end
     @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
     @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
     @assert size(layout(A), 𝟑) == size(layout(B), 𝟑) # K
-    @assert size(layout(A), 𝟏) == size(layout(B), 𝟏) == size(layout(C), 𝟏) == size(layout(D), 𝟏) # V
+    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
 
     return quote
         Base.@_inline_meta
