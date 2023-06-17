@@ -54,4 +54,4 @@ struct UniversalFMA{D,A,B,C} <: AbstractMMAOP{Registers{D, 1}, Registers{A, 1},
     Registers{B, 1}, Registers{C, 1}}
 end
 
-@inline fma!(::UniversalFMA, d, a, b, c) = d .= a .* b .+ c
+@inline fma!(::UniversalFMA, d, a, b, c) = @inbounds d .= a .* b .+ c
