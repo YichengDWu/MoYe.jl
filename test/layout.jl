@@ -32,7 +32,7 @@ end
         @test depth(coalesce_layout) <= One()
         @test size(coalesce_layout) == size(layout)
 
-        for i in 𝟏:size(layout)
+        for i in One():size(layout)
             @test coalesce_layout(i) == layout(i)
         end
     end
