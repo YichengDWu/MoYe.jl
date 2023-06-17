@@ -12,6 +12,7 @@ using CUDA: @device_override
 using LLVMLoopInfo
 using Core: LLVMPtr
 import Adapt
+using MacroTools: @capture
 
 include("utilities.jl")
 include("algorithm/tuple_algorithms.jl")
@@ -26,7 +27,6 @@ include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 
 include("pointer.jl")
-include("device/smem.jl")
 
 # Arch
 include("arch/mma/mma.jl")
@@ -53,6 +53,10 @@ include("algorithm/blas.jl")
 # Deprecations
 include("deprecated.jl")
 
+# Device
+include("device/smem.jl")
+include("device/collective.jl")
+
 # rexport
 export static, @gc_preserve, static_size
 
@@ -74,7 +78,8 @@ export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @ti
 export MoYeSharedArray
 
 # Atom
-export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA
+export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA,
+       UniversalCopy
 export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size,
        partition_fragment_C, partition_fragment_A, partition_fragment_B
 
@@ -82,9 +87,12 @@ export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size
 export isgmem, issmem, isrmem
 
 # blas
-export axpby!
+export axpby!, gemm!
 
 # data movement
 export cucopyto!, cp_async_wait, cp_async_commit
+
+# collective
+export @collective
 
 end

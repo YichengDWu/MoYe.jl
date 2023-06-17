@@ -97,8 +97,11 @@ end
 @inline Base.length(::Type{ArrayEngine{T, L}}) where {T, L} = L
 
 @inline Base.similar(::ArrayEngine{T, L}) where {T, L} = ArrayEngine{T, L}(undef)
-@inline @generated function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
-    return :(ArrayEngine{T}(undef, $(StaticInt{length(A)}())))
+@generated function Base.similar(A::ArrayEngine, ::Type{T}) where {T}
+    return quote
+        Base.@_inline_meta
+        return ArrayEngine{T}(undef, $(StaticInt{length(A)}()))
+    end
 end
 
 @inline function ArrayEngine{T}(f::Function, ::StaticInt{L}) where {T, L} # not very useful
