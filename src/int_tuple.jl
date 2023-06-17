@@ -22,8 +22,12 @@ emap(f::Function, x::Union{IntType, Colon}) = f(x)
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)
 @inline rank(@nospecialize(x::IntTuple), I::IntType...) = rank(getindex(x, I...))
-@inline @generated rank(::Type{T}) where {T<:Tuple} = :($(length(T.parameters)))
-# shape
+@generated function rank(::Type{T}) where {T<:Tuple}
+    return quote
+        Base.@_inline_meta
+        return $(length(T.parameters))
+    end
+end
 
 @inline depth(@nospecialize x::IntType) = zero(x)
 function depth(@nospecialize x::IntTuple)
@@ -36,9 +40,11 @@ end
 @inline product(x::IntType) = x
 @inline product(x::IntSequence) = prod(x)
 @inline product(x::IntTuple) = prod(flatten(x))
-@inline @generated function product(::Type{T}) where {T<:StaticIntTuple}
-    t = make_tuple(T)
-    return :($(typeof(prod(flatten(t)))))
+@generated function product(::Type{T}) where {T<:StaticIntTuple}
+    return quote
+        Base.@_inline_meta
+        return $(typeof(prod(flatten(make_tuple(T)))))
+    end
 end
 
 @inline product_each(x) = map(product, x)
@@ -46,6 +52,7 @@ end
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
 #capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
+@inline capacity(::Type{T}) where {T<:StaticInt} = T
 @inline capacity(::Type{T}) where {T<:StaticIntTuple} = product(T)
 
 
@@ -276,5 +283,5 @@ function static_findfirst(f::G, t::Tuple, I::Tuple) where {G}
     return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
 end
 
-static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), StaticInt{2}())
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), Two())
 static_findfirst(f::G, t::Tuple) where {G} = static_findfirst(f, t, ntuple(static, length(t)))

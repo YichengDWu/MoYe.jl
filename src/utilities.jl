@@ -13,4 +13,17 @@ uint_bytes(::StaticInt{N}) where {N} = uint_bit(static(8*N))
 
 @inline Base.:(*)(::Type{StaticInt{N}}, ::Type{StaticInt{M}}) where {N, M} = StaticInt{N*M}
 
-@inline @generated Base.abs(::StaticInt{N}) where {N} = :($(StaticInt{abs(N)}()))
+@generated function Base.abs(::StaticInt{N}) where {N}
+    return quote
+        Base.@_inline_meta
+        return $(StaticInt{abs(N)}())
+    end
+end
+
+const Two = StaticInt{2}
+const Three = StaticInt{3}
+
+const 𝟎 = Zero()
+const 𝟏 = One()
+const 𝟐 = Two()
+const 𝟑 = Three()

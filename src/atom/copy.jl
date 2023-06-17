@@ -230,8 +230,8 @@ function retile_D(thr_copy::ThrCopy, d::StaticMoYeArray{T, R}) where {T, R}
     return MoYeArray(pointer(d), retile(thr_copy.tiled_copy, layout(d)))
 end
 
-@inline get_slice(tiled_copy::TiledCopy, thr_idx) = ThrCopy(tiled_copy, thr_idx)
-@inline get_thread_slice(tiled_copy::TiledCopy, thr_idx) = get_slice(tiled_copy, thr_idx)
+@inline get_slice(tiled_copy::TiledCopy, thr_idx::Int) = ThrCopy(tiled_copy, thr_idx)
+@inline get_thread_slice(tiled_copy::TiledCopy, thr_idx::Int) = get_slice(tiled_copy, thr_idx)
 
 function make_tiled_copy(copy_atom::CopyAtom, thr_layout::Layout{TR},
                          val_layout::Layout{TV}=@Layout(1)) where {TR, TV}

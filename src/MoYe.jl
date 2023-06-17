@@ -12,6 +12,7 @@ using CUDA: @device_override
 using LLVMLoopInfo
 using Core: LLVMPtr
 import Adapt
+using MacroTools: @capture
 
 include("utilities.jl")
 include("algorithm/tuple_algorithms.jl")
@@ -82,9 +83,12 @@ export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size
 export isgmem, issmem, isrmem
 
 # blas
-export axpby!
+export axpby!, gemm!
 
 # data movement
 export cucopyto!, cp_async_wait, cp_async_commit
+
+# collective
+export @collective
 
 end

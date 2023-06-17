@@ -215,6 +215,9 @@ end
         MoYeArray(pointer(x), layout(x))
     end
 end
+@inline function Base.view(x::MoYeArray{T, N}, coord::Colon) where {T, N}
+    return view(x, repeat(:, N)...)
+end
 @inline function Base.view(x::MoYeArray{T},
                            coord...) where {T}
     b = ManualMemory.preserve_buffer(x)
