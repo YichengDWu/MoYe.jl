@@ -55,15 +55,15 @@ Threads.@threads :static for i in 1:Threads.nthreads()
     end
 end
 
-C ≈ A * transpose(B)</code></pre><h2 id="On-GPU"><a class="docs-heading-anchor" href="#On-GPU">On GPU</a><a id="On-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-GPU" title="Permalink"></a></h2><pre><code class="language-julia hljs">using MoYe, CUDA, Test
+C ≈ A * transpose(B)</code></pre><h2 id="On-GPU"><a class="docs-heading-anchor" href="#On-GPU">On GPU</a><a id="On-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-GPU" title="Permalink"></a></h2><h3 id="Low-level"><a class="docs-heading-anchor" href="#Low-level">Low level</a><a id="Low-level-1"></a><a class="docs-heading-anchor-permalink" href="#Low-level" title="Permalink"></a></h3><pre><code class="language-julia hljs">using MoYe, CUDA, Test
 using MoYe: @loopinfo
-
-const X = MoYe.One()
 
 function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
                        C, blocklayout_C, threadlayout_C)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
+
+    X = MoYe.One()
 
     M = size(A, 1)
     N = size(B, 1)
@@ -154,4 +154,86 @@ function test()
     CUDA.unsafe_free!(A)
     CUDA.unsafe_free!(B)
     CUDA.unsafe_free!(C)
-end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Friday 16 June 2023 06:22">Friday 16 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><h3 id="High-Level"><a class="docs-heading-anchor" href="#High-Level">High Level</a><a id="High-Level-1"></a><a class="docs-heading-anchor-permalink" href="#High-Level" title="Permalink"></a></h3><pre><code class="language-julia hljs">function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_mma)
+    sA = MoYeSharedArray(eltype(A), blocklayout_A)
+    sB = MoYeSharedArray(eltype(B), blocklayout_B)
+
+    X = MoYe.One()
+
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
+
+    mA = MoYeArray(A, (M, K))
+    mB = MoYeArray(B, (N, K))
+    mC = MoYeArray(C, (M, N))
+
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+    bK = size(blocklayout_B, 2)
+
+    blk_A = @tile mA (bM, bK) (blockIdx().x, :) # (bM,bK,k)
+    blk_B = @tile mB (bN, bK) (blockIdx().y, :) # (bN,bK,k)
+    blk_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
+
+    # For mma computation
+    thread_idx = Int(threadIdx().x)
+    thr_mma = get_thread_slice(tiled_mma, thread_idx)
+    thr_A = partition_A(thr_mma, sA)
+    thr_B = partition_B(thr_mma, sB)
+    thr_C = partition_C(thr_mma, blk_C)
+
+    frg_c = make_fragment_like(thr_C)
+    zeros!(frg_c)
+
+    for i in axes(blk_A, 3)
+        # copy gmem to smem
+        @collective copyto!(tiled_copy, sA, view(blk_A, :, :, i))
+        @collective copyto!(tiled_copy, sB, view(blk_B, :, :, i))
+
+        cp_async_wait()
+        sync_threads()
+
+        MoYe.gemm!(tiled_mma, view(frg_c, :), thr_A, thr_B, view(frg_c, :))
+        sync_threads()
+    end
+    # copy rmem to gmem
+    copyto!(thr_C, frg_c)
+    return nothing
+end
+
+function matmul2(A, B, C)
+    M = size(A, 1)
+    N = size(B, 1)
+
+    blocklayout_A = @Layout (128, 8)
+    blocklayout_B = @Layout (128, 8)
+
+    tiled_mma = MoYe.make_tiled_mma(UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
+    tiled_copy = make_tiled_copy(CopyAtom{UniversalCopy{Float32, Float32}, Float32}(), @Layout((32,8)))
+
+
+    threads = Int(size(tiled_copy))
+
+    bM = size(blocklayout_A, 1)
+    bN = size(blocklayout_B, 1)
+
+    blocks = (cld(M, bM), cld(N, bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A,
+                                                      B, blocklayout_B,
+                                                      C, tiled_copy, tiled_mma)
+end
+
+function test2()
+    A = CUDA.randn(Float32, 2048, 256)
+    B = CUDA.randn(Float32, 2048, 256)
+    C = CUDA.randn(Float32, 2048, 2048)
+    matmul2(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B&#39;
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 17 June 2023 04:06">Saturday 17 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
