@@ -27,7 +27,6 @@ include("broadcast.jl")
 include("algorithm/array_algorithms.jl")
 
 include("pointer.jl")
-include("device/smem.jl")
 
 # Arch
 include("arch/mma/mma.jl")
@@ -53,6 +52,10 @@ include("algorithm/blas.jl")
 
 # Deprecations
 include("deprecated.jl")
+
+# Device
+include("device/smem.jl")
+include("device/collective.jl")
 
 # rexport
 export static, @gc_preserve, static_size
