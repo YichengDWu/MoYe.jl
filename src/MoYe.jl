@@ -38,6 +38,7 @@ include("arch/copy/ldmatrix.jl")
 # Traits
 include("traits/mma.jl")
 include("traits/mma_sm80.jl")
+include("traits/mma_sm70.jl")
 include("traits/copy.jl")
 include("traits/cp_async.jl")
 include("traits/ldmatrix.jl")

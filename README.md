@@ -89,10 +89,11 @@ view(tiled_A, :, i) = [27, 28, 31, 32, 35, 36]
 ```
  # Current Status
  
- `Tensor Core MMA`: Traits-Level Support - see [mma_unpack](https://github.com/YichengDWu/MoYe.jl/blob/main/test/device/mmatraits.jl#L67)
+ `Tensor Core MMA`: High-level programming on tensor cores has been implemented, as shown in the
+ [example](https://github.com/YichengDWu/MoYe.jl/blob/main/examples/gemm_tiled.jl) file. However, integration with `ldmatrix` has not yet been accomplished.
  
-One of the future goals is to support composable tiled mma. Contributions from the community are very much welcome and encouraged. If you're interested in helping out, please don't hesitate to get in touch or submit a pull request. 
+Contributions from the community are very much welcome and encouraged. If you're interested in helping out, please don't hesitate to get in touch or submit a pull request. 
 
-## Notes on WMMA
+### Notes on WMMA
 
-Supporting WMMA is not a priority for MoYe, it is considered an outdated class of API.
+Supporting WMMA is not a priority here, it is considered an outdated class of API.

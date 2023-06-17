@@ -1,13 +1,12 @@
 using MoYe, CUDA, Test
 using MoYe: @loopinfo
 
-const X = MoYe.One()
-
 function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
                        C, blocklayout_C, threadlayout_C)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
 
+    X = MoYe.One()
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
