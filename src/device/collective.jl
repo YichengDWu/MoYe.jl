@@ -8,7 +8,11 @@
     end
 end
 
+"""
+    @collective f(args...)
 
+Thread block level collective operation.
+"""
 macro collective(ex)
     @capture(ex, f_(tiled_copy_, dest_, src_)) || error("unexpected expression")
     if f == :copyto!
