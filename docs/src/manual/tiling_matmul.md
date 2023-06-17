@@ -119,12 +119,12 @@ C ≈ A * transpose(B)
 using MoYe, CUDA, Test
 using MoYe: @loopinfo
 
-const X = MoYe.One()
-
 function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
                        C, blocklayout_C, threadlayout_C)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
+
+    X = MoYe.One()
 
     M = size(A, 1)
     N = size(B, 1)
@@ -225,6 +225,8 @@ function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
 
+    X = MoYe.One()
+
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
@@ -274,8 +276,8 @@ function matmul2(A, B, C)
     blocklayout_A = @Layout (128, 8)
     blocklayout_B = @Layout (128, 8)
 
-    tiled_mma = MoYe.make_tiled_mma(MoYe.UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
-    tiled_copy = make_tiled_copy(MoYe.CopyAtom{MoYe.UniversalCopy{Float32, Float32}, Float32}(), @Layout((32,8)))
+    tiled_mma = MoYe.make_tiled_mma(UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
+    tiled_copy = make_tiled_copy(CopyAtom{UniversalCopy{Float32, Float32}, Float32}(), @Layout((32,8)))
 
 
     threads = Int(size(tiled_copy))
