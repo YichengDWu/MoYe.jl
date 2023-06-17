@@ -225,8 +225,6 @@ function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
 
-    X = MoYe.One()
-
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
