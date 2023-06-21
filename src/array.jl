@@ -93,7 +93,7 @@ end
 @inline function MoYeArray(ptr::LLVMPtr{T}, shape::GenIntTuple, args...) where {T}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
-@inline function MoYeArray(x::CuDeviceArray)
+@inline function MoYeArray(x::AbstractArray)
     return MoYeArray(pointer(x), make_layout(size(x), strides(x)))
 end
 #@inline function MoYeArray(x::StaticArraysCore.StaticArray)
