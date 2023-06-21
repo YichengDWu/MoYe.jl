@@ -94,7 +94,7 @@ end
     return MoYeArray(ptr, make_layout(shape, args...))
 end
 @inline function MoYeArray(x::CuDeviceArray)
-    return MoYeArray(pointer(x), make_layout(size(x)))
+    return MoYeArray(pointer(x), make_layout(size(x), strides(x)))
 end
 #@inline function MoYeArray(x::StaticArraysCore.StaticArray)
 #    return MoYeArray(pointer(x), make_layout(StaticArrayInterface.static_size(x)))
