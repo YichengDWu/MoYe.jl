@@ -946,7 +946,12 @@ function raked_product(block::Layout{N}, layout::Layout{M},
     return result
 end
 
-# tile_to_shape
+function tile_to_shape(l::Layout{N}, trg_shape::IntTuple{R}, ord_shape=GenColMajor) where {N, R}
+    @assert N <= R "Cannot tile to a smaller shape"
+    padded_layout = append(l, StaticInt{R}())
+    product_shape = shape_div(product_each(trg_shape), product_each(shape(padded_layout)))
+    return coalesce(blocked_product(padded_layout, make_ordered_layout(product_shape, ord_shape)), product_shape)
+end
 
 @generated function safe_div(::StaticInt{N}, ::StaticInt{M}) where {N, M}
     R = div(N, M)

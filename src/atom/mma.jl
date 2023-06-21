@@ -235,3 +235,21 @@ end
 
 @inline tile_size(m::TiledMMA, i::IntType) = m.tiled_MNK[i]
 @inline tile_size(m::ThrMMA, i::IntType) = tile_size(m.tiled_mma, i)
+
+function get_layoutA_TV(tiled_mma::TiledMMA)
+    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
+    ref_A = make_layout((M, K))
+    return tidfrg_A(tiled_mma, ref_A)
+end
+
+function get_layoutB_TV(tiled_mma::TiledMMA)
+    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
+    ref_B = make_layout((N, K))
+    return tidfrg_B(tiled_mma, ref_B)
+end
+
+function get_layoutC_TV(tiled_mma::TiledMMA)
+    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
+    ref_C = make_layout((M, N))
+    return tidfrg_C(tiled_mma, ref_C)
+end

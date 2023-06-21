@@ -233,6 +233,21 @@ end
 @inline get_slice(tiled_copy::TiledCopy, thr_idx::Int) = ThrCopy(tiled_copy, thr_idx)
 @inline get_thread_slice(tiled_copy::TiledCopy, thr_idx::Int) = get_slice(tiled_copy, thr_idx)
 
+function make_tiled_copy_A(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
+    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
+    return TiledCopy(copy_atom, get_layoutA_TV(tiled_mma), (M, K))
+end
+
+function make_tiled_copy_B(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
+    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
+    return TiledCopy(copy_atom, get_layoutB_TV(tiled_mma), (N, K))
+end
+
+function make_tiled_copy_C(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
+    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
+    return TiledCopy(copy_atom, get_layoutC_TV(tiled_mma), (M, N))
+end
+
 function make_tiled_copy(copy_atom::CopyAtom, thr_layout::Layout{TR},
                          val_layout::Layout{TV}=@Layout(1)) where {TR, TV}
     R = max(TR, TV)
