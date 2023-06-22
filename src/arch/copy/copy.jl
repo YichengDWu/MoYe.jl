@@ -15,6 +15,12 @@ function Base.propertynames(::AbstractCopyOperation)
     return (:SRegisters, :DRegisters)
 end
 
+# default implementation, 1 value per thread
+function Base.copyto!(op::AbstractCopyOperation, dest::MoYeArray, src::MoYeArray)
+    op(pointer(dest), pointer(src))
+    return dest
+end
+
 @inline Adapt.adapt(to, x::AbstractCopyOperation) = x
 
 struct UniversalCopy{TS, TD} <: AbstractCopyOperation{Registers{TS, 1}, Registers{TD, 1}} end
@@ -41,9 +47,4 @@ end
 function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, TD}
     @inline
     return unsafe_store!(dest, unsafe_load(src), 1, Val(Base.datatype_alignment(TD)))
-end
-
-function Base.copyto!(op::UniversalCopy, dest::MoYeArray, src::MoYeArray)
-    op(pointer(dest), pointer(src))
-    return dest
 end
