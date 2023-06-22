@@ -5,24 +5,34 @@ function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
     @assert size(layout(C), 1) == size(get_mma_traits(m).Clayout, 2)
     return MoYeArray{frgtype_c(get_mma_traits(m))}(undef, shape(C)) # (V, M, N)
 end
+function make_fragment_C(m::AbstractMMAAtom, C::StaticIntTuple{N}) where {N}
+    @assert N ≥ 3
+    @assert capacity(first(C)) == size(get_mma_traits(m).Clayout, 2)
+    return MoYeArray{frgtype_c(get_mma_traits(m))}(undef, C) # (V, M, N)
+end
+
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(get_mma_traits(m).Alayout, 2)
     return make_fragment_like(frgtype_a(get_mma_traits(m)), A) # (V, M, K)
 end
+
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(get_mma_traits(m).Blayout, 2)
     return make_fragment_like(frgtype_b(get_mma_traits(m)), B) # (V, N, K)
 end
 
-function partition_fragment_C(m::AbstractMMAAtom, C::MoYeArray)
+function partition_fragment_C(m::AbstractMMAAtom, C)
+    @inline
     return make_fragment_C(m, partition_C(m, C))
 end
-function partition_fragment_A(m::AbstractMMAAtom, A::MoYeArray)
+function partition_fragment_A(m::AbstractMMAAtom, A)
+    @inline
     return make_fragment_A(m, partition_A(m, A))
 end
-function partition_fragment_B(m::AbstractMMAAtom, B::MoYeArray)
+function partition_fragment_B(m::AbstractMMAAtom, B)
+    @inline
     return make_fragment_B(m, partition_B(m, B))
 end
 
