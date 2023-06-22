@@ -55,7 +55,7 @@ function matmul_universal(A, B, C)
     blocklayout_B = @Layout (128, 8)
 
     tiled_mma = MoYe.make_tiled_mma(UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
-    tiled_copy = make_tiled_copy(CopyAtom{UniversalCopy{Float32, Float32}, Float32}(), @Layout((32,8)))
+    tiled_copy = make_tiled_copy(CopyAtom{MoYe.CPOP_ASYNC_CACHEALWAYS{UInt128, UInt128}, Float32}(), @Layout((32,8)), @Layout((4,1)))
     threads = Int(size(tiled_copy))
 
     bM = size(blocklayout_A, 1)
@@ -72,7 +72,7 @@ function test_gemm_universal()
     A = CUDA.randn(Float32, 2048, 256)
     B = CUDA.randn(Float32, 2048, 256)
     C = CUDA.randn(Float32, 2048, 2048)
-    matmul2(A, B, C)
+    matmul_universal(A, B, C)
     CUDA.synchronize()
     @test C == A * B'
     CUDA.unsafe_free!(A)
