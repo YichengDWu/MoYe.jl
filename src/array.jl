@@ -93,9 +93,9 @@ end
 @inline function MoYeArray(ptr::LLVMPtr{T}, shape::GenIntTuple, args...) where {T}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
-@inline function MoYeArray(x::LinearAlgebra.Transpose)
-    return MoYeArray(pointer(x), make_layout(size(x), GenRowMajor))
-end
+#@inline function MoYeArray(x::LinearAlgebra.Transpose)
+#    return MoYeArray(pointer(x), make_layout(size(x), GenRowMajor))
+#end
 @inline function MoYeArray(x::AbstractArray)
     return MoYeArray(pointer(x), make_layout(size(x), GenColMajor))
 end
