@@ -231,12 +231,11 @@ struct ForwardCoordUnitRange{N, B, E} <: AbstractUnitRange{Int}
     end
 end
 
-function ForwardCoordOneTo(shape::IntTuple)
+function HierIndices(shape::IntTuple)
     start = repeat_like(shape, 1)
     return ForwardCoordUnitRange(start, shape)
 end
 
-Base.oneto(shape::IntTuple) = ForwardCoordOneTo(shape)
 Base.first(x::ForwardCoordUnitRange) = getfield(x, :start)
 Base.last(x::ForwardCoordUnitRange) = getfield(x, :stop)
 Base.length(x::ForwardCoordUnitRange) = length(getfield(x, :stop))

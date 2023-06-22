@@ -5,24 +5,34 @@ function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
     @assert size(layout(C), 1) == size(get_mma_traits(m).Clayout, 2)
     return MoYeArray{frgtype_c(get_mma_traits(m))}(undef, shape(C)) # (V, M, N)
 end
+function make_fragment_C(m::AbstractMMAAtom, C::StaticIntTuple{N}) where {N}
+    @assert N ≥ 3
+    @assert capacity(first(C)) == size(get_mma_traits(m).Clayout, 2)
+    return MoYeArray{frgtype_c(get_mma_traits(m))}(undef, C) # (V, M, N)
+end
+
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(get_mma_traits(m).Alayout, 2)
     return make_fragment_like(frgtype_a(get_mma_traits(m)), A) # (V, M, K)
 end
+
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(get_mma_traits(m).Blayout, 2)
     return make_fragment_like(frgtype_b(get_mma_traits(m)), B) # (V, N, K)
 end
 
-function partition_fragment_C(m::AbstractMMAAtom, C::MoYeArray)
+function partition_fragment_C(m::AbstractMMAAtom, C)
+    @inline
     return make_fragment_C(m, partition_C(m, C))
 end
-function partition_fragment_A(m::AbstractMMAAtom, A::MoYeArray)
+function partition_fragment_A(m::AbstractMMAAtom, A)
+    @inline
     return make_fragment_A(m, partition_A(m, A))
 end
-function partition_fragment_B(m::AbstractMMAAtom, B::MoYeArray)
+function partition_fragment_B(m::AbstractMMAAtom, B)
+    @inline
     return make_fragment_B(m, partition_B(m, B))
 end
 
@@ -235,3 +245,21 @@ end
 
 @inline tile_size(m::TiledMMA, i::IntType) = m.tiled_MNK[i]
 @inline tile_size(m::ThrMMA, i::IntType) = tile_size(m.tiled_mma, i)
+
+function get_layoutA_TV(tiled_mma::TiledMMA)
+    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
+    ref_A = make_layout((M, K))
+    return tidfrg_A(tiled_mma, ref_A)
+end
+
+function get_layoutB_TV(tiled_mma::TiledMMA)
+    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
+    ref_B = make_layout((N, K))
+    return tidfrg_B(tiled_mma, ref_B)
+end
+
+function get_layoutC_TV(tiled_mma::TiledMMA)
+    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
+    ref_C = make_layout((M, N))
+    return tidfrg_C(tiled_mma, ref_C)
+end
