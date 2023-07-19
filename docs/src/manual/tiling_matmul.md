@@ -277,7 +277,6 @@ function matmul2(A, B, C)
     tiled_mma = MoYe.make_tiled_mma(UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
     tiled_copy = make_tiled_copy(CopyAtom{MoYe.CPOP_ASYNC_CACHEALWAYS{UInt128, UInt128}, Float32}(), @Layout((32,8)), @Layout((4,1)))
 
-
     threads = Int(size(tiled_copy))
 
     bM = size(blocklayout_A, 1)
