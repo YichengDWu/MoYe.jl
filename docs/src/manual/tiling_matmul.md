@@ -114,7 +114,7 @@ C ≈ A * transpose(B)
 
 ## On GPU
 
-### Low level
+### Low-level code
 ```julia
 using MoYe, CUDA, Test
 using MoYe: @loopinfo
@@ -219,7 +219,7 @@ end
 ```
 
 
-### High Level
+### High-level code
 ```julia
 function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_mma)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
