@@ -26,7 +26,7 @@ print("Size: ", size(layout_2x4)) # the domain is (1,2,...,8)
 print("Rank: ", rank(layout_2x4))
 print("Depth: ", depth(layout_2x4))
 print("Cosize: ", cosize(layout_2x4)) 
-(layout_2x4) # this can be viewed as a row-major matrix
+layout_2x4 # this can be viewed as a row-major matrix
 ```
 
 ### Compile-time-ness of values
