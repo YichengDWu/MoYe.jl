@@ -55,7 +55,7 @@ Threads.@threads :static for i in 1:Threads.nthreads()
     end
 end
 
-C ≈ A * transpose(B)</code></pre><h2 id="On-GPU"><a class="docs-heading-anchor" href="#On-GPU">On GPU</a><a id="On-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-GPU" title="Permalink"></a></h2><h3 id="Low-level"><a class="docs-heading-anchor" href="#Low-level">Low level</a><a id="Low-level-1"></a><a class="docs-heading-anchor-permalink" href="#Low-level" title="Permalink"></a></h3><pre><code class="language-julia hljs">using MoYe, CUDA, Test
+C ≈ A * transpose(B)</code></pre><h2 id="On-GPU"><a class="docs-heading-anchor" href="#On-GPU">On GPU</a><a id="On-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#On-GPU" title="Permalink"></a></h2><h3 id="Low-level-code"><a class="docs-heading-anchor" href="#Low-level-code">Low-level code</a><a id="Low-level-code-1"></a><a class="docs-heading-anchor-permalink" href="#Low-level-code" title="Permalink"></a></h3><pre><code class="language-julia hljs">using MoYe, CUDA, Test
 using MoYe: @loopinfo
 
 function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
@@ -154,7 +154,7 @@ function test()
     CUDA.unsafe_free!(A)
     CUDA.unsafe_free!(B)
     CUDA.unsafe_free!(C)
-end</code></pre><h3 id="High-Level"><a class="docs-heading-anchor" href="#High-Level">High Level</a><a id="High-Level-1"></a><a class="docs-heading-anchor-permalink" href="#High-Level" title="Permalink"></a></h3><pre><code class="language-julia hljs">function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_mma)
+end</code></pre><h3 id="High-level-code"><a class="docs-heading-anchor" href="#High-level-code">High-level code</a><a id="High-level-code-1"></a><a class="docs-heading-anchor-permalink" href="#High-level-code" title="Permalink"></a></h3><pre><code class="language-julia hljs">function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_mma)
     sA = MoYeSharedArray(eltype(A), blocklayout_A)
     sB = MoYeSharedArray(eltype(B), blocklayout_B)
 
@@ -234,4 +234,4 @@ function test2()
     CUDA.unsafe_free!(B)
     CUDA.unsafe_free!(C)
 end
-</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Wednesday 26 July 2023 23:39">Wednesday 26 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../datamovement/gs/">Global Memory &amp; Shared Memory »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Wednesday 26 July 2023 23:46">Wednesday 26 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
