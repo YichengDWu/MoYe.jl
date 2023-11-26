@@ -19,15 +19,15 @@ StrideArraysCore = "7792a7ef-975c-4747-a70f-980b88e8d1da"
 [compat]
 Adapt = "3"
 BFloat16s = "0.4"
-CUDA = "4"
-LLVM = "5, 6"
+LLVM = "6"
+CUDA = "5"
 LLVMLoopInfo = "1"
 LayoutPointers = "0.1"
 MacroTools = "0.5"
 ManualMemory = "0.1"
 Static = "0.8"
 StaticArrayInterface = "1"
-StrideArraysCore = "0.4"
+StrideArraysCore = "0.4, 0.5"
 julia = "1.8"
 
 [extras]
