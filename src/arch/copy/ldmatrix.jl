@@ -90,8 +90,6 @@ LD_U32x4_N()
 julia> ans.DRegisters
 Registers{UInt32, 4}
 ```
-!!! note
-    These intrinsics have bugs in LLVM 14, but was fixed in LLVM 15.
 """
 function Base.copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray, src::MoYeArray)
     throw(MethodError(copyto!, (ldmatrix, dest, src)))
