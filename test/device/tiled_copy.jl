@@ -18,7 +18,7 @@ function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
     copyto!(tiled_copy, tXrX, tXsX)
     # rmem to gmem
     copyto!(tXgX, tXrX)
-    @inbounds tXrX.engine[1] # bug, have to load
+    @inbounds tXrX.engine[1] # compiler bug, have to load
     return nothing
 end
 
