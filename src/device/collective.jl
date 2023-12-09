@@ -9,13 +9,15 @@
 end
 
 """
-    @collective f(args...)
+    @collective tiled_xxx f(args...)
 
 Thread block level collective operation.
 """
-macro collective(ex)
-    @capture(ex, f_(tiled_copy_, dest_, src_)) || error("unexpected expression")
+macro collective(tiled_copy, ex)
+    @capture(ex, f_(args__)) || error("unexpected expression")
     if f == :copyto!
-        return collective_copyto!(tiled_copy, dest, src)
+        # 解析 args__ 以获得 dest 和 src
+        @capture(args__, (dest_, src_)) || error("unexpected arguments for copyto!")
+        return collective_copyto!(tiled_copy, dest_, src_)
     end
 end
