@@ -6,6 +6,7 @@ DocMeta.setdocmeta!(MoYe, :DocTestSetup, :(using MoYe); recursive=true)
 makedocs(; modules=[MoYe],
          authors="MilkshakeForReal <yicheng.wu@ucalgary.ca> and contributors",
          repo="https://github.com/YichengDWu/MoYe.jl/blob/{commit}{path}#{line}",
+         warnonly = Documenter.except(:missing_docs),
          sitename="MoYe.jl",
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", "false") == "true",
                                 canonical="https://YichengDWu.github.io/MoYe.jl",
