@@ -253,8 +253,8 @@ function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_
 
     for i in axes(blk_A, 3)
         # copy gmem to smem
-        @collective copyto!(tiled_copy, sA, view(blk_A, :, :, i))
-        @collective copyto!(tiled_copy, sB, view(blk_B, :, :, i))
+        @collective tiled_copy copyto!(sA, view(blk_A, :, :, i))
+        @collective tiled_copy copyto!(sB, view(blk_B, :, :, i))
 
         cp_async_wait()
         sync_threads()
