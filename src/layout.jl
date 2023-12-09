@@ -686,6 +686,11 @@ function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R},
                        cld(cosize_hi, rest_stride), rest_stride)
 end
 
+"""
+    complement(l::Layout, cosize::IntType)
+
+A complement layout of `A` is a layout `B` such that `(A, B)` is a compact layout of size `cosize`.
+"""
 function complement(l::Layout, cosize_hi::IntType)
     filter_layout = filter(l)
     return _complement(shape(filter_layout), stride(filter_layout), cosize_hi)
@@ -758,6 +763,12 @@ function right_inverse(layout::Layout)
                                        Base.Fix1(getindex, rstride)(i), iseq)))
 end
 
+"""
+    left_inverse(layout::Layout)
+
+Return the left inverse of `layout`, i.e. a layout `layout′` such that `(layout′ ∘ layout)(i) == (i)`.
+The domain of `layout′` is chosen to be the maximum continues squence of the domain of `layout`.
+"""
 left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
 left_inverse(::Colon) = Colon()
 
