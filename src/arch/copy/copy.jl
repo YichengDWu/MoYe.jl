@@ -48,3 +48,5 @@ function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, T
     @inline
     return unsafe_store!(dest, unsafe_load(src), 1, Val(Base.datatype_alignment(TD)))
 end
+
+const DefaultCopy = UniversalCopy{UInt8, UInt8}
