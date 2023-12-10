@@ -13,6 +13,13 @@ function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) whe
     return CopyTraits{typeof(copy_op), typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(copy_op, threadid, srclayout, dstlayout, reflayout)
 end
 
+function CopyTraits{DefaultCopy}() 
+    threadid = @Layout 1
+    srclayout = @Layout (1, 1) (0, 0)
+    dstlayout = @Layout (1, 1) (0, 0)
+    return CopyTraits{DefaultCopy}(threadid, srclayout, dstlayout)
+end
+
 function CopyTraits{UniversalCopy{S,D}}() where {S,D}
     threadid = make_layout(One())  # 1 thread per operation
     srclayout = make_layout((One(), static(sizeof(S) * 8))) # thr -> bit
