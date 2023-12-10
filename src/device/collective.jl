@@ -1,4 +1,4 @@
-@device_override @inline function collective_copyto!(tiled_copy, dest, src)
+@inline function collective_copyto!(tiled_copy, dest, src)
     return quote
         thr_copy = get_thread_slice($(esc(tiled_copy)), Int(threadIdx().x))
         thr_D = partition_D(thr_copy, $(esc(dest)))
@@ -11,7 +11,7 @@ end
 """
     @collective tiled_xxx f(args...)
 
-Thread block level collective operation. This macro can only be used on the device.
+Thread block level collective operation.
 """
 macro collective(tiled_copy, ex)
     @capture(ex, f_(args__)) || error("unexpected expression")
