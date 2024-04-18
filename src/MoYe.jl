@@ -1,6 +1,6 @@
 module MoYe
 
-using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero
+using Static: StaticInt, IntType, static, dynamic, is_static, One, Zero, known, repr
 import Static
 import ManualMemory, LayoutPointers
 import StrideArraysCore
