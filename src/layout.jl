@@ -201,10 +201,10 @@ Construct a compact layout with the given shape and the stride is following the 
 
 ```julia
 julia> MoYe.make_ordered_layout((3, 5), (2, 6))
-(3, 5):(static(1), 3)
+(3, 5):(_1, 3)
 
 julia> MoYe.make_ordered_layout((3, 5), (10, 2))
-(3, 5):(5, static(1))
+(3, 5):(5, _1)
 ```
 """
 function make_ordered_layout(shape, order) # The arguments may be static, which is not handled
@@ -503,11 +503,11 @@ Coalesce the layout by merging adjacent dimensions with stride 1.
 
 ```julia
 julia> layout = @Layout (2, (1, 6)) (1, (6, 2))
-(static(2), (static(1), static(6))):(static(1), (static(6), static(2)))
+(_2, (_1, _6)):(_1, (_6, _2))
 
 
 julia> print(coalesce(layout))
-static(12):static(1)
+_12:_1
 ```
 """
 function Base.coalesce(layout::Layout)
@@ -818,7 +818,7 @@ through `B`.
 julia> tile = @Layout((2, 2), (1, 2));
 
 julia> print_layout(tile)
-(static(2), static(2)):(static(1), static(2))
+(_2, _2):(_1, _2)
       1   2
     +---+---+
  1  | 1 | 3 |
@@ -829,7 +829,7 @@ julia> print_layout(tile)
 julia> matrix_of_tiles = @Layout((3, 4), (4, 1));
 
 julia> print_layout(matrix_of_tiles)
-(static(3), static(4)):(static(4), static(1))
+(_3, _4):(_4, _1)
        1    2    3    4
     +----+----+----+----+
  1  |  1 |  2 |  3 |  4 |
@@ -840,7 +840,7 @@ julia> print_layout(matrix_of_tiles)
     +----+----+----+----+
 
 julia> print_layout(logical_product(tile, matrix_of_tiles))
-((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
+((_2, _2), (_3, _4)):((_1, _2), (_16, _4))
        1    2    3    4    5    6    7    8    9   10   11   12
     +----+----+----+----+----+----+----+----+----+----+----+----+
  1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
@@ -890,7 +890,7 @@ julia> tile = @Layout (2, 2);
 julia> matrix_of_tiles = @Layout (3, 4) (4, 1);
 
 julia> print_layout(blocked_product(tile, matrix_of_tiles))
-((static(2), static(3)), (static(2), static(4))):((static(1), static(16)), (static(2), static(4)))
+((_2, _3), (_2, _4)):((_1, _16), (_2, _4))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
@@ -929,7 +929,7 @@ julia> tile = @Layout (2, 2) (1, 2);
 julia> matrix_of_tiles = @Layout (3, 4) (4, 1);
 
 julia> print_layout(raked_product(tile, matrix_of_tiles))
-((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
+((_3, _2), (_4, _2)):((_16, _1), (_4, _2))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -1048,7 +1048,7 @@ Gather the elements of `layout` along all modes into blocks according to `tile`.
 julia> raked_prod = @Layout ((3, 2), (4, 2)) ((16, 1), (4, 2));
 
 julia> print_layout(raked_prod)
-((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
+((_3, _2), (_4, _2)):((_16, _1), (_4, _2))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -1068,7 +1068,7 @@ julia> subtile = (Layout(2, 3), Layout(2, 4)); # gather 2 elements with stride 3
        # and 2 elements with stride 4 along the second mode
 
 julia> print_layout(logical_divide(raked_prod, subtile))
-(((1, 2), ((3, 1), (1, 1))), ((1, 2), ((4, 1), (1, 1)))):(((48, 1), ((static(16), static(1)), (48, 2))), ((16, 2), ((static(4), static(2)), (16, 4))))
+(((1, 2), ((3, 1), (1, 1))), ((1, 2), ((4, 1), (1, 1)))):(((48, 1), ((_16, _1), (48, 2))), ((16, 2), ((_4, _2), (16, 4))))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  3 |  5 |  7 |  9 | 11 | 13 | 15 |
@@ -1109,7 +1109,7 @@ mode and the rest into the second mode.
 julia> raked_prod = @Layout ((3, 2), (4, 2)) ((16, 1), (4, 2));
 
 julia> print_layout(raked_prod)
-((static(3), static(2)), (static(4), static(2))):((static(16), static(1)), (static(4), static(2)))
+((_3, _2), (_4, _2)):((_16, _1), (_4, _2))
        1    2    3    4    5    6    7    8
     +----+----+----+----+----+----+----+----+
  1  |  1 |  5 |  9 | 13 |  3 |  7 | 11 | 15 |
@@ -1128,7 +1128,7 @@ julia> print_layout(raked_prod)
 julia> subtile = (@Layout(2, 3), @Layout(2, 4)); # gather 2 elements with stride 3 along the first mode and 2 elements with stride 4 along the second mode
 
 julia> print_layout(zipped_divide(raked_prod, subtile))
-((static(2), static(2)), (static(3), static(4))):((static(1), static(2)), (static(16), static(4)))
+((_2, _2), (_3, _4)):((_1, _2), (_16, _4))
        1    2    3    4    5    6    7    8    9   10   11   12
     +----+----+----+----+----+----+----+----+----+----+----+----+
  1  |  1 | 17 | 33 |  5 | 21 | 37 |  9 | 25 | 41 | 13 | 29 | 45 |
