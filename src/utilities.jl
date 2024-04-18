@@ -13,6 +13,13 @@ uint_bytes(::StaticInt{N}) where {N} = uint_bit(static(8*N))
 
 @inline Base.:(*)(::Type{StaticInt{N}}, ::Type{StaticInt{M}}) where {N, M} = StaticInt{N*M}
 
+function Base.show(io::IO, ::MIME"text/plain",
+    @nospecialize(x::StaticInt))
+    print(io, "_" * repr(known(typeof(x))))
+    nothing
+end
+
+
 @generated function Base.abs(::StaticInt{N}) where {N}
     return quote
         Base.@_inline_meta
