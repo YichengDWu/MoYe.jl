@@ -310,11 +310,14 @@ end
     @test_opt complement(@Layout(4, 1), static(24))
     @test_opt complement(@Layout(6, 4), static(24))
 
-    function test_complement(l, cosize_hi)
-        @test_opt  complement(l, cosize_hi)
-        result = complement(l, cosize_hi)
-        @test size(result) ≥ cosize_hi ÷ size(filter(l))
-        @test cosize(result) ≤ cld(cosize_hi, cosize(l)) * cosize(l)
+    function test_complement(l, cotarget)
+        @test_opt  complement(l, cotarget)
+        result = complement(l, cotarget)
+        @test size(result) ≥ cotarget ÷ size(filter(l))
+        @test cosize(result) ≤ cld(cotarget, cosize(l)) * cosize(l)
+
+        completed = make_layout(l, result)
+        @test cosize(completed) ≥ cotarget
 
         for i in 2:size(result)
             @test result(i-1) < result(i)
@@ -324,7 +327,9 @@ end
         end
 
         @test size(result) ≤ cosize(result)
-        @test cosize(result) ≥ cosize_hi ÷ size(filter(l))
+        @test cosize(result) ≥ cotarget ÷ size(filter(l))
+        @test cosize(completed) ≤ cosize(result) + cosize(l)
+        @test cosize(result) ≥  cotarget ÷ size(filter(l))
 
         if MoYe.dynamic(MoYe.is_static(stride(make_layout(l, result))))
             @test size(complement(make_layout(l, result))) == 1
