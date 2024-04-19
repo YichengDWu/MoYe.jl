@@ -31,7 +31,7 @@ include("pointer.jl")
 
 # Arch
 include("arch/mma/mma.jl")
-include("arch/mma/mma_sm80.jl")
+include("arch/mma/make_mma_ops.jl")
 include("arch/copy/copy.jl")
 include("arch/copy/copy_async.jl")
 include("arch/copy/ldmatrix.jl")
