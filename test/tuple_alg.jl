@@ -1,5 +1,14 @@
 using MoYe, Test, JET
 
+@testset "Unflatten" begin
+    @test unflatten((1, 2, 3), (0, 0, 0)) == (1, 2, 3)
+    @test unflatten((1, 2, 3, 4), (0, (0, (0, 0)))) == (1, (2, (3, 4)))
+    @test unflatten((1, 2, 3, 4), ((0, 0), (0, 0))) == ((1, 2), (3, 4))
+    @test unflatten((1, 2, 3, 4, 5), (0, (0, 0), 0)) == (1, (2, 3), 4)
+    @test unflatten((1, 2, 3, 4, 5, 6), (0, (0, (0, (0, (0, 0)))))) == (1, (2, (3, (4, (5, 6)))))
+    @test unflatten((), ()) == ()
+end
+
 @testset "Front" begin
     @test MoYe.front(((2, 3), 4)) === 2
     @test_opt MoYe.front(((2, 3), 4))

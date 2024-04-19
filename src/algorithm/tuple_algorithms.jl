@@ -16,6 +16,21 @@ flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))..
 tuple_cat(x) = x
 tuple_cat(x, y, z...) = (x..., tuple_cat(y, z...)...)
 
+function unflatten(flat_tuple::Tuple, target::Tuple)
+    iterator = Iterators.Stateful(flat_tuple)
+
+    function build_structure(t)
+        if t isa IntType
+            return popfirst!(iterator)
+        else
+            return Tuple(build_structure(sub) for sub in t)
+        end
+    end
+
+    return build_structure(target)
+end
+
+
 function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N - one(N)))..., x, getindex(t, N:length(t))...)
 end
