@@ -69,11 +69,10 @@ _toint(x::Integer) = Int(x)
 _toint(x::Colon) = x
 
 """
-    @parallelize x::MoYeArray tile::Tile coord::Tuple
-    @parallelize x::MoYeArray thread_layout::Layout thread_id::Int
+    @parallelize x::MoYeArray threadgroup_layout::Tile   thread_idx::Tuple
+    @parallelize x::MoYeArray threadgroup_layout::Layout thread_idx::Int
 
-Tile `x` with `tile` and return the view of the entries that the thread with `coord` or
-`thread_id` will work on.
+Partition `x` with `size(threadgroup_layout)` threads, and return the view of the entries that the thread at `thread_idx` will work on.
 
 ## Examples
 
@@ -91,7 +90,7 @@ julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
 
-julia> @parallelize a (static(2), static(2)) (1, 1)
+julia> @parallelize a (2, 2) (1, 1)
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{4}}, Tuple{Static.StaticInt{2}, Static.StaticInt{12}}}}:
  1  13  25  37
  3  15  27  39
@@ -115,7 +114,7 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
 """
 macro parallelize(x, tile, coord, args...)
     quote
-        local_partition($(esc(x)), $(esc(tile)), map(_toint, $(esc(coord))), $(map(esc, args)...))
+        local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
@@ -129,28 +128,38 @@ end
 end
 
 """
-    @tile x::MoYeArray tile::Tile, coord::Tuple
+    @tile x::MoYeArray threadgroup_shape::Tile threadgroup_coord::Tuple
 
-Tile `x` with `tile` and return the view of the tile itself at `coord`.
+Partition `x` with `threadgroup_shape`. Return the view of the entries of `x` that the thread group at `threadgroup_coord` will work on.
+
+## Examples
 
 ```julia
 julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
+6×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{6}, Static.StaticInt{8}}, Tuple{Static.StaticInt{1}, Static.StaticInt{6}}}} with indices _1:_6×_1:_8:
+ 1   7  13  19  25  31  37  43
+ 2   8  14  20  26  32  38  44
+ 3   9  15  21  27  33  39  45
+ 4  10  16  22  28  34  40  46
+ 5  11  17  23  29  35  41  47
+ 6  12  18  24  30  36  42  48
 
-julia> @tile a (static(2), static(2)) (1, 1)
-2×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{2}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{6}}}}:
+julia> @tile a (2, 2) (1, 1)
+2×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{2}, Static.StaticInt{2}}, Tuple{Static.StaticInt{1}, Static.StaticInt{6}}}} with indices _1:_2×_1:_2:
  1  7
  2  8
+
 ```
 """
 macro tile(x, tile, coord, args...)
     quote
-        local_tile($(esc(x)), $(esc(tile)), map(_toint, $(esc(coord))), $(map(esc, args)...))
+        local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), $(map(esc, args)...))
     end
 end
 
 @inline function Base.fill!(x::NonOwningArray, val)
     vx = engine(x)
-    @loopinfo unroll  for i in eachindex(x)
+    @loopinfo unroll for i in eachindex(x)
         @inbounds vx[i] = val
     end
     return x
