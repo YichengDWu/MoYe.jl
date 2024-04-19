@@ -137,24 +137,24 @@ function tile2thrfrg(tiled_copy::TiledCopy, x::Layout, ref2trg)
     atom_num_thr = size(tiled_copy.copy_atom.val_layout_ref, 1)
     atom_num_val = size(tiled_copy.copy_atom.val_layout_ref, 2)
     atom_layout_TV = zipped_divide(tiled_copy.tiled_layout_TV, (atom_num_thr, atom_num_val))
-    trg_layout_TV = compose(atom_layout_TV, ref2trg, :)
+    trg_layout_TV = composition(atom_layout_TV, (ref2trg, :))
     thrval2mn = coalesce(_zip(trg_layout_TV), (One(), (One(), One())))
-    tv_array = compose(x, thrval2mn, :)
+    tv_array = composition(x, (thrval2mn, :))
     return tv_array((:, :), :)
 end
 
 function tidfrg_S(tiled_copy::TiledCopy, src::Layout{N}) where {N}
     @assert N>=rank(shape(tiled_copy.tiler_MN)) "The dimension is too small to be tiled."
     return tile2thrfrg(tiled_copy, zipped_divide(src, tiled_copy.tiler_MN),
-                       compose(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                               tiled_copy.copy_atom.val_layout_src))
+                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
+                                   tiled_copy.copy_atom.val_layout_src))
 end
 
 function tidfrg_D(tiled_copy::TiledCopy, dst::Layout{N}) where {N}
     @assert N>=rank(shape(tiled_copy.tiler_MN)) "The dimension is too small to be tiled."
     return tile2thrfrg(tiled_copy, zipped_divide(dst, tiled_copy.tiler_MN),
-                       compose(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                               tiled_copy.copy_atom.val_layout_dst))
+                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
+                                   tiled_copy.copy_atom.val_layout_dst))
 end
 
 function retile(tiled_copy, x::StaticMoYeArray{T, R}) where {T, R}
@@ -170,7 +170,7 @@ function retile(tiled_copy, x::StaticMoYeArray{T, R}) where {T, R}
                                  make_layout(atom_num_val))
 
     t_array = zipped_divide(x, prepend(product_each(shape(frg_layout_mn)), V))
-    v_array = compose(t_array, frg_layout_v, :)
+    v_array = composition(t_array, (frg_layout_v, :))
     return view(v_array, :, append(One(), :, StaticInt{R}()))
 end
 
@@ -192,8 +192,8 @@ end
 function get_layoutD_TV(tiled_copy::TiledCopy)
     ref_D = make_layout((shape(tiled_copy.tiler_MN), One()))
     return tile2thrfrg(tiled_copy, ref_D,
-                       compose(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                               tiled_copy.copy_atom.val_layout_dst))(:, :, One())
+                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
+                                   (tiled_copy.copy_atom.val_layout_dst))(:, :, One()))
 end
 
 function get_layoutD_MN(tiled_copy::TiledCopy)

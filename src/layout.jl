@@ -590,6 +590,22 @@ end
     return expr
 end
 
+"""
+    composition(l1::Layout, l2::Layout)
+
+Compose two layouts as composing two functions. You can use `∘` operator as well.
+
+## Examples
+
+```julia
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
+(4, 5):(2, 8)
+
+
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+(4, 5):(10, 2)
+```
+"""
 function composition(lhs::Layout, rhs::Layout)
     flat_shape = flatten(shape(lhs))
     flat_stride = flatten(stride(lhs))
@@ -605,29 +621,6 @@ function composition(lhs::Layout, rhs::Colon)
 end
 function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
-end
-
-"""
-    compose(l1::Layout, l2::Layout)
-
-Compose two layouts as composing two functions. You can use `∘` operator as well.
-
-## Examples
-
-```julia
-julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
-(4, 5):(2, 8)
-
-
-julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
-(4, 5):(10, 2)
-```
-"""
-function compose(l1::Layout, l2::Layout)
-    return composition(l1, l2)
-end
-function compose(l1::Layout, arg1, args...)
-    return composition(l1, (arg1, args...))
 end
 
 function Base.:(∘)(l1::Layout, l2::Layout)

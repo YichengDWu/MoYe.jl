@@ -118,7 +118,7 @@ function thrfrg_C(m::TiledMMA, C::Layout{2})
     a_tile = (make_layout(atom_MNK[1]), make_layout(atom_MNK[2]))
     a_array = zipped_divide(t_array, a_tile)
 
-    tv_array = compose(a_array, m.mma_atom.traits.Clayout, :)
+    tv_array = composition(a_array, (m.mma_atom.traits.Clayout, :))
 
     thr_tile = (:, (make_layout(size(thr_layout_VMNK, 2)), make_layout(size(thr_layout_VMNK, 3))))
     thr_array = zipped_divide(tv_array, thr_tile)
@@ -126,7 +126,7 @@ function thrfrg_C(m::TiledMMA, C::Layout{2})
 end
 
 function tidfrg_C(m::TiledMMA, C)
-    return compose(thrfrg_C(m, C), m.tid_layout, :)
+    return composition(thrfrg_C(m, C), (m.tid_layout, :))
 end
 
 function thrfrg_A(m::TiledMMA, A::Layout{2})
@@ -144,7 +144,7 @@ function thrfrg_A(m::TiledMMA, A::Layout{2})
     a_tile = (make_layout(atom_MNK[1]), make_layout(atom_MNK[3]))
     a_array = zipped_divide(t_array, a_tile)
 
-    tv_array = compose(a_array, m.mma_atom.traits.Alayout, :)
+    tv_array = composition(a_array, (m.mma_atom.traits.Alayout, :))
     thr_tile = (:, (make_layout(size(thr_layout_VMNK, 2)), make_layout(size(thr_layout_VMNK, 4))))
     thr_array = zipped_divide(tv_array, thr_tile)
     return thr_array
@@ -153,7 +153,7 @@ end
 function tidfrg_A(m::TiledMMA, A)
     thr_layout_VMNK = m.thr_layout_VMNK
     atile = (:, (make_layout((size(thr_layout_VMNK, 2), size(thr_layout_VMNK, 3)), (One(), Zero())), :))
-    return compose(compose(thrfrg_A(m, A), atile, :), m.tid_layout, :)
+    return composition(composition(thrfrg_A(m, A), (atile, :)), (m.tid_layout, :))
 end
 
 function thrfrg_B(m::TiledMMA, B::Layout{2})
@@ -171,7 +171,7 @@ function thrfrg_B(m::TiledMMA, B::Layout{2})
     a_tile = (make_layout(atom_MNK[2]), make_layout(atom_MNK[3]))
     a_array = zipped_divide(t_array, a_tile)
 
-    tv_array = compose(a_array, m.mma_atom.traits.Blayout, :)
+    tv_array = composition(a_array, (m.mma_atom.traits.Blayout, :))
     thr_tile = (:, (make_layout(size(thr_layout_VMNK,3)), make_layout(size(thr_layout_VMNK,4))))
     thr_array = zipped_divide(tv_array, thr_tile)
     return thr_array
@@ -180,7 +180,7 @@ end
 function tidfrg_B(m::TiledMMA, B)
     thr_layout_VMNK = m.thr_layout_VMNK
     btile = (:, (make_layout((size(thr_layout_VMNK, 2), size(thr_layout_VMNK,3)), (One(), Zero())), :))
-    return compose(compose(thrfrg_B(m, B), btile, :), m.tid_layout, :)
+    return composition(composition(thrfrg_B(m, B), (btile, :)), (m.tid_layout, :))
 end
 
 function Base.show(io::IO, m::TiledMMA{Atom, TiledThr, TiledVal, TiledPerm}) where {Atom, TiledThr, TiledVal, TiledPerm}
