@@ -40,7 +40,7 @@ make_layout(::Layout...)
 ```
 ### Composition
 ```@docs
-compose
+composition
 ```
 ### Complement
 ```@docs

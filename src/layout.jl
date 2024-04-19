@@ -590,6 +590,22 @@ end
     return expr
 end
 
+"""
+    composition(l1::Layout, l2::Layout)
+
+Compose two layouts as composing two functions. You can use `∘` operator as well.
+
+## Examples
+
+```julia
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
+(4, 5):(2, 8)
+
+
+julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
+(4, 5):(10, 2)
+```
+"""
 function composition(lhs::Layout, rhs::Layout)
     flat_shape = flatten(shape(lhs))
     flat_stride = flatten(stride(lhs))
@@ -607,29 +623,6 @@ function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
 end
 
-"""
-    compose(l1::Layout, l2::Layout)
-
-Compose two layouts as composing two functions. You can use `∘` operator as well.
-
-## Examples
-
-```julia
-julia> make_layout(20, 2) ∘ make_layout((4, 5), (1, 4))
-(4, 5):(2, 8)
-
-
-julia> make_layout(20, 2) ∘ make_layout((4, 5), (5, 1))
-(4, 5):(10, 2)
-```
-"""
-function compose(l1::Layout, l2::Layout)
-    return composition(l1, l2)
-end
-function compose(l1::Layout, arg1, args...)
-    return composition(l1, (arg1, args...))
-end
-
 function Base.:(∘)(l1::Layout, l2::Layout)
     return composition(l1, l2)
 end
@@ -645,45 +638,37 @@ function withshape(l::Layout, s1, s2, s3...)
 end
 
 function _complement_inner(init, i)
-    _curr_stride = Static.reduce_tup(min, init[2])
-    _curr_idx = static_findfirst(==(_curr_stride), init[2])
-    _curr_shape = init[1][_curr_idx]
-
-    return (remove(init[1], _curr_idx), remove(init[2], _curr_idx),
-            append(init[3], _curr_stride ÷ init[4][i]),
-            append(init[4], _curr_shape * _curr_stride))
+    shape, stride, result_shape, result_stride = init
+    min_stride = Static.reduce_tup(min, stride)
+    min_idx = static_findfirst(==(min_stride), stride)
+    new_shape = min_stride ÷ result_stride[i]
+    new_stride = min_stride * shape[min_idx]
+    @assert !iszero(new_shape)
+    return (remove(shape, min_idx), 
+            remove(stride, min_idx),
+            append(result_shape, new_shape),
+            append(result_stride, new_stride))
 end
 
-function _complement(shape::IntType, stride::StaticInt{0}, cosize_hi::IntType)
-    return make_layout(cosize_hi)
+function _complement(shape::IntType, stride::StaticInt{0}, cotarget::IntType)
+    return make_layout(coalesce(cotarget))
 end
-function _complement(shape::IntType, stride::IntType, cosize_hi::IntType)
-    #stride == 0 && return make_layout(cosize_hi)
-    rest_stride = shape * stride
-    return bw_coalesce(One(), (stride,), (One(),), cld(cosize_hi, rest_stride), rest_stride)
-end
-function _complement(shape::Tuple{IntType}, stride::Tuple{IntType}, cosize_hi::IntType)
-    result_stride = tuple(One())
-    result_shape = stride
-    rest_stride = first(shape) * first(stride)
-    return bw_coalesce(One(), result_shape, result_stride, cld(cosize_hi, rest_stride),
-                       rest_stride)
+function _complement(shape::IntType, stride::IntType, cotarget::IntType)
+    return _complement(tuple(shape), tuple(stride), cotarget)
 end
 function _complement(shape::IntTuple{R}, stride::StaticIntTuple{R},
-                     cosize_hi::IntType) where {R}
-    curr_stride = Static.reduce_tup(min, stride)   # we assume R > 1 here, R == 1 is handled above
-    curr_idx = static_findfirst(==(curr_stride), stride)
-    curr_shape = shape[curr_idx]
+                     cotarget::IntType) where {R}
+    shape_, stride_, result_shape, result_stride = _foldl(_complement_inner, ntuple(identity,Val(R - 1)), (shape, stride, (), (One(),)))
 
-    _result = (remove(shape, curr_idx), remove(stride, curr_idx), tuple(curr_stride),
-               tuple(One(), curr_shape * curr_stride))
-    result = _foldl(_complement_inner, ntuple(x -> x + 1, Val(R - 2)), _result)
-    result_stride = last(result)
-    result_shape = append(result[3], result[2][1] ÷ back(result_stride))
+    new_shape = stride_[1] ÷ back(result_stride)
+    @assert !iszero(new_shape)
+    result_shape = append(result_shape, new_shape)
 
-    rest_stride = result[1][1] * result[2][1]
-    return bw_coalesce(StaticInt{R}(), result_shape, result_stride,
-                       cld(cosize_hi, rest_stride), rest_stride)
+    new_stride = shape_[1] * stride_[1]
+    rest_shape = coalesce(cld(cotarget, new_stride))
+    rest_stride = compact_col_major(rest_shape, new_stride)
+
+    return coalesce(make_layout((result_shape, rest_shape), (result_stride, rest_stride)))
 end
 
 """
@@ -691,9 +676,9 @@ end
 
 A complement layout of `A` is a layout `B` such that `(A, B)` is a compact layout of size `cosize`.
 """
-function complement(l::Layout, cosize_hi::IntType)
+function complement(l::Layout, cotarget::IntType)
     filter_layout = filter(l)
-    return _complement(shape(filter_layout), stride(filter_layout), cosize_hi)
+    return _complement(shape(filter_layout), stride(filter_layout), cotarget)
 end
 
 function complement(l::Layout)
