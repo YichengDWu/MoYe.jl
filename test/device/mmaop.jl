@@ -1,7 +1,7 @@
 using Test, MoYe, CUDA
 
 @inline make_fragment(::Type{MoYe.Registers{T,S}}) where {T, S} = MoYeArray{T}(undef, (static(S),))
-_float32(x::AbstractFloat) = Float32(x)
+_float32(x::Number) = Float32(x)
 _float32(x::VecElement) = Float32(x.value)
 _one(::Type{NTuple{N, VecElement{T}}}) where {N, T} = ntuple(i -> VecElement(one(T)), Val(N))
 _one(x) = one(x)
