@@ -49,6 +49,46 @@ test_alloc (generic function with 2 methods)
 julia> @allocated(test_alloc())
 0
 
+## Slicing 
+
+Currently don't support slicing syntax [:,2], but we could use `view` to get a view of the array.
+```julia
+julia> data = [i for i in 1:164];
+
+julia> a = MoYeArray(data, ((static(3), 2), (2, static(5), static(2))), ((4,1), (static(2), 13, 100)))
+6×20 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Tuple{Static.StaticInt{3}, Int64}, Tuple{Int64, Static.StaticInt{5}, Static.StaticInt{2}}}, Tuple{Tuple{Int64, Int64}, Tuple{Static.StaticInt{2}, Int64, Int64}}}}:
+  1   3  14  16  27  29  40  42  53  55  101  103  114  116  127  129  140  142  153  155
+  5   7  18  20  31  33  44  46  57  59  105  107  118  120  131  133  144  146  157  159
+  9  11  22  24  35  37  48  50  61  63  109  111  122  124  135  137  148  150  161  163
+  2   4  15  17  28  30  41  43  54  56  102  104  115  117  128  130  141  143  154  156
+  6   8  19  21  32  34  45  47  58  60  106  108  119  121  132  134  145  147  158  160
+ 10  12  23  25  36  38  49  51  62  64  110  112  123  125  136  138  149  151  162  164
+
+julia> b = view(a, 2, :)
+20-element MoYeArray{Int64, 1, ViewEngine{Int64, Ptr{Int64}}, Layout{1, Tuple{Tuple{Int64, Static.StaticInt{5}, Static.StaticInt{2}}}, Tuple{Tuple{Static.StaticInt{2}, Int64, Int64}}}}:
+   5
+   7
+  18
+  20
+  31
+  33
+  44
+  46
+  57
+  59
+ 105
+ 107
+ 118
+ 120
+ 131
+ 133
+ 144
+ 146
+ 157
+ 159
+
+```
+
 ```
 """
 struct MoYeArray{T, N, E <: Engine{T}, L <: Layout{N}} <: AbstractArray{T, N}
@@ -211,7 +251,6 @@ end
 @inline StrideArraysCore.maybe_ptr_array(A::MoYeArray) = MoYeArray(ViewEngine(pointer(A)), layout(A))
 
 # Array operations
-# Currently don't support slicing syntax [:,1], but we could make a view and then copy the view
 @inline function Base.view(x::MoYeArray{T, N}, coord::Vararg{Colon, N}) where {T, N}
     b = ManualMemory.preserve_buffer(x)
     GC.@preserve b begin
