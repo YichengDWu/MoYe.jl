@@ -1,7 +1,7 @@
 using MoYe, Test
 
 A_data = collect(1:48*8*7)
-B_data=collect(1:40*9*8)
+B_data = collect(1:40*9*8)
 C_data = collect(1:48*7*40*9)
 
 A = MoYeArray(pointer(A_data), @Layout((48*7,8)))
@@ -11,9 +11,9 @@ C = MoYeArray(C_data, @Layout((48*7,40*9)))
 # Tile size
 tiled_mma = MoYe.make_tiled_mma(MMAOP_16x8x8_F16F16F16F16_TN(), @Layout((3,5)))
 
-@test tile_size(tiled_mma, 1) == 16 * 3
-@test tile_size(tiled_mma, 2) == 8 * 5
-@test tile_size(tiled_mma, 3) == 8
+@test tile_size(tiled_mma, _1) == 16 * 3
+@test tile_size(tiled_mma, _2) == 8 * 5
+@test tile_size(tiled_mma, _3) == 8
 
 thr_mma = MoYe.get_slice(tiled_mma, 1)
 

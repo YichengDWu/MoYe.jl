@@ -27,41 +27,41 @@ end
 # outer product (2,1,1,2) -> (2,2,2,2)
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::LocalArray{DA,1},
                B::LocalArray{DB,1}, C::LocalArray{DC,2}) where {DT,DA,DB,DC}
-    @assert size(layout(A), 𝟏) == size(layout(C), 𝟏) == size(layout(D), 𝟏) # M
-    @assert size(layout(B), 𝟏) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # N
+    @assert size(layout(A), _1) == size(layout(C), _1) == size(layout(D), _1) # M
+    @assert size(layout(B), _1) == size(layout(C), _2) == size(layout(D), _2) # N
     return quote
         Base.@_inline_meta
-        gemm!(mma_atom, D, append_dim(A, 𝟐), append_dim(B, 𝟐), C)
+        gemm!(mma_atom, D, append_dim(A, _2), append_dim(B, _2), C)
     end
 end
 
 # matrix multiplication (2,2,2,2) -> (3,3,3,3)
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::LocalArray{DA,2},
                B::LocalArray{DB,2}, C::LocalArray{DC,2}) where {DT,DA,DB,DC}
-    @assert size(layout(A), 𝟏) == size(layout(C), 𝟏) == size(layout(D), 𝟏) # M
-    @assert size(layout(B), 𝟏) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # N
-    @assert size(layout(A), 𝟐) == size(layout(B), 𝟐) # K
+    @assert size(layout(A), _1) == size(layout(C), _1) == size(layout(D), _1) # M
+    @assert size(layout(B), _1) == size(layout(C), _2) == size(layout(D), _2) # N
+    @assert size(layout(A), _2) == size(layout(B), _2) # K
     return quote
         Base.@_inline_meta
         gemm!(mma_atom,
-              prepend_dim(D, 𝟑), prepend_dim(A, 𝟑),
-              prepend_dim(B, 𝟑), prepend_dim(C, 𝟑))
+              prepend_dim(D, _3), prepend_dim(A, _3),
+              prepend_dim(B, _3), prepend_dim(C, _3))
     end
 end
 
 # batched outer product (3,2,2,3) -> (1,1,1,1)
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::LocalArray{DA,2},
                           B::LocalArray{DB,2}, C::LocalArray{DC,3}) where {DT,DA,DB,DC}
-    @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
-    @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
-    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
+    @assert size(layout(A), _2) == size(layout(C), _2) == size(layout(D), _2) # M
+    @assert size(layout(B), _2) == size(layout(C), _3) == size(layout(D), _3) # N
+    @assert size(layout(C), _1) == size(layout(D), _1)
 
-    M = size(layout(A), 𝟐)
+    M = size(layout(A), _2)
     return quote
         Base.@_inline_meta
         @loopinfo unroll for n in axes(B, 2)
             @loopinfo unroll for m in axes(A, 2)
-                ms = Bool(n & 1) ? m : $(M()+𝟏)-m
+                ms = Bool(n & 1) ? m : $(M()+_1)-m
                 gemm!(mma_atom, view(D, :, ms, n), view(A, :, ms), view(B, :, n), view(C, :, ms, n))
             end
         end
@@ -72,10 +72,10 @@ end
 # batched matrix multiplication (3,3,3,3) -> (3,2,2,3)
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::LocalArray{DA,3},
                B::LocalArray{DB,3}, C::LocalArray{DC,3}) where {DT,DA,DB,DC}
-    @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
-    @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
-    @assert size(layout(A), 𝟑) == size(layout(B), 𝟑) # K
-    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
+    @assert size(layout(A), _2) == size(layout(C), _2) == size(layout(D), _2) # M
+    @assert size(layout(B), _2) == size(layout(C), _3) == size(layout(D), _3) # N
+    @assert size(layout(A), _3) == size(layout(B), _3) # K
+    @assert size(layout(C), _1) == size(layout(D), _1)
 
     return quote
         Base.@_inline_meta
@@ -98,16 +98,16 @@ function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::SharedArray{D
     @assert size(mma_atom.traits.Clayout, 2) == One()
 
     gemm!(mma_atom,
-          prepend_dim(D,  𝟑), prepend_dim(A,  𝟑),
-          prepend_dim(B,  𝟑), prepend_dim(C,  𝟑))
+          prepend_dim(D,  _3), prepend_dim(A,  _3),
+          prepend_dim(B,  _3), prepend_dim(C,  _3))
 end
 
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::SharedArray{DA,3},
                B::SharedArray{DB,3}, C::LocalArray{DC,3}) where {DT, DA, DB, DC}
-    @assert size(layout(A), 𝟐) == size(layout(C), 𝟐) == size(layout(D), 𝟐) # M
-    @assert size(layout(B), 𝟐) == size(layout(C), 𝟑) == size(layout(D), 𝟑) # N
-    @assert size(layout(A), 𝟑) == size(layout(B), 𝟑) # K
-    @assert size(layout(C), 𝟏) == size(layout(D), 𝟏)
+    @assert size(layout(A), _2) == size(layout(C), _2) == size(layout(D), _2) # M
+    @assert size(layout(B), _2) == size(layout(C), _3) == size(layout(D), _3) # N
+    @assert size(layout(A), _3) == size(layout(B), _3) # K
+    @assert size(layout(C), _1) == size(layout(D), _1)
 
     return quote
         Base.@_inline_meta

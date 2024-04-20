@@ -3,7 +3,7 @@ struct TrivialPred end
 
 function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
-    @loopinfo unroll for i in 𝟏:size(src.layout)
+    @loopinfo unroll for i in _1:size(src.layout)
         if mask[i]
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
@@ -16,7 +16,7 @@ end
 function copyto_if!(copy_atom::AbstractCopyAtom, dest::StaticNonOwningArray{TD,N}, src::StaticNonOwningArray{TS,N}, mask) where {TD,TS,N}
     src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
     dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
-    @loopinfo unroll for i in 𝟏:size(layout(src_v), 2)
+    @loopinfo unroll for i in _1:size(layout(src_v), 2)
         if mask[i]
             apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
         end
@@ -31,7 +31,7 @@ end
             dest_v = recast(TV, dest)
             #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
             copy_op = select_elementwise_copy(src_v, dest_v)
-            @loopinfo unroll for i in 𝟏:size(src_v.layout)
+            @loopinfo unroll for i in _1:size(src_v.layout)
                 apply(copy_op, pointer(dest_v, i), pointer(src_v, i))
             end
             return dest
@@ -39,7 +39,7 @@ end
     else
         return quote
             copy_op = select_elementwise_copy(src, dest)
-            @loopinfo unroll for i in 𝟏:size(src.layout)
+            @loopinfo unroll for i in _1:size(src.layout)
                 apply(copy_op, pointer(dest, i), pointer(src, i))
             end
             return dest
@@ -82,7 +82,7 @@ end
 end
 
 group_tail(l::Layout{2}) = l
-group_tail(l::Layout{N}) where {N} = group(l, Two(), StaticInt{N}())
+group_tail(l::Layout{N}) where {N} = group(l, _2, StaticInt{N}())
 
 function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst, d=1)
     expr = Expr(:block)
@@ -97,7 +97,7 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     push!(expr.args, :($dst_v = MoYeArray(pointer($dst), $grouped_dst_layout)))
     push!(expr.args, :($src_v = MoYeArray(pointer($src), $grouped_src_layout)))
 
-    loop = Expr(:for, :($loop_var = 𝟏:$N))
+    loop = Expr(:for, :($loop_var = _1:$N))
     loopbody = Expr(:block)
     sliced_dst = Symbol(:sliced_dst_, d)
     sliced_src = Symbol(:sliced_src_, d)

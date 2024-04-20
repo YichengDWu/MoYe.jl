@@ -27,10 +27,19 @@ end
     end
 end
 
-const Two = StaticInt{2}
-const Three = StaticInt{3}
-const Four = StaticInt{4}
-const 𝟎 = Zero()
-const 𝟏 = One()
-const 𝟐 = Two()
-const 𝟑 = Three()
+const _0 = StaticInt{0}()
+const _1 = StaticInt{1}()
+const _2 = StaticInt{2}()
+const _3 = StaticInt{3}()
+const _4 = StaticInt{4}()
+const _8 = StaticInt{8}()
+const _16 = StaticInt{16}()
+const _32 = StaticInt{32}()
+const _64 = StaticInt{64}()
+const _128 = StaticInt{128}()
+const _256 = StaticInt{256}()
+const _512 = StaticInt{512}()
+const _1024 = StaticInt{1024}()
+const _2048 = StaticInt{2048}()
+const _4096 = StaticInt{4096}()
+const _8192 = StaticInt{8192}()

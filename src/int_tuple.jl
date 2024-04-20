@@ -283,5 +283,5 @@ function static_findfirst(f::G, t::Tuple, I::Tuple) where {G}
     return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
 end
 
-static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), Two())
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), _2)
 static_findfirst(f::G, t::Tuple) where {G} = static_findfirst(f, t, ntuple(static, length(t)))

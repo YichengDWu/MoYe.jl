@@ -100,4 +100,7 @@ export cucopyto!, cp_async_wait, cp_async_commit
 # collective
 export @collective
 
+# constants
+export _0, _1, _2, _3, _4, _5, _8, _16, _32, _64, _128, _256, _512, _1024, _2048, _4096, _8192
+
 end

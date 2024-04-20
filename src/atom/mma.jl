@@ -130,7 +130,7 @@ function thrfrg_C(m::TiledMMA, C::Layout{2})
     a_array = zipped_divide(t_array, map(make_layout, (atom_mnk[1], atom_mnk[2])))  # ((atom_m, atom_n), (rest_m, rest_n))
     tv_array = composition(a_array, (layout_c(m), :))                     # ((thr_id, val_idx), (rest_m, rest_n))
 
-    thr_tile = (:, (make_layout(size(thr_layout_vmnk, Two())), make_layout(size(thr_layout_vmnk, Three())))) # (:, (atom_M, atom_N))
+    thr_tile = (:, (make_layout(size(thr_layout_vmnk, _2)), make_layout(size(thr_layout_vmnk, _3)))) # (:, (atom_M, atom_N))
     
     # ((thr_id, val_idx), ((atom_M, atom_N), (rest_m/atom_M, rest_n/atom_N)) -> ((thr_id, (atom_M, atom_N)), (val_idx, (rest_m/atom_M, rest_n/atom_N)))
     thr_array = zipped_divide(tv_array, thr_tile) 
@@ -146,7 +146,7 @@ function thrfrg_A(m::TiledMMA, A::Layout{2})
     a_array = zipped_divide(t_array, map(make_layout, map(make_layout, (atom_mnk[1], atom_mnk[3])))) 
     tv_array = composition(a_array, (layout_a(m), :))                   
 
-    thr_tile = (:, (make_layout(size(thr_layout_vmnk, Two())), make_layout(size(thr_layout_vmnk, Four())))) # (:, (thrM, thrK))
+    thr_tile = (:, (make_layout(size(thr_layout_vmnk, _2)), make_layout(size(thr_layout_vmnk, _4)))) # (:, (thrM, thrK))
     
     # ((thr_id, val_idx), ((M, K), (rest_m/M, rest_k/K)) -> ((thr_id, (thrM, thrK)), (val_idx, (rest_m/thrM, rest_k/thrK)))
     thr_array = zipped_divide(tv_array, thr_tile) 
@@ -162,7 +162,7 @@ function thrfrg_B(m::TiledMMA, B::Layout{2})
     a_array = zipped_divide(t_array, map(make_layout, map(make_layout, (atom_mnk[2], atom_mnk[3])))) 
     tv_array = composition(a_array, (layout_b(m), :))                   
 
-    thr_tile = (:, (make_layout(size(thr_layout_vmnk, Three())), make_layout(size(thr_layout_vmnk, Four())))) # (:, (thrN, thrK))
+    thr_tile = (:, (make_layout(size(thr_layout_vmnk, _3)), make_layout(size(thr_layout_vmnk, _4)))) # (:, (thrN, thrK))
     
     # ((thr_id, val_idx), ((N, K), (rest_n/N, rest_k/K)) -> ((thr_id, (thrN, thrK)), (val_idx, (rest_n/thrN, rest_k/thrK)))
     thr_array = zipped_divide(tv_array, thr_tile) 
@@ -188,7 +188,7 @@ end
     end
 end
 
-@inline tile_shape(m::TiledMMA) = (tile_size(m, One()), tile_size(m, Two()), tile_size(m, Three()))
+@inline tile_shape(m::TiledMMA) = (tile_size(m, One()), tile_size(m, _2), tile_size(m, _3))
 
 function make_tiled_mma(mma_atom::AbstractMMAAtom,
                         atom_layout::Layout=@Layout((1, 1, 1)),
@@ -236,7 +236,7 @@ function make_tiled_mma(mma_op::OP,
 end
 
 function get_layoutC_MN(tiled_mma::TiledMMA)
-    ref_C = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Two())))
+    ref_C = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, _2)))
     layoutC_TV = thrfrg_C(tiled_mma, ref_C)
     layoutC_MN = withshape(right_inverse(layoutC_TV), shape(ref_C))
 
@@ -245,7 +245,7 @@ function get_layoutC_MN(tiled_mma::TiledMMA)
 end
 
 function get_layoutA_MK(tiled_mma::TiledMMA)
-    ref_A = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Three())))
+    ref_A = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, _3)))
     layoutA_TV = thrfrg_A(tiled_mma, ref_A)
     layoutA_MK = withshape(right_inverse(layoutA_TV), shape(ref_A))
 
@@ -254,7 +254,7 @@ function get_layoutA_MK(tiled_mma::TiledMMA)
 end
 
 function get_layoutB_NK(tiled_mma::TiledMMA)
-    ref_B = make_layout((tile_size(tiled_mma, Two()), tile_size(tiled_mma, Three())))
+    ref_B = make_layout((tile_size(tiled_mma, _2), tile_size(tiled_mma, _3)))
     layoutB_TV = thrfrg_B(tiled_mma, ref_B)
     layoutB_NK = withshape(right_inverse(layoutB_TV), shape(ref_B))
 
@@ -262,31 +262,29 @@ function get_layoutB_NK(tiled_mma::TiledMMA)
     return layoutB_NK, thrid_B
 end
 
-
-@inline tile_size(m::TiledMMA, i::IntType) = m.tiled_MNK[i]
 @inline tile_size(m::ThrMMA, i::IntType) = tile_size(m.tiled_mma, i)
 
 function get_layoutC_TV(tiled_mma::TiledMMA)
-    ref_C = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Two())))
+    ref_C = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, _2)))
     layoutC_TV = thrfrg_C(tiled_mma, ref_C)
     thridx_to_thrid = right_inverse(get_thr_layout_vmnk(tiled_mma))
     return composition(layoutC_TV, (thridx_to_thrid, :))
 end
 
 function get_layoutA_TV(tiled_mma::TiledMMA)
-    ref_A = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Three())))
+    ref_A = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, _3)))
     layoutA_TV = thrfrg_A(tiled_mma, ref_A)
     thr_layout_vmnk = get_thr_layout_vmnk(tiled_mma)
-    atile = (:, (make_layout((size(thr_layout_vmnk, Two()), size(thr_layout_vmnk, Three())), (One(), Zero())), :))
+    atile = (:, (make_layout((size(thr_layout_vmnk, _2), size(thr_layout_vmnk, _3)), (One(), Zero())), :))
     thridx_to_thrid = right_inverse(thr_layout_vmnk)
     return composition(composition(layoutA_TV, (atile, :)), (thridx_to_thrid, :))
 end
 
 function get_layoutB_TV(tiled_mma::TiledMMA)
-    ref_B = make_layout((tile_size(tiled_mma, Two()), tile_size(tiled_mma, Three())))
+    ref_B = make_layout((tile_size(tiled_mma, _2), tile_size(tiled_mma, _3)))
     layoutB_TV = thrfrg_B(tiled_mma, ref_B)
     thr_layout_vmnk = get_thr_layout_vmnk(tiled_mma)
-    btile = (:, (make_layout((size(thr_layout_vmnk, Two()), size(thr_layout_vmnk, Three())), (One(), Zero())), :))
+    btile = (:, (make_layout((size(thr_layout_vmnk, _2), size(thr_layout_vmnk, _3)), (One(), Zero())), :))
     thridx_to_thrid = right_inverse(thr_layout_vmnk)
     return composition(composition(layoutB_TV, (btile, :)), (thridx_to_thrid, :))
 end
