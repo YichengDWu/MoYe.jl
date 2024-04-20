@@ -1,5 +1,5 @@
 using MoYe, Test, JET
-
+using MoYe: make_tuple
 @testset "Unflatten" begin
     @test unflatten((1, 2, 3), (0, 0, 0)) == (1, 2, 3)
     @test unflatten((1, 2, 3, 4), (0, (0, (0, 0)))) == (1, (2, (3, 4)))
