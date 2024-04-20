@@ -1,25 +1,25 @@
 abstract type AbstractMMAAtom end
 
-@inline frgtype_a(m::AbstractMMAAtom) = frgtype_a(get_mma_traits(m))
-@inline frgtype_b(m::AbstractMMAAtom) = frgtype_b(get_mma_traits(m))
-@inline frgtype_c(m::AbstractMMAAtom) = frgtype_c(get_mma_traits(m))
+@inline regtype_a(m::AbstractMMAAtom) = regtype_a(get_mma_traits(m))
+@inline regtype_b(m::AbstractMMAAtom) = regtype_b(get_mma_traits(m))
+@inline regtype_c(m::AbstractMMAAtom) = regtype_c(get_mma_traits(m))
 
 function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(C), 1) == size(get_mma_traits(m).Clayout, 2)
-    return MoYeArray{frgtype_c(m)}(undef, shape(C)) # (V, M, N)
+    return MoYeArray{regtype_c(m)}(undef, shape(C)) # (V, M, N)
 end
 
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(get_mma_traits(m).Alayout, 2)
-    return make_fragment_like(frgtype_a(m), A) # (V, M, K)
+    return make_fragment_like(regtype_a(m), A) # (V, M, K)
 end
 
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(get_mma_traits(m).Blayout, 2)
-    return make_fragment_like(frgtype_b(m), B) # (V, N, K)
+    return make_fragment_like(regtype_b(m), B) # (V, N, K)
 end
 
 function partition_fragment_C(m::AbstractMMAAtom, C::MoYeArray)

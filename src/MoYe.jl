@@ -38,8 +38,6 @@ include("arch/copy/ldmatrix.jl")
 
 # Traits
 include("traits/mma.jl")
-include("traits/mma_sm80.jl")
-include("traits/mma_sm70.jl")
 include("traits/copy.jl")
 include("traits/cp_async.jl")
 include("traits/ldmatrix.jl")
@@ -78,6 +76,9 @@ export print_layout
 # MoYeArray
 export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
 export MoYeSharedArray
+
+# Traits
+export MMATraits, shape_mnk, thr_id, layout_a, layout_b, layout_c, layout_d
 
 # Atom
 export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA,

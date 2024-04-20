@@ -2,28 +2,38 @@
     fma!(::AbstractMMAOP, D, A, B, C)
 
 Perform matrix multiply-and-accumulate computation, `A*B+C`, and store the result in D.
-The available subtypes of `AbstractMMAOP`s are
+The available mma operations can be found in `MoYe.mma_ops_list`.
 ```julia
-"MMAOP_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
-"MMAOP_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
-"MMAOP_8x8x4_F32F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f16"
-"MMAOP_8x8x4_F32F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f16"
-"MMAOP_8x8x4_F32F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f16"
-"MMAOP_8x8x4_F32F16F16F32_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f32"
-"MMAOP_8x8x4_F32F16F16F32_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f32"
-"MMAOP_8x8x4_F32F16F16F32_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f32"
-"MMAOP_8x8x4_F32F16F16F32_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f32"
-"MMAOP_8x8x4_F16F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f16.f16"
-"MMAOP_8x8x4_F16F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f16.f16"
-"MMAOP_8x8x4_F16F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.col.col.f16.f16"
-"MMAOP_8x8x4_F16F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.row.row.f16.f16"
-"MMAOP_16x8x8_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f16.f16"
-"MMAOP_16x8x16_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f16.f16"
-"MMAOP_16x8x8_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f32.f32"
-"MMAOP_16x8x16_F32F16F16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.f32.f32"
-"MMAOP_16x8x8_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.bf16"
-"MMAOP_16x8x16_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.bf16"
-"MMAOP_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
+julia> MoYe.mma_ops_list
+51-element Vector{Any}:
+          "MMAOP_8x8x4_F64F64F64F64_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f64"
+       "MMAOP_16x8x4_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k4.row.col.tf32"
+       "MMAOP_16x8x8_F32TF32TF32F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.tf32"
+      "MMAOP_16x8x16_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.bf16"
+       "MMAOP_16x8x8_F32BF16BF16F32_TN" => "llvm.nvvm.mma.m16n8k8.row.col.bf16"
+          "MMAOP_8x8x4_F16F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.row.row.f16.f16"
+          "MMAOP_8x8x4_F16F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f16.f16"
+          "MMAOP_8x8x4_F16F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f16.f16"
+          "MMAOP_8x8x4_F16F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.col.col.f16.f16"
+          "MMAOP_8x8x4_F32F16F16F16_TT" => "llvm.nvvm.mma.m8n8k4.row.row.f32.f16"
+          "MMAOP_8x8x4_F32F16F16F16_NT" => "llvm.nvvm.mma.m8n8k4.col.row.f32.f16"
+          "MMAOP_8x8x4_F32F16F16F16_TN" => "llvm.nvvm.mma.m8n8k4.row.col.f32.f16"
+          "MMAOP_8x8x4_F32F16F16F16_NN" => "llvm.nvvm.mma.m8n8k4.col.col.f32.f16"
+         "MMAOP_16x8x8_F16F16F16F16_TN" => "llvm.nvvm.mma.m16n8k8.row.col.f16.f16"
+                                        ⋮
+ "MMAOP_16x8x16_S32U8S8S32_TN_SATURATE" => "llvm.nvvm.mma.m16n8k16.row.col.satfinite.u8.s8"
+          "MMAOP_16x8x16_S32U8U8S32_TN" => "llvm.nvvm.mma.m16n8k16.row.col.u8"
+ "MMAOP_16x8x16_S32U8U8S32_TN_SATURATE" => "llvm.nvvm.mma.m16n8k16.row.col.satfinite.u8"
+          "MMAOP_16x8x32_S32U8S8S32_TN" => "llvm.nvvm.mma.m16n8k32.row.col.u8.s8"
+ "MMAOP_16x8x32_S32U8S8S32_TN_SATURATE" => "llvm.nvvm.mma.m16n8k32.row.col.satfinite.u8.s8"
+          "MMAOP_16x8x32_S32U8U8S32_TN" => "llvm.nvvm.mma.m16n8k32.row.col.u8"
+ "MMAOP_16x8x32_S32U8U8S32_TN_SATURATE" => "llvm.nvvm.mma.m16n8k32.row.col.satfinite.u8"
+  "MMAOP_8x8x128_S32B1B1S32_TN_XORPOPC" => "llvm.nvvm.mma.xor.popc.m8n8k128.row.col.b1"
+  "MMAOP_8x8x128_S32B1B1S32_TN_ANDPOPC" => "llvm.nvvm.mma.and.popc.m8n8k128.row.col.b1"
+ "MMAOP_16x8x128_S32B1B1S32_TN_XORPOPC" => "llvm.nvvm.mma.xor.popc.m16n8k128.row.col.b1"
+ "MMAOP_16x8x128_S32B1B1S32_TN_ANDPOPC" => "llvm.nvvm.mma.and.popc.m16n8k128.row.col.b1"
+ "MMAOP_16x8x256_S32B1B1S32_TN_XORPOPC" => "llvm.nvvm.mma.xor.popc.m16n8k256.row.col.b1"
+ "MMAOP_16x8x256_S32B1B1S32_TN_ANDPOPC" => "llvm.nvvm.mma.and.popc.m16n8k256.row.col.b1"
 ```
 
 You can instantiate any of these `AbstractMMAOP`s and inspect the information about
@@ -47,6 +57,23 @@ MoYe.Registers{Float32, 4}
     The correct execution chain is ldmatrix + mma.
 """
 function fma! end
+
+const geom_to_shape = Dict(
+    "m8n8k4" => static((8, 8, 4)),
+    "m16n8k4" => static((16, 8, 4)),
+    "m16n8k8" => static((16, 8, 8)),
+    "m16n8k16" => static((16, 8, 16)),
+    "m16n8k32" => static((16, 8, 32)),
+    "m8n8k128" => static((8, 8, 128)),
+    "m16n8k128" => static((16, 8, 128)),
+    "m16n8k256" => static((16, 8, 256)),
+    "m8n8k32" => static((8, 8, 32)),
+    "m16n8k32" => static((16, 8, 32)),
+    "m16n8k64" => static((16, 8, 64)),
+    "m8n8k16" => static((8, 8, 16)),
+    "m16n8k16" => static((16, 8, 16)),
+    "m16n8k32" => static((16, 8, 32)),
+)
 
 # PTX types to LLVM types for registers
 const ptx_to_llvm_reg = Dict(
@@ -84,10 +111,12 @@ const ptx_to_jl = Dict(
     "f16" => Float16,
     "f32" => Float32,
     "f64" => Float64,
-    "s32"  => Int32,
+    "s32" => Int32,
     "s8" => Int8,
     "u8" => UInt8,
     "bf16" => BFloat16,
+    "tf32" => Float32,
+    "b1" => Bool, 
 )
 
 # geom to num of registers
@@ -354,6 +383,7 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d)
                     push!(struct_names, struct_name => mma_intrinsic)
                     a_types, b_types, c_types, d_types, a_vars, b_vars, c_vars, d_frag_ty, d_sz = get_ccall_args(ARegisters(), BRegisters(), CRegisters(), DRegisters())
 
+                    # Step 3: define fma! 
                     if d_sz == 1
                         @eval @inline function (::$_struct_name)(a, b, c)
                             return ccall($mma_intrinsic, llvmcall, $d_frag_ty, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
@@ -368,13 +398,24 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d)
                             return ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
                         end
 
-                        @eval @inline function fma!(op::$_struct_name, d, a, b, c)
+                        @eval @inline function fma!(op::$_struct_name, d::MoYeArray, a::MoYeArray, b::MoYeArray, c::MoYeArray)
                             val = op(a,b,c)
                             ptr = pointer(d)
                             Base.Cartesian.@nexprs $d_sz i -> unsafe_store!(ptr, getfield(val, i), i)
                             return d
                         end
                     end
+
+                    # Step 4: record the information about the operation
+                    @eval @inline valtype_d(::$_struct_name) = $(ptx_to_jl[type_d])
+                    @eval @inline valtype_a(::$_struct_name) = $(ptx_to_jl[type_a])
+                    @eval @inline valtype_b(::$_struct_name) = $(ptx_to_jl[type_b])
+                    @eval @inline valtype_c(::$_struct_name) = $(ptx_to_jl[type_c])
+
+                    @eval @inline shape_mnk(mma_op::$_struct_name) = $(geom_to_shape[geom])
+
+                    @eval @inline alignment_a(::$_struct_name) = $(ifelse(alayout == "row", :(:row), :(:col)))
+                    @eval @inline alignment_b(::$_struct_name) = $(ifelse(blayout == "row", :(:row), :(:col)))
                 end
             end
         end
@@ -384,15 +425,15 @@ end
 
 function get_mma_ops()
     vcat(
-    # 8x8x4
-    make_mma_ops(["m8n8k4"], ["f64"], [], ["f64"], []), # 1
-    make_mma_ops(["m16n8k4", "m16n8k8"], ["tf32"], [], ["f32"], []), # 1 
-    make_mma_ops(["m16n8k16", "m16n8k8"], ["bf16"], [], ["f32"], []), # 2
-    make_mma_ops(["m8n8k4", "m16n8k8", "m16n8k16"], ["f16"], [],[ "f16", "f32"], ["f16", "f32"]), # 16
-    make_mma_ops(["m8n8k16", "m16n8k16", "m16n8k32"], ["s8", "u8"], ["s8", "u8"], ["s32"], []), # 24 
-    make_mma_ops(["m8n8k32", "m16n8k32", "m16n8k64"], ["s4", "u4"], ["s4", "u4"], ["s32"], []), # 24
+    make_mma_ops(["m8n8k4"], ["f64"], [], ["f64"], []), 
+    make_mma_ops(["m16n8k4", "m16n8k8"], ["tf32"], [], ["f32"], []),  
+    make_mma_ops(["m16n8k16", "m16n8k8"], ["bf16"], [], ["f32"], []), 
+    make_mma_ops(["m8n8k4", "m16n8k8", "m16n8k16"], ["f16"], [],[ "f16", "f32"], ["f16", "f32"]), 
+    make_mma_ops(["m8n8k16", "m16n8k16", "m16n8k32"], ["s8", "u8"], ["s8", "u8"], ["s32"], []), 
+    #make_mma_ops(["m8n8k32", "m16n8k32", "m16n8k64"], ["s4", "u4"], ["s4", "u4"], ["s32"], []), # Julia does not support s4/u4
     make_mma_ops(["m8n8k128", "m16n8k128", "m16n8k256"], ["b1"], [], ["s32"], []), # 6 
     )
 end
 
-get_mma_ops()
+const mma_ops_list = get_mma_ops()
+
