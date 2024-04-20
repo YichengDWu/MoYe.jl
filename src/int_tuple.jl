@@ -72,12 +72,12 @@ function Base.cld(x::IntTuple, y::IntTuple)
     return map(cld, x, y)
 end
 
+function shape_div(a::IntType, b::IntType)
+    return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
+end
 @generated function shape_div(::StaticInt{N}, ::StaticInt{M}) where {N, M}
     @assert N % M == 0 || M % N == 0 "Cannot divide $(N) by $(M) or vice versa"
     return :($(StaticInt{shape_div(N, M)}()))
-end
-function shape_div(a::IntType, b::IntType)
-    return a ÷ b != 0 ? a ÷ b : sign(a) * sign(b)
 end
 function shape_div(@nospecialize(a::IntType), @nospecialize(b::IntTuple))
     return shape_div(a, product(b))
@@ -262,6 +262,7 @@ make_tuple(::Type{Colon}) = Colon()
     end
     return expr
 end
+make_tuple(::Type{S}) where {S} = S()
 
 function Base.getindex(x::StaticInt, i::Integer)
     @inline
@@ -282,5 +283,5 @@ function static_findfirst(f::G, t::Tuple, I::Tuple) where {G}
     return (@inline; f(t[first(I)])) ? first(I) : static_findfirst(f, t, Base.tail(I))
 end
 
-static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), Two())
+static_findfirst(f::G, t::StaticInt) where {G} = ifelse(f(t), One(), _2)
 static_findfirst(f::G, t::Tuple) where {G} = static_findfirst(f, t, ntuple(static, length(t)))

@@ -20,7 +20,6 @@ include("algorithm/tuple_algorithms.jl")
 include("int_tuple.jl")
 include("stride.jl")
 include("layout.jl")
-include("print.jl")
 include("engine.jl")
 
 include("array.jl")
@@ -38,8 +37,6 @@ include("arch/copy/ldmatrix.jl")
 
 # Traits
 include("traits/mma.jl")
-include("traits/mma_sm80.jl")
-include("traits/mma_sm70.jl")
 include("traits/copy.jl")
 include("traits/cp_async.jl")
 include("traits/ldmatrix.jl")
@@ -59,6 +56,8 @@ include("deprecated.jl")
 include("device/smem.jl")
 include("device/collective.jl")
 
+include("print.jl")
+
 # rexport
 export static, @gc_preserve, static_size
 
@@ -66,18 +65,21 @@ export static, @gc_preserve, static_size
 export flatten, unflatten
 export colex_less, elem_less, increment, capacity
 export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compact_row_major,
-       GenColMajor, GenRowMajor, @Layout, make_tuple
+       GenColMajor, GenRowMajor, @Layout
 
 # Layout
 export Layout, make_layout, shape, rank, depth, cosize, composition, complement,
        logical_product, blocked_product, raked_product, zipped_product, tiled_product,
        logical_divide, zipped_divide, tiled_divide, zeros!, recast, right_inverse,
        left_inverse
-export print_layout
+export print_layout, print_typst
 
 # MoYeArray
 export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
 export MoYeSharedArray
+
+# Traits
+export MMATraits, shape_mnk, thr_id, layout_a, layout_b, layout_c, layout_d
 
 # Atom
 export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA,
@@ -97,5 +99,9 @@ export cucopyto!, cp_async_wait, cp_async_commit
 
 # collective
 export @collective
+
+# constants
+export _0, _1, _2, _3, _4, _5, _6, _8, _9, _10,
+       _16, _32, _64, _128, _256, _512, _1024, _2048, _4096, _8192
 
 end

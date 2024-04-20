@@ -57,7 +57,7 @@ A owning and mutable vector of type `T` with static length `L`.
 ## Examples
 
 ```julia
-julia> x = ArrayEngine{Float32}(undef, static(3))
+julia> x = ArrayEngine{Float32}(undef, _3)
 3-element ArrayEngine{Float32, 3}:
  -9.8271385f-36
   7.57f-43

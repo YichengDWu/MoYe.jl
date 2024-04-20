@@ -127,7 +127,7 @@ struct LayoutRight end
 [`make_layout`](@ref) uses this to create a col-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenColMajor)
-((1, (2, 4)), 1):((static(1), (1, 2)), 8)
+((1, (2, 4)), 1):((_1, (1, 2)), 8)
 ```
 """
 const GenColMajor = LayoutLeft
@@ -138,7 +138,7 @@ const GenColMajor = LayoutLeft
 [`make_layout`](@ref) uses this to create a row-major compact layout.
 ```julia
 julia> make_layout(((1, (2, 4)), 1), MoYe.GenRowMajor)
-((1, (2, 4)), 1):((8, (4, 1)), static(1))
+((1, (2, 4)), 1):((8, (4, 1)), _1)
 ```
 """
 const GenRowMajor = LayoutRight

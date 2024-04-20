@@ -4,16 +4,16 @@ using Static: One
 @testset "Macro Layout" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
           make_layout(static((2, (2, 2))), static((4, (1, 2))))
-    @test @Layout(2, 4) == make_layout(static(2), static(4))
+    @test @Layout(2, 4) == make_layout(_2, _4)
 
     @test @Layout((2, (2, 2))) == make_layout(static((2, (2, 2))))
-    @test @Layout(2) == make_layout(static(2))
+    @test @Layout(2) == make_layout(_2)
 
     @test @Layout((2, (2, 2)), GenColMajor) == make_layout(static((2, (2, 2))), GenColMajor)
-    @test @Layout(2, GenColMajor) == make_layout(static(2), GenColMajor)
+    @test @Layout(2, GenColMajor) == make_layout(_2, GenColMajor)
 
     @test @Layout((2, (2, 2)), GenRowMajor) == make_layout(static((2, (2, 2))), GenRowMajor)
-    @test @Layout(2, GenRowMajor) == make_layout(static(2), GenRowMajor)
+    @test @Layout(2, GenRowMajor) == make_layout(_2, GenRowMajor)
 end
 @testset "Flatten" begin
     @test flatten(make_layout(((4, 3), 1), ((3, 1), 0))) ==
@@ -37,19 +37,19 @@ end
         end
     end
 
-    let layout = make_layout(static(1), Int(0))
+    let layout = make_layout(_1, Int(0))
         test_coalesce(layout)
     end
 
-    let layout = make_layout(static(1), static(1))
+    let layout = make_layout(_1, _1)
         test_coalesce(layout)
     end
 
-    let layout = make_layout(tuple(static(2), static(4)))
+    let layout = make_layout(tuple(_2, _4))
         test_coalesce(layout)
     end
 
-    let layout = make_layout(tuple(static(2), static(4), static(6)))
+    let layout = make_layout(tuple(_2, _4, _6))
         test_coalesce(layout)
     end
 
