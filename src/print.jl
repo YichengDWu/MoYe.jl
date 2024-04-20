@@ -139,7 +139,7 @@ function print_typst(
     #let table_C = table(
         rows: $(known(size(C, 1))),
         columns: $(known(size(C, 2))),
-        align: center,
+        align: center,ulia
         $(table_C_cells...)
     )
 
