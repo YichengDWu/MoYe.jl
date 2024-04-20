@@ -23,8 +23,8 @@ abstract type AbstractMMAAtom{Traits} end
 @inline thr_id(::AbstractMMAAtom{Traits}) where {Traits} = thr_id(Traits())
 @inline shape_mnk(::AbstractMMAAtom{Traits}) where {Traits} = shape_mnk(Traits())
 
-
 function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
+    @inline
     @assert N ≥ 3
     @assert size(layout(C), 1) == size(layout_c(m), 2)
     return MoYeArray{regtype_c(m)}(undef, shape(C)) # (V, M, N)
@@ -33,12 +33,14 @@ end
 # Note that hopper architecture needs to return a view of A/B for the fragment
 # In this case we always have regtype_a(m) == T
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
+    @inline
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(layout_a(m), 2)
     return make_fragment_like(regtype_a(m), A) # (V, M, K)
 end
 
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
+    @inline
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(layout_b(m), 2)
     return make_fragment_like(regtype_b(m), B) # (V, N, K)
@@ -63,19 +65,14 @@ function Base.show(io::IO, m::MMAAtom)
     return println(io, "  Layout_C_TV: ", layout_c(m))
 end
 
-function partition_fragment_C(m::AbstractMMAAtom, C::MoYeArray)
+function apply(mma_atom::AbstractMMAAtom, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
+               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {TD, TA, TB, TC}
     @inline
-    return make_fragment_C(m, partition_C(m, C))
+    return mma_unpack!(mma_atom, D, A, B, C)
 end
-
-function partition_fragment_A(m::AbstractMMAAtom, A::MoYeArray)
+function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray)
     @inline
-    return make_fragment_A(m, partition_A(m, A))
-end
-
-function partition_fragment_B(m::AbstractMMAAtom, B::MoYeArray)
-    @inline
-    return make_fragment_B(m, partition_B(m, B))
+    return apply(mma_atom, C, A, B, C)
 end
 
 # TiledMMA 
@@ -235,73 +232,82 @@ function get_layoutB_NK(tiled_mma::TiledMMA)
 end
 
 
-function tidfrg_C(m::TiledMMA, C)
-    return composition(thrfrg_C(m, C), (m.tid_layout, :))
+@inline tile_size(m::TiledMMA, i::IntType) = m.tiled_MNK[i]
+@inline tile_size(m::ThrMMA, i::IntType) = tile_size(m.tiled_mma, i)
+
+function get_layoutC_TV(tiled_mma::TiledMMA)
+    ref_C = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Two())))
+    layoutC_TV = thrfrg_C(tiled_mma, ref_C)
+    thridx_to_thrid = right_inverse(get_thr_layout_vmnk(tiled_mma))
+    return composition(layoutC_TV, (thridx_to_thrid, :))
 end
 
-function tidfrg_A(m::TiledMMA, A)
-    thr_layout_VMNK = m.thr_layout_VMNK
-    atile = (:, (make_layout((size(thr_layout_VMNK, 2), size(thr_layout_VMNK, 3)), (One(), Zero())), :))
-    return composition(composition(thrfrg_A(m, A), (atile, :)), (m.tid_layout, :))
+function get_layoutA_TV(tiled_mma::TiledMMA)
+    ref_A = make_layout((tile_size(tiled_mma, One()), tile_size(tiled_mma, Three())))
+    layoutA_TV = thrfrg_A(tiled_mma, ref_A)
+    thr_layout_vmnk = get_thr_layout_vmnk(tiled_mma)
+    atile = (:, (make_layout((size(thr_layout_vmnk, Two()), size(thr_layout_vmnk, Three())), (One(), Zero())), :))
+    thridx_to_thrid = right_inverse(thr_layout_vmnk)
+    return composition(composition(layoutA_TV, (atile, :)), (thridx_to_thrid, :))
 end
 
-function tidfrg_B(m::TiledMMA, B)
-    thr_layout_VMNK = m.thr_layout_VMNK
-    btile = (:, (make_layout((size(thr_layout_VMNK, 2), size(thr_layout_VMNK,3)), (One(), Zero())), :))
-    return composition(composition(thrfrg_B(m, B), (btile, :)), (m.tid_layout, :))
+function get_layoutB_TV(tiled_mma::TiledMMA)
+    ref_B = make_layout((tile_size(tiled_mma, Two()), tile_size(tiled_mma, Three())))
+    layoutB_TV = thrfrg_B(tiled_mma, ref_B)
+    thr_layout_vmnk = get_thr_layout_vmnk(tiled_mma)
+    btile = (:, (make_layout((size(thr_layout_vmnk, Two()), size(thr_layout_vmnk, Three())), (One(), Zero())), :))
+    thridx_to_thrid = right_inverse(thr_layout_vmnk)
+    return composition(composition(layoutB_TV, (btile, :)), (thridx_to_thrid, :))
 end
-
-
-@inline get_mma_traits(m::ThrMMA) = get_mma_traits(m.tiled_mma)
 
 
 function partition_C(m::ThrMMA, C::MoYeArray)
     thr_array = MoYeArray(pointer(C), thrfrg_C(m.tiled_mma, layout(C)))
-    thr_vmn = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[3]))
-    return view(thr_array, thr_vmn, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
+    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
+    thr_vmn = (thr_layout_vmnk[1], (thr_layout_vmnk[2], thr_layout_vmnk[3])) # (V, (M, N))
+    return view(thr_array, thr_vmn, (:, repeat(:, rank(layout(thr_array)[2][2]))))
 end
 
-function partition_A(m::ThrMMA, A::MoYeArray)
+function partition_A(m::ThrMMA, A::MoYeArray)   
     thr_array = MoYeArray(pointer(A), thrfrg_A(m.tiled_mma, layout(A)))
-    thr_vmk = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[4]))
-    return view(thr_array, thr_vmk, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
+    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
+    thr_vmk = (thr_layout_vmnk[1], (thr_layout_vmnk[2], thr_layout_vmnk[4])) # (V, (M, K))
+    return view(thr_array, thr_vmk, (:, repeat(:, rank(layout(thr_array)[2][2]))))  
 end
 
 function partition_B(m::ThrMMA, B::MoYeArray)
     thr_array = MoYeArray(pointer(B), thrfrg_B(m.tiled_mma, layout(B)))
-    thr_vnk = (m.thr_vmnk[1], (m.thr_vmnk[3], m.thr_vmnk[4]))
-    return view(thr_array, thr_vnk, (:, repeat(:, rank(shape(layout(thr_array)[2][2])))))
+    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
+    thr_vnk = (thr_layout_vmnk[1], (thr_layout_vmnk[3], thr_layout_vmnk[4])) # (V, (N, K))
+    return view(thr_array, thr_vnk, (:, repeat(:, rank(layout(thr_array)[2][2]))))
 end
 
-function apply(mma_atom::AbstractMMAAtom, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
-               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {TD, TA, TB, TC}
+function partition_fragment_C(m::ThrMMA, C::MoYeArray)
     @inline
-    return mma_unpack!(get_mma_traits(mma_atom), D, A, B, C)
+    return make_fragment_C(m, partition_C(m.tiled_mma.atom, C))
 end
-function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray)
+
+function partition_fragment_A(m::ThrMMA, A::MoYeArray)
     @inline
-    return apply(mma_atom, C, A, B, C)
+    return make_fragment_A(m, partition_A(m.tiled_mma.atom, A))
 end
 
-@inline tile_size(m::TiledMMA, i::IntType) = m.tiled_MNK[i]
-@inline tile_size(m::ThrMMA, i::IntType) = tile_size(m.tiled_mma, i)
-
-function get_layoutA_TV(tiled_mma::TiledMMA)
-    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
-    ref_A = make_layout((M, K))
-    return tidfrg_A(tiled_mma, ref_A)
+function partition_fragment_B(m::ThrMMA, B::MoYeArray)
+    @inline
+    return make_fragment_B(m, partition_B(m.tiled_mma.atom, B))
 end
 
-function get_layoutB_TV(tiled_mma::TiledMMA)
-    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
-    ref_B = make_layout((N, K))
-    return tidfrg_B(tiled_mma, ref_B)
+function partition_shape_C(m::TiledMMA, shape_MN::StaticIntTuple{R}) where {R}
+    @assert R >= 2
+    atom_mnk = shape_mnk(m)
+    thr_vmnk = get_thr_layout_vmnk(m)
+    V = shape(layout_c(m))[2]
+    M = shape_div(shape_MN[1], atom_mnk[1]* thr_vmnk[2])
+    N = shape_div(shape_MN[2], atom_mnk[2]* thr_vmnk[3])
+    return (V, M, N, shape_MN[3:R]...)
 end
 
-function get_layoutC_TV(tiled_mma::TiledMMA)
-    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
-    ref_C = make_layout((M, N))
-    return tidfrg_C(tiled_mma, ref_C)
+function partition_fragment_C(m::TiledMMA, shape_MN::StaticIntTuple)
+    @inline
+    return MoYeArray{regtype_c(m)}(undef, partition_shape_C(m, shape_MN))
 end
-
-
