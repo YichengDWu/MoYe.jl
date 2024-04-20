@@ -20,7 +20,6 @@ include("algorithm/tuple_algorithms.jl")
 include("int_tuple.jl")
 include("stride.jl")
 include("layout.jl")
-include("print.jl")
 include("engine.jl")
 
 include("array.jl")
@@ -57,6 +56,8 @@ include("deprecated.jl")
 include("device/smem.jl")
 include("device/collective.jl")
 
+include("print.jl")
+
 # rexport
 export static, @gc_preserve, static_size
 
@@ -71,7 +72,7 @@ export Layout, make_layout, shape, rank, depth, cosize, composition, complement,
        logical_product, blocked_product, raked_product, zipped_product, tiled_product,
        logical_divide, zipped_divide, tiled_divide, zeros!, recast, right_inverse,
        left_inverse
-export print_layout
+export print_layout, print_typst
 
 # MoYeArray
 export ArrayEngine, ViewEngine, MoYeArray, make_fragment_like, @parallelize, @tile, zeros!
