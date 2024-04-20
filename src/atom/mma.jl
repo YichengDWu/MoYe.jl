@@ -292,47 +292,43 @@ end
 
 function partition_C(m::ThrMMA, C::MoYeArray)
     thr_array = MoYeArray(pointer(C), thrfrg_C(m.tiled_mma, layout(C)))
-    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
-    thr_vmn = (thr_layout_vmnk[1], (thr_layout_vmnk[2], thr_layout_vmnk[3])) # (V, (M, N))
+    thr_vmn = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[3])) # (V, (M, N))
     return view(thr_array, thr_vmn, (:, repeat(:, rank(layout(thr_array)[2][2]))))
 end
 
 function partition_A(m::ThrMMA, A::MoYeArray)   
     thr_array = MoYeArray(pointer(A), thrfrg_A(m.tiled_mma, layout(A)))
-    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
-    thr_vmk = (thr_layout_vmnk[1], (thr_layout_vmnk[2], thr_layout_vmnk[4])) # (V, (M, K))
+    thr_vmk = (m.thr_vmnk[1], (m.thr_vmnk[2], m.thr_vmnk[4])) # (V, (M, K))
     return view(thr_array, thr_vmk, (:, repeat(:, rank(layout(thr_array)[2][2]))))  
 end
 
 function partition_B(m::ThrMMA, B::MoYeArray)
     thr_array = MoYeArray(pointer(B), thrfrg_B(m.tiled_mma, layout(B)))
-    thr_layout_vmnk = get_thr_layout_vmnk(m.tiled_mma)
-    thr_vnk = (thr_layout_vmnk[1], (thr_layout_vmnk[3], thr_layout_vmnk[4])) # (V, (N, K))
+    thr_vnk = (m.thr_vmnk[1], (m.thr_vmnk[3], m.thr_vmnk[4])) # (V, (N, K))
     return view(thr_array, thr_vnk, (:, repeat(:, rank(layout(thr_array)[2][2]))))
 end
 
 function partition_fragment_C(m::ThrMMA, C::MoYeArray)
     @inline
-    return make_fragment_C(m, partition_C(m.tiled_mma.atom, C))
+    return make_fragment_C(m.tiled_mma.atom, partition_C(m, C))
 end
 
 function partition_fragment_A(m::ThrMMA, A::MoYeArray)
     @inline
-    return make_fragment_A(m, partition_A(m.tiled_mma.atom, A))
+    return make_fragment_A(m.tiled_mma.atom, partition_A(m, A))
 end
 
 function partition_fragment_B(m::ThrMMA, B::MoYeArray)
     @inline
-    return make_fragment_B(m, partition_B(m.tiled_mma.atom, B))
+    return make_fragment_B(m.tiled_mma.atom, partition_B(m, B))
 end
 
 function partition_shape_C(m::TiledMMA, shape_MN::StaticIntTuple{R}) where {R}
     @assert R >= 2
     atom_mnk = shape_mnk(m)
-    thr_vmnk = get_thr_layout_vmnk(m)
     V = shape(layout_c(m))[2]
-    M = shape_div(shape_MN[1], atom_mnk[1]* thr_vmnk[2])
-    N = shape_div(shape_MN[2], atom_mnk[2]* thr_vmnk[3])
+    M = shape_div(shape_MN[1], atom_mnk[1]* m.thr_vmnk[2])
+    N = shape_div(shape_MN[2], atom_mnk[2]* m.thr_vmnk[3])
     return (V, M, N, shape_MN[3:R]...)
 end
 
