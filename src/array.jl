@@ -55,7 +55,7 @@ Currently don't support slicing syntax [:,2], but we could use `view` to get a v
 ```julia
 julia> data = [i for i in 1:164];
 
-julia> a = MoYeArray(data, ((static(3), 2), (2, static(5), static(2))), ((4,1), (static(2), 13, 100)))
+julia> a = MoYeArray(data, ((_3, 2), (2, _5, _2)), ((4,1), (_2, 13, 100)))
 6×20 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Tuple{Static.StaticInt{3}, Int64}, Tuple{Int64, Static.StaticInt{5}, Static.StaticInt{2}}}, Tuple{Tuple{Int64, Int64}, Tuple{Static.StaticInt{2}, Int64, Int64}}}}:
   1   3  14  16  27  29  40  42  53  55  101  103  114  116  127  129  140  142  153  155
   5   7  18  20  31  33  44  46  57  59  105  107  118  120  131  133  144  146  157  159

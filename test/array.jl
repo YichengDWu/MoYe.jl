@@ -25,15 +25,15 @@ end
 
 @testset "Static indexing" begin
     A = MoYeArray{Float64}(undef, @Layout((3,4)))
-    @test A[static(1)] == A[1]
-    A[static(1)] = 1.0
-    @test A[static(1)] == 1.0
+    @test A[_1] == A[1]
+    A[_1] = 1.0
+    @test A[_1] == 1.0
 
     data = rand(3,4)
     B = MoYeArray(pointer(data), @Layout((3,4)))
-    @test B[static(1)] == B[1]
-    B[static(1)] = 1.0
-    @test B[static(1)] == 1.0
+    @test B[_1] == B[1]
+    B[_1] = 1.0
+    @test B[_1] == 1.0
 end
 
 @testset "Array Operations" begin
@@ -42,12 +42,12 @@ end
         va = view(ca, :, 1)
         @test va isa MoYeArray
         @test va.engine isa ViewEngine
-        @test va.layout.shape == tuple(static(2))
+        @test va.layout.shape == tuple(_2)
 
         va2 = view(ca, :, :)
         @test va2 isa MoYeArray
         @test va2.engine isa ViewEngine
-        @test va2.layout.shape == tuple(static(2), static(3))
+        @test va2.layout.shape == tuple(_2, _3)
     end
 
     @testset "Copy" begin
@@ -59,7 +59,7 @@ end
         @test ca2 == ca
 
         A = ones(6)
-        ca3 = MoYeArray(pointer(A), static(6))
+        ca3 = MoYeArray(pointer(A), _6)
         ca4 = copy(ca3)
         @test ca4 isa MoYeArray
         @test ca4.engine isa ArrayEngine
@@ -74,7 +74,7 @@ end
         @test ca2.layout == ca.layout
 
         A = ones(6)
-        ca3 = MoYeArray(pointer(A), static(6))
+        ca3 = MoYeArray(pointer(A), _6)
         ca4 = similar(ca3)
         @test ca4 isa MoYeArray
         @test ca4.engine isa ArrayEngine
@@ -117,10 +117,10 @@ end
 
 @testset "Unsqueeze" begin
     a = MoYeArray{Float32}(undef, static((2, 3)))
-    b = MoYe.append_dim(a, static(3));
+    b = MoYe.append_dim(a, _3);
     @test b.layout == @Layout (2, 3, 1) (1,2,0)
 
-    c = MoYe.prepend_dim(a, static(3));
+    c = MoYe.prepend_dim(a, _3);
     @test c.layout == @Layout (1, 2, 3) (0,1,2)
 end
 

@@ -193,8 +193,8 @@ end
 function make_tiled_mma(mma_atom::AbstractMMAAtom,
                         atom_layout::Layout=@Layout((1, 1, 1)),
                         permutations::Tile=(:, :, :))
-    atom_layout_mnk = append(atom_layout, @Layout(1, 0), static(3))
-    permutation_mnk = append(permutations, :, static(3))
+    atom_layout_mnk = append(atom_layout, @Layout(1, 0), _3)
+    permutation_mnk = append(permutations, :, _3)
     return TiledMMA(mma_atom, atom_layout_mnk, permutation_mnk)
 end
 
@@ -213,7 +213,7 @@ See also [`print_typst`](@ref).
 ## Examples
 
 ```julia
-julia> tiled_mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), @Layout((2,2), (2,1)), (@Layout((4,4,2), (1,8,4)), static(32), static(4)))
+julia> tiled_mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), @Layout((2,2), (2,1)), (@Layout((4,4,2), (1,8,4)), _32, _4))
 TiledMMA
   ThrLayoutVMNK: ((_4, _2), _2, _2, _1):((_1, _16), _8, _4, _0)
   PermutationMNK: ((_4, _4, _2):(_1, _8, _4), _32, _4)

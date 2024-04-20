@@ -91,7 +91,7 @@ julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
  5  11  17  23  29  35  41  47
  6  12  18  24  30  36  42  48
 
-julia> @parallelize a (static(2), static(2)) (1, 1)
+julia> @parallelize a (_2, _2) (1, 1)
 3×4 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Static.StaticInt{3}, Static.StaticInt{4}}, Tuple{Static.StaticInt{2}, Static.StaticInt{12}}}}:
  1  13  25  37
  3  15  27  39
@@ -136,7 +136,7 @@ Tile `x` with `tile` and return the view of the tile itself at `coord`.
 ```julia
 julia> a = MoYeArray(pointer([i for i in 1:48]), @Layout((6,8)))
 
-julia> @tile a (static(2), static(2)) (1, 1)
+julia> @tile a (_2, _2) (1, 1)
 2×2 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{StaticInt{2}, StaticInt{2}}, Tuple{StaticInt{1}, StaticInt{6}}}}:
  1  7
  2  8

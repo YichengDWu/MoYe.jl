@@ -8,7 +8,7 @@ using Static: One
 end
 
 @testset "Shared Memory" begin
-    ptr = MoYe.SharedMemory(Float32, static(10))
+    ptr = MoYe.SharedMemory(Float32, _10)
     MoYeArray(ptr, static((2, 5)))
 end
 
@@ -17,9 +17,9 @@ end
 
     a = CUDA.rand(Float32, 8, 16)
     a = CUDA.cudaconvert(a)
-    gmem_8sx16d = MoYeArray(pointer(a), (static(8), 16))
+    gmem_8sx16d = MoYeArray(pointer(a), (_8, 16))
     rmem = make_fragment_like(view(gmem_8sx16d, :, 1))
-    @test rmem.layout.shape == tuple(static(8))
+    @test rmem.layout.shape == tuple(_8)
     @test rmem.layout.stride == tuple(One())
     @test length(rmem.engine) == 8
 end
