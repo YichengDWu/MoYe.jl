@@ -55,9 +55,14 @@ function print_typst(
     sA = known(size(TA))
     sB = known(size(TB))
     sC = known(size(TC))
+
+    height = (size(A, 1) + size(A, 2) + 2 + 3) * 2.34
+    width = (size(B, 1) + size(B, 2) + 3) * 2.34
+
     # build table C
     table_C_cells = Vector{String}()
     for m in 1:size(C, 1)
+        push!(table_C_cells, "fill_cell(1),")
         for n in 1:size(C, 2)
             val_idx, thr_id = fldmod1(C(m, n), sC)
             thr_idx = TC(thr_id)
@@ -68,7 +73,7 @@ function print_typst(
 
     table_A_cells = Vector{String}()
     for m in 1:size(A, 1)
-        push!(table_A_cells, "left_cell($(m-1)),")
+        push!(table_A_cells, "left_cell($m),")
         for k in 1:size(A, 2)
             val_idx, thr_id = fldmod1(A(m, k), sA)
             thr_idx = TA(thr_id)
@@ -79,6 +84,7 @@ function print_typst(
 
     table_B_cells = Vector{String}()    
     for k in 1:size(B, 2)
+        push!(table_B_cells, "left_cell($k),")
         for n in 1:size(B, 1)
             val_idx, thr_id = fldmod1(B(n, k), sB)
             thr_idx = TB(thr_id)
@@ -90,7 +96,7 @@ function print_typst(
 
     typst_string = """
 #set par(leading: 0.25em)
-#set page(width: 2000pt)
+#set page(width: $(width)em, height: $(height)em, margin: 0pt)
 
 #let color_map = (
     rgb(175, 175, 255),
@@ -128,13 +134,15 @@ function print_typst(
 )
 
 #let cell(thr_idx, val_idx) = table.cell(fill: color_map.at((thr_idx.bit-and(31))))[#block(width: 1.5em, height: 1.5em)[T#(thr_idx) \\ V#(val_idx)]]
-#let top_cell(i) = table.cell(stroke:none)[#(i+1)]
-#let left_cell(i) = table.cell(x: 0, y:i, stroke:none, align: horizon)[#(i+1)]
+#let top_cell(i) = table.cell(stroke:none, align: horizon)[#(if i == 0 {block(width: 1.5em, height: 1.5em)[]} else {block(width: 1.5em, height: 1.5em)[#i]})]
+#let left_cell(i) = table.cell(x: 0, y:i, stroke:none, align: horizon)[#block(width: 1.5em, height: 1.5em)[#i]]
+#let fill_cell(i) = table.cell(stroke:none)[#block(width: 1.5em, height: 1.5em)[]]
 
 #let table_C = table(
     rows: $(known(size(C, 1))),
-    columns: $(known(size(C, 2))),
+    columns: $(known(size(C, 2)+One())),
     align: center,
+    table.header(..range($(known(size(C, 2)+One()))).map(fill_cell)),
     $(table_C_cells...)
 )
 
@@ -142,15 +150,16 @@ function print_typst(
     columns: $(known(size(A, 2)+One())),
     rows: $(known(size(A, 1))),
     align: center,
+    table.header(..range($(known(size(A, 2)+One()))).map(top_cell)),
     $(table_A_cells...)
 )
 
 
 #let table_B = table(
-    columns: $(known(size(B, 1))),
+    columns: $(known(size(B, 1)+One())),
     rows: $(known(size(B, 2))),
     align: center,
-    table.header(..range($(known(size(B, 1)))).map(top_cell)),
+    table.header(..range($(known(size(B, 1)+One()))).map(top_cell)),
     $(table_B_cells...)
 )
 
@@ -158,7 +167,7 @@ function print_typst(
 #grid(
     columns: 2,
     rows: 2,
-    gutter: 25pt,
+    gutter: 0pt,
     [], table_B,
     table_A, table_C
 )
