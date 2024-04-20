@@ -159,8 +159,8 @@ function thrfrg_B(m::TiledMMA, B::Layout{2})
     permutation_mnk = m.permutation_mnk
 
     t_array = logical_divide(B, (permutation_mnk[2], permutation_mnk[3])) 
-    a_array = zipped_divide(t_array, map(make_layout, map(make_layout, (atom_mnk[2], atom_mnk[3])))) 
-    tv_array = composition(a_array, (layout_b(m), :))                   
+    b_array = zipped_divide(t_array, map(make_layout, map(make_layout, (atom_mnk[2], atom_mnk[3])))) 
+    tv_array = composition(b_array, (layout_b(m), :))                   
 
     thr_tile = (:, (make_layout(size(thr_layout_vmnk, _3)), make_layout(size(thr_layout_vmnk, _4)))) # (:, (thrN, thrK))
     
