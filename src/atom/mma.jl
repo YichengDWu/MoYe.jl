@@ -198,6 +198,37 @@ function make_tiled_mma(mma_atom::AbstractMMAAtom,
     return TiledMMA(mma_atom, atom_layout_mnk, permutation_mnk)
 end
 
+"""
+    make_tiled_mma(mma_op, atom_layout, permutations)
+
+Create a TiledMMA object from an MMA operation, atom layout, and permutations.
+See also [`print_typst`](@ref).
+
+## Arguments
+
+  - `mma_op::OP`: The MMA operation.
+  - `atom_layout::Layout`: The layout of the atom.
+  - `permutations::Tile`: The permutations of the atom.
+
+## Examples
+
+```julia
+julia> tiled_mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), @Layout((2,2), (2,1)), (@Layout((4,4,2), (1,8,4)), static(32), static(4)))
+TiledMMA
+  ThrLayoutVMNK: ((_4, _2), _2, _2, _1):((_1, _16), _8, _4, _0)
+  PermutationMNK: ((_4, _4, _2):(_1, _8, _4), _32, _4)
+MMAAtom
+  Thread ID: (_4, _2):(_1, _16)
+  Layout_A_TV: ((_4, _2), _4):((_8, _4), _1)
+  Layout_B_TV: ((_4, _2), _4):((_8, _4), _1)
+  Layout_C_TV: ((_2, _2, _2), (_2, _2, _2)):((_1, _16, _4), (_8, _2, _32))
+
+
+julia> print_typst(tiled_mma)
+
+```
+
+"""
 function make_tiled_mma(mma_op::OP,
                         atom_layout::Layout=@Layout((1, 1, 1)),
                         permutations::Tile=(:, :, :)) where {OP<: AbstractMMAOP}
