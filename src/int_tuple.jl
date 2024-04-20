@@ -262,6 +262,7 @@ make_tuple(::Type{Colon}) = Colon()
     end
     return expr
 end
+make_tuple(::Type{S}) where {S} = S()
 
 function Base.getindex(x::StaticInt, i::Integer)
     @inline

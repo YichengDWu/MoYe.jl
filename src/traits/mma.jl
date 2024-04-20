@@ -35,11 +35,11 @@ function MMATraits{OP}() where {OP<: AbstractMMAOP}
     return MMATraits{OP, valtype_d(OP()), valtype_a(OP()), valtype_b(OP()), valtype_c(OP())}()
 end
 
-@inline shape_mnk(::MMATraits{UniversalFMA}) = static((1, 1, 1))
-@inline thr_id(::MMATraits{UniversalFMA}) = @Layout 1
-@inline layout_a(::MMATraits{UniversalFMA}) = @Layout (1, 1)
-@inline layout_b(::MMATraits{UniversalFMA}) = @Layout (1, 1)
-@inline layout_c(::MMATraits{UniversalFMA}) = @Layout (1, 1)
+@inline shape_mnk(::MMATraits{<:UniversalFMA}) = static((1, 1, 1))
+@inline thr_id(::MMATraits{<:UniversalFMA}) = @Layout 1
+@inline layout_a(::MMATraits{<:UniversalFMA}) = @Layout (1, 1)
+@inline layout_b(::MMATraits{<:UniversalFMA}) = @Layout (1, 1)
+@inline layout_c(::MMATraits{<:UniversalFMA}) = @Layout (1, 1)
 
 
 # utilities

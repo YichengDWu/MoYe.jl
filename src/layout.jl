@@ -294,7 +294,7 @@ Get the cardinality of the domain of the layout. See also [`cosize`](@ref).
 function Base.size(layout::Layout)
     return capacity(shape(layout))
 end
-function Base.size(layout::Layout, i::Int)
+function Base.size(layout::Layout, i::IntType)
     return capacity(shape(layout)[i])
 end
 function Base.size(layout::Type{<:StaticLayout})

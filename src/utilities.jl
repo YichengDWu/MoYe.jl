@@ -29,7 +29,7 @@ end
 
 const Two = StaticInt{2}
 const Three = StaticInt{3}
-
+const Four = StaticInt{4}
 const 𝟎 = Zero()
 const 𝟏 = One()
 const 𝟐 = Two()

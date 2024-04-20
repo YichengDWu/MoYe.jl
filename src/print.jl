@@ -43,12 +43,6 @@ function print_layout(layout::Layout{2})
     return println("+")
 end
 
-"""
-    print_typst(::MMAAtom)
-
-Print the layout of the A, B, and C matrices in a typst format.
-Go to https://typst.app and paste the output to visualize the layout.
-"""
 function print_typst(
     A::Layout, TA::Layout, 
     B::Layout, TB::Layout,
@@ -95,78 +89,95 @@ function print_typst(
 
 
     typst_string = """
-    #set par(leading: 0.25em)
+#set par(leading: 0.25em)
+#set page(width: 2000pt)
 
-    #let color_map = (
-      rgb(175, 175, 255),
-      rgb(175, 255, 175),
-      rgb(255, 255, 175),
-      rgb(255, 175, 175),
-      rgb(210, 210, 255),
-      rgb(210, 255, 210),
-      rgb(255, 210, 210),
-      aqua,
-      teal,
-      red.transparentize(50%),
-      yellow,
-      lime,
-      fuchsia.transparentize(50%),
-      olive,
-      orange,
-      purple,  
-      maroon.transparentize(70%),
-      rgb(87, 127, 230).transparentize(30%),
-      cmyk(27%, 0%, 3%, 5%),
-      color.hsl(30deg, 50%, 60%).transparentize(30%),
-      color.mix((red, 70%), (blue, 30%)).transparentize(30%),
-      color.mix((red, 70%), (fuchsia, 30%)).transparentize(30%),
-      color.mix((aqua, 70%), (fuchsia, 30%)).transparentize(10%),
-      color.mix((purple, 70%), (blue, 30%)).transparentize(50%),
-      color.mix((red, 30%), (fuchsia, 70%)).transparentize(50%),
-      color.mix((eastern, 30%), (fuchsia, 70%)).transparentize(30%),
-      color.mix((green, 50%), (olive, 50%)).transparentize(30%),
-      color.mix((blue, 50%), (purple, 50%)).transparentize(30%),
-      color.mix((yellow, 50%), (purple, 50%)).transparentize(30%),
-      color.mix((orange, 50%), (purple, 50%)).transparentize(30%),
-      color.mix((olive, 70%), (blue, 30%)).transparentize(30%),
-      color.mix((aqua, 60%), (lime, 40%)).transparentize(30%),
-    )
-    
-    #let cell(thr_idx, val_idx) = table.cell(fill: color_map.at((thr_idx.bit-and(31))))[#block(width: 1.5em, height: 1.5em)[T#(thr_idx) \\ V#(val_idx)]]
-    #let top_cell(i) = table.cell(stroke:none)[#(i+1)]
-    #let left_cell(i) = table.cell(x: 0, y:i, stroke:none, align: horizon)[#(i+1)]
-    
-    #let table_C = table(
-        rows: $(known(size(C, 1))),
-        columns: $(known(size(C, 2))),
-        align: center,ulia
-        $(table_C_cells...)
-    )
+#let color_map = (
+    rgb(175, 175, 255),
+    rgb(175, 255, 175),
+    rgb(255, 255, 175),
+    rgb(255, 175, 175),
+    rgb(210, 210, 255),
+    rgb(210, 255, 210),
+    rgb(255, 210, 210),
+    aqua,
+    teal,
+    red.transparentize(50%),
+    yellow.transparentize(50%),
+    lime.transparentize(50%),
+    fuchsia.transparentize(50%),
+    color.mix((aqua, 10%), (red, 50%)).transparentize(10%),
+    orange.transparentize(30%),
+    purple.transparentize(50%),  
+    maroon.transparentize(70%),
+    rgb(87, 127, 230).transparentize(30%),
+    cmyk(27%, 0%, 3%, 5%),
+    color.hsl(30deg, 50%, 60%).transparentize(30%),
+    color.mix((red, 70%), (blue, 30%)).transparentize(30%),
+    color.mix((red, 70%), (fuchsia, 30%)).transparentize(30%),
+    color.mix((aqua, 70%), (fuchsia, 30%)).transparentize(10%),
+    color.mix((purple, 70%), (blue, 30%)).transparentize(50%),
+    color.mix((red, 30%), (fuchsia, 70%)).transparentize(50%),
+    color.mix((eastern, 30%), (fuchsia, 70%)).transparentize(30%),
+    color.mix((green, 50%), (olive, 50%)).transparentize(30%),
+    color.mix((blue, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((yellow, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((orange, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((teal, 70%), (blue, 30%)).transparentize(30%),
+    color.mix((aqua, 60%), (lime, 40%)).transparentize(30%),
+)
 
-    #let table_A = table(
-        columns: $(known(size(A, 2)+One())),
-        rows: $(known(size(A, 1))),
-        align: center,
-        $(table_A_cells...)
-    )
+#let cell(thr_idx, val_idx) = table.cell(fill: color_map.at((thr_idx.bit-and(31))))[#block(width: 1.5em, height: 1.5em)[T#(thr_idx) \\ V#(val_idx)]]
+#let top_cell(i) = table.cell(stroke:none)[#(i+1)]
+#let left_cell(i) = table.cell(x: 0, y:i, stroke:none, align: horizon)[#(i+1)]
+
+#let table_C = table(
+    rows: $(known(size(C, 1))),
+    columns: $(known(size(C, 2))),
+    align: center,
+    $(table_C_cells...)
+)
+
+#let table_A = table(
+    columns: $(known(size(A, 2)+One())),
+    rows: $(known(size(A, 1))),
+    align: center,
+    $(table_A_cells...)
+)
 
 
-    #let table_B = table(
-        columns: $(known(size(B, 1))),
-        rows: $(known(size(B, 2))),
-        align: center,
-        table.header(..range($(known(size(B, 1)))).map(top_cell)),
-        $(table_B_cells...)
-    )
-  
+#let table_B = table(
+    columns: $(known(size(B, 1))),
+    rows: $(known(size(B, 2))),
+    align: center,
+    table.header(..range($(known(size(B, 1)))).map(top_cell)),
+    $(table_B_cells...)
+)
 
-    #grid(
-        columns: 2,
-        rows: 2,
-        gutter: 25pt,
-        [], table_B,
-        table_A, table_C
-    )
+
+#grid(
+    columns: 2,
+    rows: 2,
+    gutter: 25pt,
+    [], table_B,
+    table_A, table_C
+)
     """
     print(typst_string)
+end
+
+
+"""
+    print_typst(::MMAAtom)
+
+Print the layout of the A, B, and C matrices in a typst format.
+Go to https://typst.app and paste the output to visualize the layout.
+"""
+print_typst(m::MMAAtom) = print_typst(make_tiled_mma(m))
+function print_typst(tiled_mma::TiledMMA)
+    A, TA = get_layoutA_MK(tiled_mma)
+    B, TB = get_layoutB_NK(tiled_mma)
+    C, TC = get_layoutC_MN(tiled_mma)
+
+    print_typst(A, TA, B, TB, C, TC)
 end

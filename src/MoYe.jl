@@ -65,7 +65,7 @@ export static, @gc_preserve, static_size
 export flatten, unflatten
 export colex_less, elem_less, increment, capacity
 export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compact_row_major,
-       GenColMajor, GenRowMajor, @Layout, make_tuple
+       GenColMajor, GenRowMajor, @Layout
 
 # Layout
 export Layout, make_layout, shape, rank, depth, cosize, composition, complement,
