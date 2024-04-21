@@ -59,7 +59,6 @@ _toint(x::Integer) = Int(x)
 _toint(x::Colon) = x
 
 """
-    @parallelize x::MoYeArray threadgroup_layout::Tile   thread_idx::Tuple
     @parallelize x::MoYeArray threadgroup_layout::Layout thread_idx::Int
 
 Partition `x` with `size(threadgroup_layout)` threads, and return the view of the entries that the thread at `thread_idx` will work on.
@@ -102,9 +101,15 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
  11  23  35  47
 ```
 """
-macro parallelize(x, tile, coord, args...)
-    quote
-        local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), static($(map(esc, args)...))...)
+macro parallelize(x, tile, coord, proj...)
+    if length(proj) == 0
+        return quote
+            local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+        end
+    else
+        return quote
+            local_partition($(esc(x)), static($(esc(tile))), _toint($(esc(coord))), static($(esc(proj[1]))))
+        end
     end
 end
 
@@ -141,9 +146,15 @@ julia> @tile a (_2, _2) (1, 1)
 
 ```
 """
-macro tile(x, tile, coord, args...)
-    quote
-        local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), static($(map(esc, args)...))...)
+macro tile(x, tile, coord, proj...)
+    if length(proj) == 0
+        return quote
+            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+        end
+    else
+        return quote
+            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), static($(esc(proj[1]))))
+        end
     end
 end
 
