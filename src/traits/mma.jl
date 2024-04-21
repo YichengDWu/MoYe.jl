@@ -64,7 +64,7 @@ function mma_unpack!(traits::MMATraits{OP, TD, TA, TB, TC},
     @assert length(rA) == reg_num_A
     @assert length(rB) == reg_num_B
     @assert length(rC) == reg_num_C
-    return fma!(mma_op, rD, rA, rB, rC)
+    return fma!(OP(), rD, rA, rB, rC)
 end
 
 include("mma_sm70.jl")
