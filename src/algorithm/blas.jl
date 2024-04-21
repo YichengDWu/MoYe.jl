@@ -50,7 +50,8 @@ end
 end
 
 # batched outer product (3,2,2,3) -> (1,1,1,1)
-@generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::LocalArray{DA,2},
+@generated function gemm!(mma_atom::AbstractMMAAtom, 
+                          D::LocalArray{DT,3}, A::LocalArray{DA,2},
                           B::LocalArray{DB,2}, C::LocalArray{DC,3}) where {DT,DA,DB,DC}
     @assert size(layout(A), _2) == size(layout(C), _2) == size(layout(D), _2) # M
     @assert size(layout(B), _2) == size(layout(C), _3) == size(layout(D), _3) # N
@@ -86,22 +87,28 @@ end
     end
 end
 
-# A and B are already partitioned
-function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,2},  A::SharedArray{DA,2},
-               B::SharedArray{DB,2}, C::LocalArray{DC,2}) where {DT,DA,DB,DC}
-    @assert size(layout(A), 1) == size(layout(C), 1) == size(layout(D), 1) # M
-    @assert size(layout(B), 1) == size(layout(C), 2) == size(layout(D), 2) # N
-    @assert size(layout(A), 2) == size(layout(B), 2) # K
+# (2,2,2,2) -> (3,3,3,3)
+@generated function gemm!(mma_atom::AbstractMMAAtom,
+               D::LocalArray{DT, 2}, 
+               A::SharedArray{DA, 2},
+               B::SharedArray{DB, 2},
+               C::LocalArray{DC, 2}) where {DT,DA,DB,DC}
+    @assert size(layout(A), _1) == size(layout(C), _1) == size(layout(D), _1) # M
+    @assert size(layout(B), _1) == size(layout(C), _2) == size(layout(D), _2) # N
+    @assert size(layout(A), _2) == size(layout(B), _2) # K
 
-    @assert size(mma_atom.traits.Alayout, 2) == One()
-    @assert size(mma_atom.traits.Blayout, 2) == One()
-    @assert size(mma_atom.traits.Clayout, 2) == One()
+    @assert size(layout_a(mma_atom()), _2) == One()
+    @assert size(layout_b(mma_atom()), _2) == One()
+    @assert size(layout_c(mma_atom()), _2) == One()
 
-    gemm!(mma_atom,
-          prepend_dim(D,  _3), prepend_dim(A,  _3),
-          prepend_dim(B,  _3), prepend_dim(C,  _3))
+    return quote
+        gemm!(mma_atom,
+        prepend_dim(D,  _3), prepend_dim(A,  _3),
+        prepend_dim(B,  _3), prepend_dim(C,  _3)) 
+    end
 end
 
+# (3,3,3,3) -> (3,2,2,3)
 @generated function gemm!(mma_atom::AbstractMMAAtom, D::LocalArray{DT,3},  A::SharedArray{DA,3},
                B::SharedArray{DB,3}, C::LocalArray{DC,3}) where {DT, DA, DB, DC}
     @assert size(layout(A), _2) == size(layout(C), _2) == size(layout(D), _2) # M
@@ -117,7 +124,7 @@ end
         @loopinfo unroll for k in axes(A,3)
             copyto!(view(rA, :, :, k), view(A, :, :, k))
             copyto!(view(rB, :, :, k), view(B, :, :, k))
-            gemm!(mma_atom, D, view(rA, :, :, k), view(rB, :, :, k), C)  # (3,2,2,3)
+            gemm!(mma_atom, D, view(rA, :, :, k), view(rB, :, :, k), C) 
         end
         return nothing
     end
