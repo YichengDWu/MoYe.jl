@@ -114,13 +114,13 @@ The resulting layout would resemble:
 `complement` computes the first row of this new layout. 
 
 ```@repl layout
-print_layout(complement(Layout(4,2), 24))
+print_layout(complement(@Layout(4,2), 24))
 ```
 
 The layout `Layout(4,2)` and it complement gives us the desired new layout.
 
 ```@repl layout
-print_layout(make_layout(Layout(4, 2),complement(Layout(4, 2), 24)))
+print_layout(make_layout(@Layout(4, 2),complement(@Layout(4, 2), 24)))
 ```
 
 ### Product

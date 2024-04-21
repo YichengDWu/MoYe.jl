@@ -214,7 +214,9 @@ function make_ordered_layout(layout::Layout)
     return make_ordered_layout(shape(layout), stride(layout))
 end
 
-# make_layout_like
+function make_layout_like(layout::Layout,)
+    return make_layout(shape(layout), compact_order(filter_zeros(stride(layout), shape(layout)), stride(layout)))
+end
 
 # make_identity_layout
 """

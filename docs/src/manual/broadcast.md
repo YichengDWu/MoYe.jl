@@ -2,15 +2,15 @@
 
 Broadcasting is only defined for [`MoYeArray`](@ref)s with static sizes. 
 
-In-place broadcasting preserves the layout.
+In-place broadcasting preserves the original layout.
 
-Out-of-place broadcasting always returns an owning array with a col-major compact layout. 
-Because the stride order of the original array is not respected, the performance can be suboptimal.
+Out-of-place broadcasting always returns an owning array of a compact layout with
+the same shape and the stride ordered the same.
 
 ```@repl bc
 using MoYe
 a = MoYeArray{Float64}(undef, @Layout((3,2), (2,1)))
-fill!(a, 1.0);
+fill!(a, 1.0); 
 a .* 3
 a .+ a
 ```

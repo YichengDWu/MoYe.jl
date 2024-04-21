@@ -1,13 +1,3 @@
-@inline function make_moyearray_like(::Type{T}, @nospecialize(layout::StaticLayout)) where {T <: Number}
-    return MoYeArray{T}(undef, make_ordered_layout(layout)) # make the layout compact, hence not the same as `similar`
-end
-@inline function make_moyearray_like(::Type{T}, @nospecialize(x::MoYeArray)) where {T}
-    return make_moyearray_like(T, layout(x))
-end
-@inline function make_moyearray_like(@nospecialize x::MoYeArray{T}) where {T}
-    return make_moyearray_like(T, x)
-end
-
 @inline function make_fragment_like(::Type{T}, layout::Layout) where {T}
     return MoYeArray{T}(undef, make_fragment_like(layout))
 end
@@ -69,7 +59,6 @@ _toint(x::Integer) = Int(x)
 _toint(x::Colon) = x
 
 """
-    @parallelize x::MoYeArray threadgroup_layout::Tile   thread_idx::Tuple
     @parallelize x::MoYeArray threadgroup_layout::Layout thread_idx::Int
 
 Partition `x` with `size(threadgroup_layout)` threads, and return the view of the entries that the thread at `thread_idx` will work on.
@@ -112,9 +101,15 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
  11  23  35  47
 ```
 """
-macro parallelize(x, tile, coord, args...)
-    quote
-        local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), $(map(esc, args)...))
+macro parallelize(x, tile, coord, proj...)
+    if length(proj) == 0
+        return quote
+            local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+        end
+    else
+        return quote
+            local_partition($(esc(x)), static($(esc(tile))), _toint($(esc(coord))), static($(esc(proj[1]))))
+        end
     end
 end
 
@@ -151,9 +146,15 @@ julia> @tile a (_2, _2) (1, 1)
 
 ```
 """
-macro tile(x, tile, coord, args...)
-    quote
-        local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), $(map(esc, args)...))
+macro tile(x, tile, coord, proj...)
+    if length(proj) == 0
+        return quote
+            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+        end
+    else
+        return quote
+            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), static($(esc(proj[1]))))
+        end
     end
 end
 

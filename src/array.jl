@@ -269,8 +269,12 @@ end
     end
 end
 
-@inline function Base.similar(x::MoYeArray{S,N,E,<:StaticLayout}, ::Type{T}) where {S,N,E,T}
-    return MoYeArray{T}(undef, layout(x))
+@inline function Base.similar(::Type{T}, x::MoYeArray{S,N,E,<:StaticLayout}) where {S,N,E,T}
+    return MoYeArray{T}(undef, make_layout_like(x.layout))
+end
+
+@inline function Base.similar(x::MoYeArray{S,N,E,<:StaticLayout}) where {S,N,E}
+    return similar(S, x)
 end
 
 function transpose(x::MoYeArray)
