@@ -68,7 +68,7 @@ export coord_to_index, index_to_coord, coord_to_coord, compact_col_major, compac
        GenColMajor, GenRowMajor, @Layout
 
 # Layout
-export Layout, make_layout, shape, rank, depth, cosize, composition, complement,
+export Layout, StaticLayout, make_layout, shape, rank, depth, cosize, composition, complement,
        logical_product, blocked_product, raked_product, zipped_product, tiled_product,
        logical_divide, zipped_divide, tiled_divide, zeros!, recast, right_inverse,
        left_inverse
