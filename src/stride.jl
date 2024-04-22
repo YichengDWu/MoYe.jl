@@ -1,4 +1,5 @@
-@generated function coord_to_index0_ttt(coord::StaticIntTuple{N}, shape::StaticIntTuple{N}, stride::StaticIntTuple{N}, I::StaticInt{N}) where {N}
+@generated function coord_to_index0_ttt(coord::NTuple{N, <:StaticInt}, shape::NTuple{N, <:StaticInt}, 
+                                        stride::NTuple{N, <:StaticInt}, I::StaticInt{N}) where {N}
     coord, stride = make_tuple(coord), make_tuple(stride)
     result = sum((c * s for (c, s) in zip(coord, stride)))
     return :($result)
@@ -31,7 +32,7 @@ Base.@assume_effects :terminates_locally @generated function coord_to_index0_itt
         end
         return expr
     else
-        expr = Expr(:block)
+        expr = Expr(:block, :(result = Zero()), :(new_coord = coord))
         for i in 1:N
             if shape.parameters[i] <: Tuple
                 push!(expr.args, :(result += coord_to_index0_itt(new_coord % product(shape[$i]), shape[$i], stride[$i])))
@@ -41,14 +42,8 @@ Base.@assume_effects :terminates_locally @generated function coord_to_index0_itt
             push!(expr.args, :(new_coord = new_coord ÷ product(shape[$i])))
         end
 
-        return quote
-            result = Zero()
-            new_coord = coord
-            for i in 1:$N
-                $expr
-            end
-            return result
-        end
+        push!(expr.args, :(return result))
+        return expr
     end
 end
 
@@ -112,13 +107,18 @@ end
 @inline _offset(x::Colon) = Zero()
 @inline _offset(x::Int) = x - one(x)
 @inline _offset(x::StaticInt{N}) where {N} = StaticInt{N - 1}()
+@inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(Returns(Zero()), Val(N))
+@inline function _offset(x::NTuple{N, Int}) where {N}
+    return ntuple(Base.Fix2(-, 1) ∘ Base.Fix1(getindex, x), Val(N))
+end
+@inline _offset(x::Tuple) = map(_offset, x)
 
 Base.@assume_effects :total function coord_to_index(coord::IntType, shape, stride...)
     idx = coord_to_index0(coord - one(coord), shape, stride...)
     return idx + one(idx)
 end
 Base.@assume_effects :total function coord_to_index(coord, shape, stride...)
-    idx = coord_to_index0(fmap(_offset, coord), shape, stride...)
+    idx = coord_to_index0(_offset(coord), shape, stride...)
     return idx + one(idx)
 end
 
