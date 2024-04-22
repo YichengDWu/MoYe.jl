@@ -1,91 +1,76 @@
 using MoYe, CUDA, Test
 using MoYe: @loopinfo
 
-function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
-                       C, blocklayout_C, threadlayout_C)
-    sA = MoYeSharedArray(eltype(A), blocklayout_A)
-    sB = MoYeSharedArray(eltype(B), blocklayout_B)
-
-    X = MoYe.One()
+function matmul_kernel(A, sA_layout, tA,
+                       B, sB_layout, tB,
+                       C, tC)
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
+
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+    
+    bM = size(sA, _1)
+    bN = size(sB, _1)
+    bK = size(sA, _2)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
     mC = MoYeArray(C, (M, N))
 
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-    bK = size(blocklayout_B, 2)
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    blocktile_A = @tile mA (bM, bK) (blockIdx().x, :) # (bM,bK,k)
-    blocktile_B = @tile mB (bN, bK) (blockIdx().y, :) # (bN,bK,k)
-    blocktile_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
+    # copy partition
+    tAgA = @parallelize gA tA threadIdx().x 
+    tBgB = @parallelize gB tB threadIdx().x
+    tAsA = @parallelize sA tA threadIdx().x
+    tBsB = @parallelize sB tB threadIdx().x
 
-    # Load data A and B from gmem to smem a and b
-    threadtile_gA = @parallelize blocktile_A threadlayout_A threadIdx().x # (tM,tK,k)
-    threadtile_sA = @parallelize sA threadlayout_A threadIdx().x # (tM,tK）
+    # mma partition
+    tCsA = @parallelize sA tC threadIdx().x (1, :) 
+    tCsB = @parallelize sB tC threadIdx().x (:, 1)
+    tCgC = @parallelize gC tC threadIdx().x 
 
-    threadtile_gB = @parallelize blocktile_B threadlayout_B threadIdx().x # (tN,tK,k)
-    threadtile_sB = @parallelize sB threadlayout_B threadIdx().x # (tN,tK）
+    # accumulator
+    tCrC = MoYeArray{Float32}(undef, @Layout(8,8))#similar(tCgC)
+    zeros!(tCrC)
 
-    # For mma computation
-    computetile_sA = @parallelize sA threadlayout_C threadIdx().x (X, :)
-    computetile_sB = @parallelize sB threadlayout_C threadIdx().x (:, X)
-    computetile_gC = @parallelize blocktile_C threadlayout_C threadIdx().x # (128 ÷ 16, 128 ÷ 16)
-
-    frg_c = make_fragment_like(computetile_gC)
-    zeros!(frg_c)
-
-    k_max = size(threadtile_gA, 3)
-
-    for i in 1:k_max
-        # copy gmem to smem
-        copyto!(threadtile_sA, view(threadtile_gA, :, :, i))
-        copyto!(threadtile_sB, view(threadtile_gB, :, :, i))
-        cp_async_wait()
+    for k in axes(tAgA, 3)
+        copyto!(tAsA, view(tAgA, :, :, k))
+        copyto!(tBsB, view(tBgB, :, :, k))
+        
         sync_threads()
 
-        # classic three nested for loops
-        for k in axes(computetile_sA, 2)
-            @loopinfo unroll for m in axes(computetile_sA, 1)
-                @loopinfo unroll for n in axes(computetile_sB, 1)
-                    @inbounds frg_c[m, n] += computetile_sA[m, k] * computetile_sB[n, k]
-                end
-            end
-        end
-
+        @gc_preserve gemm!(tCsA, tCsB, tCrC)
         sync_threads()
     end
 
-    copyto!(computetile_gC, frg_c)
+
+    copyto!(tCgC, tCrC)
     return nothing
 end
 
 function matmul(A, B, C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    bM = _128
+    bN = _128
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK))
+    sB_layout = make_layout((bN, bK))
 
-    blocklayout_A = @Layout (128, 8)
-    blocklayout_B = @Layout (128, 8)
-    blocklayout_C = @Layout (128, 128)
+    tA = @Layout (32, 8)
+    tB = @Layout (32, 8)
+    tC = @Layout (16, 16)
 
-    threadlayout_A = @Layout (32, 8)
-    threadlayout_B = @Layout (32, 8)
-    threadlayout_C = @Layout (32, 8)
+    threads = Int(size(tC))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
 
-    threads = Int(size(threadlayout_C))
-
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-
-    blocks = (cld(M, bM), cld(N, bN))
-
-    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A,
-                                                      B, blocklayout_B, threadlayout_B,
-                                                      C, blocklayout_C, threadlayout_C)
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, tA,
+                                                      B, sB_layout, tB,
+                                                      C, tC)
 end
 
 function test()
@@ -101,56 +86,3 @@ function test()
 end
 
 test()
-
-
-function matmul_kernel(A, sA_layout, tA,
-                       B, sB_layout, tB,
-                       C, tC)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
-
-	sA = MoYeSharedArray(eltype(gA), sA_layout)
-	sB = MoYeSharedArray(eltype(gB), sB_layout)
-	
-	bM = size(sA, _1)
-	bN = size(sB, _1)
-	bK = size(sA, _2)
-
-	gA = MoYeArray(A, (M, K))
-	gB = MoYeArray(B, (N, K))
-	gC = MoYeArray(C, (M, N))
-
-	bA = @tile gA (bM, bK) (blockIdx().x, :)
-	bB = @tile gB (bN, bK) (blockIdx().y, :)
-	bC = @tile gC (bM, bN) (blockIdx().x, blockIdx().y)
-
-	# copy partition
-	tAgA = @parallelize gA tA threadIdx().x 
-	tBgB = @parallelize gB tB threadIdx().x
-	tAsA = @parallelize sA tA threadIdx().x
-	tBsB = @parallelize sB tB threadIdx().x
-
-	# mma partition
-	tCsA = @parallelize sA tC threadIdx().x (1, :) 
-	tCsB = @parallelize sB tC threadIdx().x (:, 1)
-	tCgC = @parallelize gC tC threadIdx().x 
-
-	# acumulator
-	tCrC = similar(tCgC)
-	zeros!(tCrC)
-
-	for k in axes(tAgA)
-		copyto!(tAsA, view(tAgA, :, :, k))
-		copyto!(tBsB, view(tBgB, :, :, k))
-		
-		sync_threads()
-
-		@gc_preserve gemm!(tCsA, tCsB, tCrC)
-		sync_threads()
-	end
-
-
-    copyto!(tCgC, tCrC)
-    return nothing
-end
