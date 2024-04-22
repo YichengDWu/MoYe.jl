@@ -1,4 +1,5 @@
 # MatMul
+![matmuil](./assets/matmul.png)
 
 In this tutorial, we explore matrix multiplication using MoYe.jl , specifically computing the product $C = A * B^\top$. Here, matrix $A$ has dimensions $(M, K)$, matrix $B$ has dimensions $(K, N)$, and the resulting matrix $C$ will have dimensions $(M, N)$.
 
@@ -68,7 +69,7 @@ Congratulations, you have now completed all the partitions, and finally, we can 
 for k in axes(tCsA, 2)
     for m in axes(tCsA, 1)
         for n in axes(tCsB, 1)
-            @inbounds tCgC[m, n] += tCsA[m, k] * tCsB[n, k]
+            @inbounds tCrC[m, n] += tCsA[m, k] * tCsB[n, k]
         end
     end
 end
@@ -87,12 +88,12 @@ function matmul_kernel(A, sA_layout, tA,
     N = size(B, 1)
     K = size(A, 2)
 
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
     sA = MoYeSharedArray(eltype(A), sA_layout)
     sB = MoYeSharedArray(eltype(B), sB_layout)
-    
-    bM = size(sA, _1)
-    bN = size(sB, _1)
-    bK = size(sA, _2)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
@@ -114,13 +115,14 @@ function matmul_kernel(A, sA_layout, tA,
     tCgC = @parallelize gC tC threadIdx().x 
 
     # accumulator
-    tCrC = MoYeArray{Float32}(undef, @Layout(8,8))#similar(tCgC)
+    tCrC = similar(tCgC)
     zeros!(tCrC)
 
     for k in axes(tAgA, 3)
         copyto!(tAsA, view(tAgA, :, :, k))
         copyto!(tBsB, view(tBgB, :, :, k))
         
+        cp_async_wait()
         sync_threads()
 
         @gc_preserve gemm!(tCsA, tCsB, tCrC)

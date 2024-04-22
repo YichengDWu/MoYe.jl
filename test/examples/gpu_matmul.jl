@@ -1,5 +1,4 @@
 using MoYe, CUDA, Test
-using MoYe: @loopinfo
 
 function matmul_kernel(A, sA_layout, tA,
                        B, sB_layout, tB,
@@ -8,12 +7,12 @@ function matmul_kernel(A, sA_layout, tA,
     N = size(B, 1)
     K = size(A, 2)
 
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
     sA = MoYeSharedArray(eltype(A), sA_layout)
     sB = MoYeSharedArray(eltype(B), sB_layout)
-    
-    bM = size(sA, _1)
-    bN = size(sB, _1)
-    bK = size(sA, _2)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
@@ -35,19 +34,19 @@ function matmul_kernel(A, sA_layout, tA,
     tCgC = @parallelize gC tC threadIdx().x 
 
     # accumulator
-    tCrC = MoYeArray{Float32}(undef, @Layout(8,8))#similar(tCgC)
+    tCrC = similar(tCgC)
     zeros!(tCrC)
 
     for k in axes(tAgA, 3)
         copyto!(tAsA, view(tAgA, :, :, k))
         copyto!(tBsB, view(tBgB, :, :, k))
         
+        cp_async_wait()
         sync_threads()
 
         @gc_preserve gemm!(tCsA, tCsB, tCrC)
         sync_threads()
     end
-
 
     copyto!(tCgC, tCrC)
     return nothing
@@ -86,3 +85,4 @@ function test()
 end
 
 test()
+

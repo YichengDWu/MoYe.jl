@@ -20,25 +20,18 @@ unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 tuple_cat(x) = x
 tuple_cat(x, y, z...) = (x..., tuple_cat(y, z...)...)
 
-# TODO: make it functional
-function _build_structure(t::IntType, iterator)
-    return popfirst!(iterator)
+function unflatten_impl(flat_tuple::Tuple, target::Tuple)
+    return _foldl(target, ((), flat_tuple)) do v, t
+        result, remaining_tuple = v
+        sub_result, sub_tuple = unflatten_impl(remaining_tuple, t)
+        (append(result, sub_result), sub_tuple)
+    end
 end
-function _build_structure(t::Tuple, iterator)
-    return Tuple(_build_structure(sub, iterator) for sub in t)
-end
+unflatten_impl(flat_tuple::Tuple, target) = (Base.first(flat_tuple), Base.tail(flat_tuple))
 
-function unflatten(flat_shape::Tuple{}, target::Tuple{})
-    return ()
-end
-@generated function unflatten(flat_tuple::Tuple{Vararg{StaticInt}}, target::Tuple{Vararg{StaticInt}}) 
-    flat_tuple, target = map(make_tuple, (flat_tuple, target))
-    iterator = Iterators.Stateful(flat_tuple)
-    return :($(_build_structure(target, iterator)))
-end
 function unflatten(flat_tuple::Tuple, target::Union{IntType, Tuple})
-    iterator = Iterators.Stateful(flat_tuple)
-    return _build_structure(target, iterator)
+    unflatten_tuple, flat_remidner = unflatten_impl(flat_tuple, target)
+    return unflatten_tuple
 end
 
 function insert(@nospecialize(t::Tuple), x, N)

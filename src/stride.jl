@@ -293,8 +293,10 @@ function compact_order(shape, order)
     old_shape = flatten_to_tuple(product_like(shape, order))
     flat_order = flatten_to_tuple(order)
 
-    max_order = _foldl(max, flat_order, Zero())
-    old_order = map(ntuple(x->static(x+max_order), rank(flat_order)), flat_order) do seq_v, o
+    max_order = _foldl(flat_order, Zero()) do v, o
+        ifelse(Static.le(v, o) isa Static.True, o, v)
+    end    
+    old_order = map(ntuple(i->static(i+max_order), Val(rank(flat_order))), flat_order) do seq_v, o
         ifelse(o isa StaticInt, o, seq_v)
     end
     new_order = unflatten(old_order, order)

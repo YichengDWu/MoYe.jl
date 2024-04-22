@@ -65,10 +65,10 @@ function Base.show(io::IO, m::MMAAtom)
     return println(io, "  Layout_C_TV: ", layout_c(m))
 end
 
-function apply(mma_atom::AbstractMMAAtom, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
-               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {TD, TA, TB, TC}
+function apply(mma_atom::AbstractMMAAtom{Traits}, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
+               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {Traits, TD, TA, TB, TC}
     @inline
-    return mma_unpack!(mma_atom, D, A, B, C)
+    return mma_unpack!(Traits(), D, A, B, C)
 end
 function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray)
     @inline

@@ -13,7 +13,7 @@ gemm!(mma::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mm
 
 function gemm!(D::MoYeArray{TD}, A::MoYeArray{TA}, B::MoYeArray{TB}, C::MoYeArray{TC}) where {TD,TA,TB,TC}
     @inline
-    return gemm!(MMAAtom{UniversalFMA{TD,TA,TB,TC}}(), A, B, C, D)
+    return gemm!(MMAAtom{UniversalFMA{TD,TA,TB,TC}}(), D, A, B, C)
 end
 
 # element-wise multiplication (1,1,1,1)
