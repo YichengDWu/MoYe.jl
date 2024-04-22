@@ -1,305 +1,180 @@
 # MatMul
 
-This tutorial demonstrates how to perform matrix multiplication `C = A * B^T` using `MoYe`.
+In this tutorial, we explore matrix multiplication using MoYe.jl , specifically computing the product $C = A * B^\top$. Here, matrix $A$ has dimensions $(M, K)$, matrix $B$ has dimensions $(K, N)$, and the resulting matrix $C$ will have dimensions $(M, N)$.
 
-We follow the convention where the shape of matrix `A` is `(M, K)`, matrix `B` is `(N, K)`, and matrix `C` is `(M, N)`.
+First, we divide the task among each block. We use a tile of size (bM, bN) to partition C, with each block responsible for computing one tile. The tile's index is determined by (blockIdx().x, blockIdx().y).
 
-## On CPU
+Computing a tile requires all values from A of shape (dM, K) and B of shape (dN, K). To reduce global memory access (since A, B, and C are stored in global memory), we further partition A and B along the K dimension, sequentially loading elements of sizes (dM, dK) and (dN, dK) into shared memory, then performing the matrix multiplication and accumulating the results into the tile of C.
 
-First, we launch Julia with 16 threads:
+The partition of the global memory corresponds to the following three lines of code:
+```julia
+gC = @tile C (bM, bN) (blockIdx().x, blockIdx().y) # (bM, bN)
+gA = @tile A (bM, bK) (blockIdx().x, :)            # (bM, bK, K/bK)
+gB = @tile B (bN, bK) (blockIdx().y, :)            # (bN, bK, K/bK)
+```
+For the specific partition syntax, please refer to [`@tile`](@ref). Here, `gA` represents `A` in shared memory. Next, we use a for loop to index-slice the last dimension of gA and gB (denoted as `k`), loading them into shared memory. The code for this step is:
 
 ```julia
-julia --threads 16
+sA = MoYeSharedArray(eltype(gA), sA_layout) # (bM, bK)
+sB = MoYeSharedArray(eltype(gB), sB_layout) # (bN, bK)
 ```
 
-Correspondingly, we use a thread layout of
+`MoYeSharedArray` automatically allocates shared memory of size `cosize(sA_layout) + cosize(sB_layout)` and returns a `MoYeArray`. We will explain how to define the layouts for sA and sB later; for now, it's only necessary to know that they are predefined at compile time.
 
+We then need to define how thread groups collectively copy from global to shared memory. There are many ways to organize threads, which will be discussed later, such as:
 ```julia
-threadlayout = @Layout (4, 4)
+tA = @Layout (32, 8)
+tB = @Layout (32, 8)
 ```
 
-We start with a simple example, where `M = 4, N = 4`, and `K = 8`. In this case, each thread processes one element of matrix `C`.
-
+This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:
 ```julia
-M = 4
-N = 4
-K = 8
-A = reshape([i for i in 1:(M*K)], (M, K))
-B = reshape([i for i in 1:(N*K)], (N, K))
-C = zeros(Int, M, N)
+tAgA = @parallelize tA threadIdx().x
+tBgB = @parallelize tB threadIdx().x
 
-moye_A = MoYeArray(A, (M, K))
-moye_B = MoYeArray(B, (N, K))
-moye_C = MoYeArray(C, (M, N))
-```
-After setting up the initial matrices and thread layouts, we can proceed with the tiling process. The [`@parallelize`](@ref) macro is used with a fourth argument, which is the projection. Specifically, the thread IDs of all columns in the thread layout are projected onto the first column, and only the first column is used for tiling. The _1 is just a placeholder, representing the dimensions that are preserved in the projection.
-
-```julia
-threadlayout = @Layout (4, 4)
-tile_A = @parallelize moye_A threadlayout 1 (_1, :)
-tile_B = @parallelize moye_B threadlayout 1 (:, _1)
+tAsA = @parallelize sA threadIdx().x
+tBsB = @parallelize sB threadIdx().x
 ```
 
-Let's take a look at the contents of tile_A:
+For the specific syntax, please refer to [`@parallelize`](@ref). After the partition, copying is simply:
 ```julia
-julia> tile_A = @parallelize moye_A threadlayout 1 (_1, :)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 1  5  9  13  17  21  25  29
-```
-Thread 1 processes the element in the first row and first column of `C`, and it needs the elements in the first row of `A`, which are the contents printed above. Let's see all the elements of `A` that Thread 2 needs:
-
-```julia
-julia> tile_A = @parallelize moye_A threadlayout 2 (_1, :)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 2  6  10  14  18  22  26  30
+copyto!(tAsA, view(tAgA, :, :, k))
+copyto!(tBsB, view(tBgB, :, :, k))
 ```
 
-This is exactly the second row of `A`. What about Thread 5? It is processing the entry at the first row and second column of `C`, so it also needs the first row of `A`.
-
+After copying, we proceed to the actual matrix-multiply-accumulate (mma) computation. Similarly, we need to define a layout for the thread group for this purpose:
 ```julia
-julia> tile_A = @parallelize moye_A threadlayout 5 (_1, :)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 1  5  9  13  17  21  25  29
-```
-Great, this is exactly what we want. Now let's look at `tile_B`. Threads 1 and 2 both need the first column of `B^T`, while Thread 5 needs the second column of `B^T`.
-```julia
-julia> tile_B = @parallelize moye
-
-julia> tile_B = @parallelize moye_B threadlayout 1 (:, _1)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 1  5  9  13  17  21  25  29
-
-julia> tile_B = @parallelize moye_B threadlayout 2 (:, _1)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 1  5  9  13  17  21  25  29
-
-julia> tile_B = @parallelize moye_B threadlayout 5 (:, _1)
-1×8 MoYeArray{Int64, 2, ViewEngine{Int64, Ptr{Int64}}, Layout{2, Tuple{Int64, Int64}, Tuple{StaticInt{4}, Int64}}}:
- 2  6  10  14  18  22  26  30
+tC = @Layout (16, 16)
 ```
 
-Once the tiling is done, we perform the matrix multiplication using three native loops. The outer loop iterates over the reduction mode `K`, while the inner two loops handle the row and column indices of the resulting matrix C. These loops are responsible for the actual computation of matrix C's elements by multiplying the corresponding elements of matrices A and B.
+Then we use it to partition gC:
+```julia
+tCgC = @parallelize gC tC threadIdx().x 
+tCrC = similar(tCgC)
+```
+
+To reduce memory access to C, we also create an array `tCrC` stored in registers, which serves as the accumulator in the mma computation. After the computation, the contents are copied back into `tCgC`.
+
+A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:
 
 ```julia
-M = 4*32
-N = 4*32
-K = 8*32
-A = rand(M, K)
-B = rand(N, K)
-C = zeros(M, N)
+tCsA = @parallelize sA tC threadIdx().x (1, :) 
+tCsB = @parallelize sB tC threadIdx().x (:, 1)
+```
 
-threadlayout = @Layout (4, 4)
+Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:
 
-moye_A = MoYeArray(A, (M, K))
-moye_B = MoYeArray(B, (N, K))
-moye_C = MoYeArray(C, (M, N))
-
-Threads.@threads :static for i in 1:Threads.nthreads()
-    tile_A = @parallelize moye_A threadlayout Threads.threadid() (_1, :)
-    tile_B = @parallelize moye_B threadlayout Threads.threadid() (:, _1)
-    tile_C = @parallelize moye_C threadlayout Threads.threadid()
-
-    for k in axes(tile_A, 2)
-        for n in axes(tile_C, 2)
-            for m in axes(tile_C, 1)
-                tile_C[m, n] += tile_A[m, k] * tile_B[n, k]
-            end
+```julia
+for k in axes(tCsA, 2)
+    for m in axes(tCsA, 1)
+        for n in axes(tCsB, 1)
+            @inbounds tCgC[m, n] += tCsA[m, k] * tCsB[n, k]
         end
     end
 end
-
-C ≈ A * transpose(B)
+```
+You can also call [`gemm!`] to perform the same operation:
+```julia
+gemm!(tCsA, tCsB, tCrC)
 ```
 
-
-## On GPU
-
-### Low-level code
+The complete kernel code is as follows:
 ```julia
-using MoYe, CUDA, Test
-using MoYe: @loopinfo
-
-function matmul_kernel(A, blocklayout_A, threadlayout_A, B, blocklayout_B, threadlayout_B,
-                       C, blocklayout_C, threadlayout_C)
-    sA = MoYeSharedArray(eltype(A), blocklayout_A)
-    sB = MoYeSharedArray(eltype(B), blocklayout_B)
-
-    X = MoYe.One()
-
+function matmul_kernel(A, sA_layout, tA,
+                       B, sB_layout, tB,
+                       C, tC)
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
+
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+    
+    bM = size(sA, _1)
+    bN = size(sB, _1)
+    bK = size(sA, _2)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
     mC = MoYeArray(C, (M, N))
 
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-    bK = size(blocklayout_B, 2)
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    blocktile_A = @tile mA (bM, bK) (blockIdx().x, :) # (bM,bK,k)
-    blocktile_B = @tile mB (bN, bK) (blockIdx().y, :) # (bN,bK,k)
-    blocktile_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
+    # copy partition
+    tAgA = @parallelize gA tA threadIdx().x 
+    tBgB = @parallelize gB tB threadIdx().x
+    tAsA = @parallelize sA tA threadIdx().x
+    tBsB = @parallelize sB tB threadIdx().x
 
-    # Tiles for loading data A and B from gmem to smem
-    threadtile_gA = @parallelize blocktile_A threadlayout_A threadIdx().x # (tM,tK,k)
-    threadtile_sA = @parallelize sA threadlayout_A threadIdx().x # (tM,tK）
+    # mma partition
+    tCsA = @parallelize sA tC threadIdx().x (1, :) 
+    tCsB = @parallelize sB tC threadIdx().x (:, 1)
+    tCgC = @parallelize gC tC threadIdx().x 
 
-    threadtile_gB = @parallelize blocktile_B threadlayout_B threadIdx().x # (tN,tK,k)
-    threadtile_sB = @parallelize sB threadlayout_B threadIdx().x # (tN,tK）
+    # accumulator
+    tCrC = MoYeArray{Float32}(undef, @Layout(8,8))#similar(tCgC)
+    zeros!(tCrC)
 
-    # For mma computation
-    computetile_sA = @parallelize sA threadlayout_C threadIdx().x (X, :)
-    computetile_sB = @parallelize sB threadlayout_C threadIdx().x (:, X)
-    computetile_gC = @parallelize blocktile_C threadlayout_C threadIdx().x 
-
-    frg_c = make_fragment_like(computetile_gC)
-    zeros!(frg_c)
-
-    for i in axes(threadtile_gA, 3)
-        # copy gmem to smem
-        copyto!(threadtile_sA, view(threadtile_gA, :, :, i))
-        copyto!(threadtile_sB, view(threadtile_gB, :, :, i))
-        cp_async_wait()
+    for k in axes(tAgA, 3)
+        copyto!(tAsA, view(tAgA, :, :, k))
+        copyto!(tBsB, view(tBgB, :, :, k))
+        
         sync_threads()
 
-        # classic three nested for loops
-        for k in axes(computetile_sA, 2)
-            @loopinfo unroll for m in axes(computetile_sA, 1)
-                @loopinfo unroll for n in axes(computetile_sB, 1)
-                    @inbounds frg_c[m, n] += computetile_sA[m, k] * computetile_sB[n, k]
-                end
-            end
-        end
-
+        @gc_preserve gemm!(tCsA, tCsB, tCrC)
         sync_threads()
     end
-    # copy rmem to gmem
-    copyto!(computetile_gC, frg_c)
+
+
+    copyto!(tCgC, tCrC)
     return nothing
 end
 
+```
+
+We still missed a few points, such as:
+
+1. How to design `sA_layout` and `sB_layout`?
+
+For shared memory, we no longer need to consider column-major or row-major but simply need to avoid bank conflicts. This can be simply achieved by padding one column.
+
+```julia
+sA_layout = @Layout (bM, bK) (_1, bM + _1)
+sB_layout = @Layout (bN, bK) (_1, bN + _1)
+```
+
+2. How to design `tC`?
+
+The design of `tC` is quite flexible; it only needs to satisfy that the shape of `tC` evenly divides `(bM, bN)`.
+
+3. How to design `tA` and `tB`?
+
+You generally want every 32 threads to access contiguous elements in A and B, so the specific design depends on the memory layout of A and B. This technique is known as memory coalescing.
+
+The `matmul` function looks like this:
+
+```julia
 function matmul(A, B, C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    bM = _128
+    bN = _128
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK))
+    sB_layout = make_layout((bN, bK))
 
-    blocklayout_A = @Layout (128, 8)
-    blocklayout_B = @Layout (128, 8)
-    blocklayout_C = @Layout (128, 128)
+    tA = @Layout (32, 8)
+    tB = @Layout (32, 8)
+    tC = @Layout (16, 16)
 
-    threadlayout_A = @Layout (32, 8)
-    threadlayout_B = @Layout (32, 8)
-    threadlayout_C = @Layout (32, 8)
+    threads = Int(size(tC))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
 
-    threads = Int(size(threadlayout_C))
-
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-
-    blocks = (cld(M, bM), cld(N, bN))
-
-    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A, threadlayout_A,
-                                                      B, blocklayout_B, threadlayout_B,
-                                                      C, blocklayout_C, threadlayout_C)
-end
-
-function test()
-    A = CUDA.randn(Float32, 2048, 256)
-    B = CUDA.randn(Float32, 2048, 256)
-    C = CUDA.randn(Float32, 2048, 2048)
-    matmul(A, B, C)
-    CUDA.synchronize()
-    @test C == A * B'
-    CUDA.unsafe_free!(A)
-    CUDA.unsafe_free!(B)
-    CUDA.unsafe_free!(C)
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, tA,
+                                                      B, sB_layout, tB,
+                                                      C, tC)
 end
 ```
 
-
-### High-level code
-```julia
-function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_mma)
-    sA = MoYeSharedArray(eltype(A), blocklayout_A)
-    sB = MoYeSharedArray(eltype(B), blocklayout_B)
-
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
-
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-    bK = size(blocklayout_B, 2)
-
-    blk_A = @tile mA (bM, bK) (blockIdx().x, :) # (bM,bK,k)
-    blk_B = @tile mB (bN, bK) (blockIdx().y, :) # (bN,bK,k)
-    blk_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
-
-    # For mma computation
-    thread_idx = Int(threadIdx().x)
-    thr_mma = get_thread_slice(tiled_mma, thread_idx)
-    thr_A = partition_A(thr_mma, sA)
-    thr_B = partition_B(thr_mma, sB)
-    thr_C = partition_C(thr_mma, blk_C)
-
-    frg_c = make_fragment_like(thr_C)
-    zeros!(frg_c)
-
-    for i in axes(blk_A, 3)
-        # copy gmem to smem
-        @collective tiled_copy copyto!(sA, view(blk_A, :, :, i))
-        @collective tiled_copy copyto!(sB, view(blk_B, :, :, i))
-
-        cp_async_wait()
-        sync_threads()
-
-        MoYe.gemm!(tiled_mma, view(frg_c, :), thr_A, thr_B, view(frg_c, :))
-        sync_threads()
-    end
-    # copy rmem to gmem
-    copyto!(thr_C, frg_c)
-    return nothing
-end
-
-function matmul2(A, B, C)
-    M = size(A, 1)
-    N = size(B, 1)
-
-    blocklayout_A = @Layout (128, 8)
-    blocklayout_B = @Layout (128, 8)
-
-    tiled_mma = MoYe.make_tiled_mma(UniversalFMA{Float32, Float32, Float32, Float32}(), @Layout((32,8)))
-    tiled_copy = make_tiled_copy(CopyAtom{MoYe.CPOP_ASYNC_CACHEALWAYS{UInt128, UInt128}, Float32}(), @Layout((32,8)), @Layout((4,1)))
-
-
-    threads = Int(size(tiled_copy))
-
-    bM = size(blocklayout_A, 1)
-    bN = size(blocklayout_B, 1)
-
-    blocks = (cld(M, bM), cld(N, bN))
-
-    @cuda threads=threads blocks=blocks matmul_kernel(A, blocklayout_A,
-                                                      B, blocklayout_B,
-                                                      C, tiled_copy, tiled_mma)
-end
-
-function test2()
-    A = CUDA.randn(Float32, 2048, 256)
-    B = CUDA.randn(Float32, 2048, 256)
-    C = CUDA.randn(Float32, 2048, 2048)
-    matmul2(A, B, C)
-    CUDA.synchronize()
-    @test C == A * B'
-    CUDA.unsafe_free!(A)
-    CUDA.unsafe_free!(B)
-    CUDA.unsafe_free!(C)
-end
-
-```
+This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and
