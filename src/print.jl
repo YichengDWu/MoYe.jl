@@ -199,7 +199,7 @@ julia> print_typst(tiled_mma)
 ```
 
 It will print the following image:
-![](./assets/tiled_mma.png)
+![](assets/tiled_mma.png)
 """
 print_typst(m::MMAAtom) = print_typst(make_tiled_mma(m))
 function print_typst(tiled_mma::TiledMMA)

@@ -1,5 +1,5 @@
 # MatMul
-![matmuil](./assets/matmul.png)
+![matmuil](assets/matmul.png)
 
 In this tutorial, we explore matrix multiplication using MoYe.jl , specifically computing the product $C = A * B^\top$. Here, matrix $A$ has dimensions $(M, K)$, matrix $B$ has dimensions $(K, N)$, and the resulting matrix $C$ will have dimensions $(M, N)$.
 
