@@ -143,8 +143,8 @@ We still missed a few points, such as:
 For shared memory, we no longer need to consider column-major or row-major but simply need to avoid bank conflicts. This can be simply achieved by padding one column.
 
 ```julia
-sA_layout = @Layout (bM, bK) (_1, bM + _1)
-sB_layout = @Layout (bN, bK) (_1, bN + _1)
+sA_layout = make_layout((bM, bK), (_1, bM + _1))
+sB_layout = make_layout((bN, bK), (_1, bN + _1))
 ```
 
 2. How to design `tC`?
@@ -163,8 +163,8 @@ function matmul(A, B, C)
     bN = _128
     bK = _8
     
-    sA_layout = make_layout((bM, bK))
-    sB_layout = make_layout((bN, bK))
+    sA_layout = make_layout((bM, bK), (_1, bM + _1))
+    sB_layout = make_layout((bN, bK), (_1, bN + _1))
 
     tA = @Layout (32, 8)
     tB = @Layout (32, 8)

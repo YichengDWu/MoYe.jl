@@ -57,8 +57,8 @@ function matmul(A, B, C)
     bN = _128
     bK = _8
     
-    sA_layout = make_layout((bM, bK))
-    sB_layout = make_layout((bN, bK))
+    sA_layout = make_layout((bM, bK), (_1, bM + _1))
+    sB_layout = make_layout((bN, bK), (_1, bN + _1))
 
     tA = @Layout (32, 8)
     tB = @Layout (32, 8)
