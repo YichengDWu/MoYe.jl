@@ -32,34 +32,6 @@ Base.@assume_effects :terminates_locally @generated function coord_to_index0_itt
     end
 end
 
-Base.@assume_effects :total @generated function coord_to_index0_itt2(coord, shape, stride, I0::StaticInt{L}, Is...) where {L}
-    if length(Is) == 0 
-        if shape.parameters[L] <: Tuple
-            return :(coord_to_index0_itt(coord, shape[$L], stride[$L], $(ntuple(static, length(shape.parameters[L].parameters))...)))
-        else
-            return :(coord * stride[$L])
-        end
-    elseif coord == StaticInt{0}
-        expr = Expr(:call, :+, :(coord_to_index0(Zero(), shape[$L], stride[$L])))
-        for i in Is
-            push!(expr.args, :(coord_to_index0(Zero(), shape[$(i())], stride[$(i())])))
-        end
-        return expr
-    else
-        if shape.parameters[L] <: Tuple
-            return quote
-                coord_to_index0_itt(coord % product(shape[$L]), shape[$L], stride[$L], $(ntuple(static, length(shape.parameters[L].parameters))...)) +
-                coord_to_index0_itt(coord ÷ product(shape[$L]), shape, stride, $(map(x->x(),Is)...))
-            end
-        else
-            return quote
-                (coord % product(shape[$L])) * stride[$L] +
-                coord_to_index0_itt(coord ÷ product(shape[$L]), shape, stride, $(map(x->x(),Is)...))
-            end
-        end
-    end
-end
-
 Base.@assume_effects :total function coord_to_index0(coord::IntType, shape::IntType, stride::IntType)
     @inline
     return coord * stride
