@@ -1,23 +1,73 @@
-function coord_to_index0(coord::IntType, shape::IntType, stride::IntType)
+Base.@assume_effects :terminates_locally @generated function coord_to_index0_itt(coord::IntType, shape::Tuple, stride::Tuple) 
+    N = length(shape.parameters)
+    if N == 1
+        if shape.parameters[1] <: Tuple
+            return :(coord_to_index0_itt(coord, shape[1], stride[1]))
+        else
+            return :(coord * stride[1])
+        end
+    elseif coord == StaticInt{0} 
+        expr = Expr(:call, :+,)
+        for i in 1:N
+            if shape.parameters[i] <: Tuple
+                push!(expr.args, :(coord_to_index0_itt(Zero(), shape[$i], stride[$i])))
+            else
+                push!(expr.args, :(Zero() * stride[$i]))
+            end
+        end
+        return expr
+    else
+        expr = Expr(:block, :(result = Zero()), :(new_coord = coord))
+        for i in 1:N
+            if shape.parameters[i] <: Tuple
+                push!(expr.args, :(result += coord_to_index0_itt(new_coord % product(shape[$i]), shape[$i], stride[$i])))
+            else 
+                push!(expr.args, :(result += (new_coord % shape[$i]) * stride[$i]))
+            end
+            push!(expr.args, :(new_coord = new_coord ÷ product(shape[$i])))
+        end
+
+        push!(expr.args, :(return result))
+        return expr
+    end
+end
+
+Base.@assume_effects :total function coord_to_index0(coord::IntType, shape::IntType, stride::IntType)
     @inline
     return coord * stride
 end
-function coord_to_index0(coord::Tuple{IntType}, shape::IntType, stride::IntType)
-    @inline
-    return first(coord) * stride
+Base.@assume_effects :total function coord_to_index0(coord::IntType, shape::IntTuple{N}, stride::IntTuple{N}) where {N}
+    @inline    return coord_to_index0_itt(coord, shape, stride)
 end
-function coord_to_index0(coord::IntType, shape::Tuple{}, stride::Tuple{})
-    @inline
-    return zero(coord)
+
+@generated function coord_to_index0(coord::NTuple{N, <:StaticInt}, shape::NTuple{N, <:StaticInt},  stride::NTuple{N, <:StaticInt}) where {N}
+    coord, stride = make_tuple(coord), make_tuple(stride)
+    result = sum((c * s for (c, s) in zip(coord, stride)))
+    return :($result)
 end
-function coord_to_index0(coord::IntType, shape::Tuple, stride::Tuple)
-    s, d = first(shape), first(stride)
-    q, r = divrem(coord, product(s))
-    return coord_to_index0(r, s, d) +
-           coord_to_index0(q, Base.tail(shape), Base.tail(stride))
+Base.@assume_effects :total @generated function coord_to_index0(coord::IntTuple{N}, shape::IntTuple{N}, stride::IntTuple{N}) where {N}
+    expr = Expr(:call, :+)
+    for i in 1:N
+        push!(expr.args, :(coord_to_index0(coord[$i], shape[$i], stride[$i])))
+    end
+    return expr
 end
-function coord_to_index0(coord::Tuple, shape::Tuple, stride::Tuple)
-    return flatsum(map(coord_to_index0, coord, shape, stride))
+
+Base.@assume_effects :total function coord_to_index0_horner(coord, shape, I1, Is...)
+    if isempty(Is)
+        return coord[I1]
+    else
+        return coord[I1] + shape[I1] * coord_to_index0_horner(coord, shape, Is...)
+    end
+end
+
+Base.@assume_effects :total function coord_to_index0(coord::IntType, shape)
+    return coord
+end
+Base.@assume_effects :total function coord_to_index0(coord::IntTuple{N}, shape::IntTuple{N}) where {N}
+    flat_coord = flatten(coord)
+    flat_shape = flatten(product_like(shape, coord))
+    coord_to_index0_horner(flat_coord, flat_shape, ntuple(identity, rank(flat_shape))...)
 end
 
 @inline _offset(x::Colon) = Zero()
@@ -29,40 +79,12 @@ end
 end
 @inline _offset(x::Tuple) = map(_offset, x)
 
-function coord_to_index(coord::IntType, shape, stride)
-    idx = coord_to_index0(coord - one(coord), shape, stride)
+Base.@assume_effects :total function coord_to_index(coord::IntType, shape, stride...)
+    idx = coord_to_index0(coord - one(coord), shape, stride...)
     return idx + one(idx)
 end
-function coord_to_index(coord, shape, stride)
-    idx = coord_to_index0(_offset(coord), shape, stride)
-    return idx + one(idx)
-end
-
-# defaul stride, compact + column major
-function coord_to_index0_horner(coord::IntType, shape::IntType)
-    @inline
-    return coord
-end
-function coord_to_index0_horner(coord::Tuple{IntType}, shape::Tuple{IntType})
-    @inline
-    return first(coord)
-end
-Base.@assume_effects :total function coord_to_index0_horner(coord::Tuple, shape::Tuple)
-    c, s = first(coord), first(shape)
-    return c + s * coord_to_index0_horner(Base.tail(coord), Base.tail(shape))
-end
-
-function coord_to_index0(coord, shape)
-  #  iscongruent(coord, shape) ||
-  #      throw(DimensionMismatch("coord and shape are not congruent"))
-    return coord_to_index0_horner(flatten(coord), flatten(shape))
-end
-
-function coord_to_index(coord::IntType, shape)
-    return coord_to_index0(coord - one(coord), shape) + one(coord)
-end
-function coord_to_index(coord, shape)
-    idx = coord_to_index0(_offset(coord), shape)
+Base.@assume_effects :total function coord_to_index(coord, shape, stride...)
+    idx = coord_to_index0(_offset(coord), shape, stride...)
     return idx + one(idx)
 end
 
@@ -233,14 +255,24 @@ function compact_order(shape::Tuple, order::Tuple, old_shape, old_order)
         map((x, y) -> compact_order(x, y, old_shape, old_order), shape, order)
     end
 end
-function compact_order(shape, order::IntType, old_shape, old_order)
+function compact_order(shape, order::StaticInt, old_shape, old_order)
     d = let order = order
         product(map((s, o) -> ifelse(o < order, product(s), One()), old_shape, old_order))
     end
     return compact_col_major(shape, d)
 end
 function compact_order(shape, order)
-    return compact_order(shape, order, tuple(flatten(shape)...), tuple(flatten(order)...))
+    old_shape = flatten_to_tuple(product_like(shape, order))
+    flat_order = flatten_to_tuple(order)
+
+    max_order = _foldl(flat_order, Zero()) do v, o
+        ifelse(Static.le(v, o) isa Static.True, o, v)
+    end    
+    old_order = map(ntuple(i->static(i+max_order), Val(rank(flat_order))), flat_order) do seq_v, o
+        ifelse(o isa StaticInt, o, seq_v)
+    end
+    new_order = unflatten(old_order, order)
+    return compact_order(shape, new_order, old_shape, old_order)
 end
 function compact_order(shape, ::Type{LayoutLeft})
     return compact_col_major(shape)

@@ -24,12 +24,13 @@ if CUDA.functional()
         @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
         @safetestset "Broadcast" begin include("device/broadcast.jl") end
         @safetestset "Tiled Copy" begin include("device/tiled_copy.jl") end
+        @safetestset "MatMul" begin include("device/matmul.jl") end
     end
 end
 
 @testset "Examples" begin
-    @safetestset "CPU MatMul" begin include("examples/tiling_matmul.jl") end
-    @safetestset "Copy Async" begin include("examples/copy_async.jl") end
+    @safetestset "CPU MatMul" begin include("host/tiling_matmul.jl") end
+    @safetestset "Copy Async" begin include("host/copy_async.jl") end
 end
 
 @testset "Tiled MMA" begin

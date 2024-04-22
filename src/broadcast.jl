@@ -21,7 +21,7 @@ BroadcastStyle(a::MoYeArrayStyle{N,S}, b::MoYeArrayStyle{N,S}) where {N,S} = a
     end
 end
 
-# currently only defined for static size
+# currently only defined for static layouts
 @inline function Base.similar(bc::Broadcasted{MoYeArrayStyle{N,Shape, Stride}}, 
                               ::Type{ElType}) where {ElType, N, Shape, Stride}
     return MoYeArray{ElType}(undef, make_layout_like(make_layout(make_tuple(Shape), make_tuple(Stride))))

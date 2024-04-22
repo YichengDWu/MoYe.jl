@@ -181,6 +181,25 @@ end
 
 Print the layout of the A, B, and C matrices in a typst format.
 Go to https://typst.app and paste the output to visualize the layout.
+
+## Example
+```
+julia> tiled_mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), @Layout((2,2), (2,1)), (@Layout((4,4,2), (1,8,4)), _32, _4))
+TiledMMA
+  ThrLayoutVMNK: ((_4, _2), _2, _2, _1):((_1, _16), _8, _4, _0)
+  PermutationMNK: ((_4, _4, _2):(_1, _8, _4), _32, _4)
+MMAAtom
+  Thread ID: (_4, _2):(_1, _16)
+  Layout_A_TV: ((_4, _2), _4):((_8, _4), _1)
+  Layout_B_TV: ((_4, _2), _4):((_8, _4), _1)
+  Layout_C_TV: ((_2, _2, _2), (_2, _2, _2)):((_1, _16, _4), (_8, _2, _32))
+
+
+julia> print_typst(tiled_mma)
+```
+
+It will print the following image:
+![](../assets/tiled_mma.png)
 """
 print_typst(m::MMAAtom) = print_typst(make_tiled_mma(m))
 function print_typst(tiled_mma::TiledMMA)

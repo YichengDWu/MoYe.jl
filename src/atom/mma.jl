@@ -65,10 +65,10 @@ function Base.show(io::IO, m::MMAAtom)
     return println(io, "  Layout_C_TV: ", layout_c(m))
 end
 
-function apply(mma_atom::AbstractMMAAtom, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
-               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {TD, TA, TB, TC}
+function apply(mma_atom::AbstractMMAAtom{Traits}, D::MoYeArray{TD, 1}, A::MoYeArray{TA, 1},
+               B::MoYeArray{TB, 1}, C::MoYeArray{TC, 1}) where {Traits, TD, TA, TB, TC}
     @inline
-    return mma_unpack!(mma_atom, D, A, B, C)
+    return mma_unpack!(Traits(), D, A, B, C)
 end
 function apply(mma_atom::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray)
     @inline
@@ -222,9 +222,6 @@ MMAAtom
   Layout_A_TV: ((_4, _2), _4):((_8, _4), _1)
   Layout_B_TV: ((_4, _2), _4):((_8, _4), _1)
   Layout_C_TV: ((_2, _2, _2), (_2, _2, _2)):((_1, _16, _4), (_8, _2, _32))
-
-
-julia> print_typst(tiled_mma)
 
 ```
 
