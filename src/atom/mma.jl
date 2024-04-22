@@ -223,9 +223,6 @@ MMAAtom
   Layout_B_TV: ((_4, _2), _4):((_8, _4), _1)
   Layout_C_TV: ((_2, _2, _2), (_2, _2, _2)):((_1, _16, _4), (_8, _2, _32))
 
-
-julia> print_typst(tiled_mma)
-
 ```
 
 """
