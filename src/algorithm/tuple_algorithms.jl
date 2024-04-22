@@ -20,20 +20,26 @@ unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 tuple_cat(x) = x
 tuple_cat(x, y, z...) = (x..., tuple_cat(y, z...)...)
 
-function unflatten(flat_tuple::Tuple, target::Union{IntType, Tuple})
-    iterator = Iterators.Stateful(flat_tuple)
-
-    function build_structure(t)
-        if t isa IntType
-            return popfirst!(iterator)
-        else
-            return Tuple(build_structure(sub) for sub in t)
-        end
-    end
-
-    return build_structure(target)
+# TODO: make it functional
+function _build_structure(t::IntType, iterator)
+    return popfirst!(iterator)
+end
+function _build_structure(t::Tuple, iterator)
+    return Tuple(_build_structure(sub, iterator) for sub in t)
 end
 
+function unflatten(flat_shape::Tuple{}, target::Tuple{})
+    return ()
+end
+@generated function unflatten(flat_tuple::Tuple{Vararg{StaticInt}}, target::Tuple{Vararg{StaticInt}}) 
+    flat_tuple, target = map(make_tuple, (flat_tuple, target))
+    iterator = Iterators.Stateful(flat_tuple)
+    return :($(_build_structure(target, iterator)))
+end
+function unflatten(flat_tuple::Tuple, target::Union{IntType, Tuple})
+    iterator = Iterators.Stateful(flat_tuple)
+    return _build_structure(target, iterator)
+end
 
 function insert(@nospecialize(t::Tuple), x, N)
     return (getindex(t, Base.OneTo(N - one(N)))..., x, getindex(t, N:length(t))...)

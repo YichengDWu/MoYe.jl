@@ -1,18 +1,3 @@
-@generated function coord_to_index0_ttt(coord::NTuple{N, <:StaticInt}, shape::NTuple{N, <:StaticInt}, 
-                                        stride::NTuple{N, <:StaticInt}, I::StaticInt{N}) where {N}
-    coord, stride = make_tuple(coord), make_tuple(stride)
-    result = sum((c * s for (c, s) in zip(coord, stride)))
-    return :($result)
-end
-
-Base.@assume_effects :total @generated function coord_to_index0_ttt(coord, shape, stride, I::StaticInt{N}) where {N}
-    expr = Expr(:call, :+)
-    for i in 1:N
-        push!(expr.args, :(coord_to_index0(coord[$i], shape[$i], stride[$i])))
-    end
-    return expr
-end
-
 Base.@assume_effects :terminates_locally @generated function coord_to_index0_itt(coord::IntType, shape::Tuple, stride::Tuple) 
     N = length(shape.parameters)
     if N == 1
@@ -82,9 +67,18 @@ end
 Base.@assume_effects :total function coord_to_index0(coord::IntType, shape::IntTuple{N}, stride::IntTuple{N}) where {N}
     @inline    return coord_to_index0_itt(coord, shape, stride)
 end
-Base.@assume_effects :total function coord_to_index0(coord::IntTuple{N}, shape::IntTuple{N}, stride::IntTuple{N}) where {N}
-    @inline
-    return coord_to_index0_ttt(coord, shape, stride, static(N))
+
+@generated function coord_to_index0(coord::NTuple{N, <:StaticInt}, shape::NTuple{N, <:StaticInt},  stride::NTuple{N, <:StaticInt}) where {N}
+    coord, stride = make_tuple(coord), make_tuple(stride)
+    result = sum((c * s for (c, s) in zip(coord, stride)))
+    return :($result)
+end
+Base.@assume_effects :total @generated function coord_to_index0(coord::IntTuple{N}, shape::IntTuple{N}, stride::IntTuple{N}) where {N}
+    expr = Expr(:call, :+)
+    for i in 1:N
+        push!(expr.args, :(coord_to_index0(coord[$i], shape[$i], stride[$i])))
+    end
+    return expr
 end
 
 Base.@assume_effects :total function coord_to_index0_horner(coord, shape, I1, Is...)
