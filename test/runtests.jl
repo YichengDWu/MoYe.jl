@@ -24,6 +24,7 @@ if CUDA.functional()
         @safetestset "LDMatrix" begin include("device/ldmatrix.jl") end
         @safetestset "Broadcast" begin include("device/broadcast.jl") end
         @safetestset "Tiled Copy" begin include("device/tiled_copy.jl") end
+        @safetestset "MatMul" begin include("device/matmul.jl") end
     end
 end
 
