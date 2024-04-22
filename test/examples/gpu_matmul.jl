@@ -101,3 +101,56 @@ function test()
 end
 
 test()
+
+
+function matmul_kernel(A, sA_layout, tA,
+                       B, sB_layout, tB,
+                       C, tC)
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
+
+	sA = MoYeSharedArray(eltype(gA), sA_layout)
+	sB = MoYeSharedArray(eltype(gB), sB_layout)
+	
+	bM = size(sA, _1)
+	bN = size(sB, _1)
+	bK = size(sA, _2)
+
+	gA = MoYeArray(A, (M, K))
+	gB = MoYeArray(B, (N, K))
+	gC = MoYeArray(C, (M, N))
+
+	bA = @tile gA (bM, bK) (blockIdx().x, :)
+	bB = @tile gB (bN, bK) (blockIdx().y, :)
+	bC = @tile gC (bM, bN) (blockIdx().x, blockIdx().y)
+
+	# copy partition
+	tAgA = @parallelize gA tA threadIdx().x 
+	tBgB = @parallelize gB tB threadIdx().x
+	tAsA = @parallelize sA tA threadIdx().x
+	tBsB = @parallelize sB tB threadIdx().x
+
+	# mma partition
+	tCsA = @parallelize sA tC threadIdx().x (1, :) 
+	tCsB = @parallelize sB tC threadIdx().x (:, 1)
+	tCgC = @parallelize gC tC threadIdx().x 
+
+	# acumulator
+	tCrC = similar(tCgC)
+	zeros!(tCrC)
+
+	for k in axes(tAgA)
+		copyto!(tAsA, view(tAgA, :, :, k))
+		copyto!(tBsB, view(tBgB, :, :, k))
+		
+		sync_threads()
+
+		@gc_preserve gemm!(tCsA, tCsB, tCrC)
+		sync_threads()
+	end
+
+
+    copyto!(tCgC, tCrC)
+    return nothing
+end

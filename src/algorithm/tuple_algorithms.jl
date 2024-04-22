@@ -8,15 +8,19 @@ back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
 unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 @inline unwrap(x) = x
 
+@inline flatten_to_tuple(@nospecialize x::NTuple{N, Union{Int, StaticInt, Colon}}) where {N} = x
+@inline flatten_to_tuple(@nospecialize x::Tuple) = (flatten_to_tuple(first(x))..., flatten_to_tuple(Base.tail(x))...)
+@inline flatten_to_tuple(x) = tuple(x)
+
 # recursive flatten
-@inline flatten(::Tuple{}) = ()
-flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))...)
+@inline flatten(@nospecialize x::NTuple{N, Union{Int, StaticInt, Colon }}) where {N} = x
+@inline flatten(@nospecialize x::Tuple) = (flatten(first(x))..., flatten(Base.tail(x))...)
 @inline flatten(x) = x
 
 tuple_cat(x) = x
 tuple_cat(x, y, z...) = (x..., tuple_cat(y, z...)...)
 
-function unflatten(flat_tuple::Tuple, target::Tuple)
+function unflatten(flat_tuple::Tuple, target::Union{IntType, Tuple})
     iterator = Iterators.Stateful(flat_tuple)
 
     function build_structure(t)

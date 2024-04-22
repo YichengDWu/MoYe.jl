@@ -15,9 +15,11 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
                                                 @nospecialize(I::IntSequence{N})) where {N}
     return map(Base.Fix1(getindex, x), I)
 end
-# fmap where leaves are integers or colons
-emap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(emap, f), t)
-emap(f::Function, x::Union{IntType, Colon}) = f(x)
+
+fmap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(fmap, f), t)
+fmap(f::Function, x) = f(x)
+fmap(f::Function, @nospecialize(t0::Tuple), t1) = map((x,y) -> fmap(f, x, y), t0, t1)
+fmap(f::Function, t0, t1) = f(t0, t1)
 
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)
@@ -48,6 +50,7 @@ end
 end
 
 @inline product_each(x) = map(product, x)
+@inline product_like(x, g) = fmap((_, t) -> product(t), g, x) 
 
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
@@ -111,7 +114,8 @@ end
 @inline iscompatible(a::Tuple, b::IntType) = false
 
 # Replace the elements of Tuple B that are paired with 0 in A with 1
-@inline filter_zeros(a::IntType, x) = iszero(a) ? One() : x
+@inline filter_zeros(a::Zero, x) = One()
+@inline filter_zeros(a::IntType, x) = x
 function filter_zeros(x::IntTuple{N}, y::IntTuple{N}) where {N}
     return map(filter_zeros, x, y)
 end

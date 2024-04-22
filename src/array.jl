@@ -162,6 +162,7 @@ layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 @inline Base.elsize(x::MoYeArray{T}) where {T} = sizeof(T)
 @inline Base.sizeof(x::MoYeArray) =  Base.elsize(x) * length(x)
 @inline Base.size(x::MoYeArray) = tuple(dynamic(map(capacity, shape(layout(x))))...)
+@inline Base.size(x::MoYeArray, i::StaticInt) = size(layout(x), i)
 @inline Base.length(x::MoYeArray) = x |> layout |> shape |> capacity |> dynamic
 @inline Base.strides(x::MoYeArray) = stride(layout(x)) # note is might be static
 @inline Base.stride(x::MoYeArray, i::IntType) = getindex(stride(layout(x)), i)
@@ -269,11 +270,11 @@ end
     end
 end
 
-@inline function Base.similar(::Type{T}, x::MoYeArray{S,N,E,<:StaticLayout}) where {S,N,E,T}
+@inline function Base.similar(::Type{T}, x::MoYeArray{S,N,E,L}) where {T,S,N,E,Shape<:GenStaticIntTuple,L<:Layout{N, Shape}}
     return MoYeArray{T}(undef, make_layout_like(x.layout))
 end
 
-@inline function Base.similar(x::MoYeArray{S,N,E,<:StaticLayout}) where {S,N,E}
+@inline function Base.similar(x::MoYeArray{S,N,E,L}) where {S,N,E,Shape<:GenStaticIntTuple,L<:Layout{N, Shape}}
     return similar(S, x)
 end
 
