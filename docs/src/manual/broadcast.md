@@ -16,7 +16,7 @@ a .+ a
 ```
 
 ```@repl bc
-b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) # Create a vector
+b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) |> zeros!; # Create a vector
 a .- b 
 ```
 ## On GPU
