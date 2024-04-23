@@ -30,3 +30,13 @@ B=MoYeArray(data, @Layout(((2,3), (2,4)), ((1, 16), (2, 4))))
 ```
 Here we created a 2x3 block array with 2x4 blocks. The first mode is the index
 of the block, the second mode is the index within the block.
+
+
+## Slicing 
+
+It is **required** to use the  syntax `view(a, ids...) or `@view a[ids...]`, depenting on your tast. 
+```@repl array
+data = [i for i in 1:164];
+a = MoYeArray(data, ((_3, 2), (2, _5, _2)), ((4,1), (_2, 13, 100)))
+b = @view a[2, :]
+```
