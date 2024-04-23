@@ -177,6 +177,20 @@ function matmul(A, B, C)
                                                       B, sB_layout, tB,
                                                       C, tC)
 end
+
+function test()
+    A =  CUDA.randn(Float32, 2048, 256)
+    B =  CUDA.randn(Float32, 2048, 256)
+    C =  CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B'
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()
 ```
 
 This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and
