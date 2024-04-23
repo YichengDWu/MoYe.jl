@@ -27,8 +27,10 @@ struct UniversalCopy{TS, TD} <: AbstractCopyOperation{Registers{TS, 1}, Register
 
 @inline UniversalCopy{S}() where {S} = UniversalCopy{S,S}()
 
-function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::LLVMPtr, src::LLVMPtr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     align_src = Base.datatype_alignment(TS)
     align_dst = Base.datatype_alignment(TD)
 
@@ -36,15 +38,21 @@ function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {T
 end
 
 # the following methods should be moved if LocalArray has an address space
-function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::Ptr, src::Ptr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src))
 end
-function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::Ptr, src::LLVMPtr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src, 1, Val(Base.datatype_alignment(TS))))
 end
 function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src), 1, Val(Base.datatype_alignment(TD)))
 end

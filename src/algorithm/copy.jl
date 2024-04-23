@@ -1,7 +1,7 @@
 struct TrivialPred end
 @inline Base.getindex(::TrivialPred, i) = true
 
-function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
+function _copyto_if!(dest::NonOwningArray, src::NonOwningArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @loopinfo unroll for i in _1:size(src.layout)
         if mask[i]
@@ -10,75 +10,55 @@ function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
     end
     return dest
 end
-#=function copyto_if!(copy_atom::AbstractCopyAtom, dest::StaticNonOwningArray{TD,1}, src::StaticNonOwningArray{TS,1}, mask) where {TD,TS}
-    return apply(copy_atom, dest, src)
+
+function copyto_if!(dest::MoYeArray, src::MoYeArray, mask)
+    @gc_preserve _copyto_if!(dest, src, mask)
 end
-function copyto_if!(copy_atom::AbstractCopyAtom, dest::StaticNonOwningArray{TD,N}, src::StaticNonOwningArray{TS,N}, mask) where {TD,TS,N}
-    src_v = group_modes(src, StaticInt{2}(), StaticInt{N}())
-    dest_v = group_modes(dest, StaticInt{2}(), StaticInt{N}())
-    @loopinfo unroll for i in _1:size(layout(src_v), 2)
-        if mask[i]
-            apply(copy_atom, view(dest_v, :, i), view(src_v, :, i))
-        end
-    end
-    return dest
-end
-=#
-@generated function copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
+
+
+@generated function _copyto_vec!(dest::MoYeArray{TD}, src::MoYeArray{TS}, ::Type{TV}) where {TD,TS,TV}
     if (sizeof(TD) == sizeof(TS)) && sizeof(TV) > sizeof(TD)
         return quote
+            Base.@_inline_meta
             src_v = recast(TV, src)
             dest_v = recast(TV, dest)
-            #print("Vectorized copyto! from $(sizeof(TS)) bytes to $(sizeof(TV)) bytes")
-            copy_op = select_elementwise_copy(src_v, dest_v)
-            @loopinfo unroll for i in _1:size(src_v.layout)
-                apply(copy_op, pointer(dest_v, i), pointer(src_v, i))
-            end
-            return dest
+            return copyto_if!(dest_v, src_v, TrivialPred())
         end
     else
         return quote
-            copy_op = select_elementwise_copy(src, dest)
-            @loopinfo unroll for i in _1:size(src.layout)
-                apply(copy_op, pointer(dest, i), pointer(src, i))
-            end
-            return dest
+            Base.@_inline_meta
+            return _copyto_if!(dest, src, TrivialPred())
         end
     end
 end
 
 """
-    copyto!(dest::StaticNonOwningArray, src::StaticNonOwningArray)
+    copyto!(dest::MoYeArray, src::MoYeArray)
 
 Copy the contents of `src` to `dest`. The function automatically carries out potential
 vectorization. In particular, while transferring data from global memory to shared memory,
 it automatically initiates asynchronous copying, if your device supports so.
 """
-function Base.copyto!(dest::StaticNonOwningArray{TD}, src::StaticNonOwningArray{TS}) where {TD,TS}
-    N = max_common_vector(src, dest)
-    if N == One() || N == Zero()
-        return copyto_if!(dest, src, TrivialPred())
-    else
-        vec_bits = N * sizeof(TS) * 8
-        TV = uint_bit(static(min(128, vec_bits)))
-        return copyto_vec!(dest, src, TV)
-    end
-    return dest
+function Base.copyto!(dest::MoYeArray, src::MoYeArray) 
+    @inline 
+    @gc_preserve _copyto!(dest, src)
 end
 
-@inline function Base.copyto!(dest::StaticNonOwningArray, src::StaticOwningArray)
-    buffer = ManualMemory.preserve_buffer(src)
-    GC.@preserve buffer begin
-        copyto!(dest, StrideArraysCore.maybe_ptr_array(src))
-    end
-    return dest
+function _copyto!(dest::NonOwningArray, src::NonOwningArray)
+    @inline 
+    return _copyto!(dest, src, _8)
 end
-@inline function Base.copyto!(dest::StaticOwningArray, src::StaticNonOwningArray)
-    buffer = ManualMemory.preserve_buffer(dest)
-    GC.@preserve buffer begin
-        copyto!(StrideArraysCore.maybe_ptr_array(dest), src)
+function _copyto!(dest::NonOwningArray{TD}, src::NonOwningArray{TS}, align::StaticInt{N}) where {TD,TS, N}
+    vec_elem = max_common_vector(src, dest)
+    src_bits = sizeof(TS) * 8
+    vec_bits = is_static(layout(src)) && is_static(layout(dest)) ? 
+                min(vec_elem * src_bits, 128) : 
+                min(vec_elem * src_bits, N)
+    if vec_elem > 1 && vec_bits > 8
+        return _copyto_vec!(dest, src, uint_bit(static(vec_bits)))
+    else
+        return _copyto_if!(dest, src, TrivialPred())
     end
-    return dest
 end
 
 group_tail(l::Layout{2}) = l
@@ -128,6 +108,7 @@ end
     end
 end
 function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticOwningArray)
+    @inline
     buffer = ManualMemory.preserve_buffer(src)
     GC.@preserve buffer begin
         copyto!(copy_atom, dst, StrideArraysCore.maybe_ptr_array(src))
@@ -135,6 +116,7 @@ function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, sr
     return dst
 end
 function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticOwningArray, src::StaticNonOwningArray)
+    @inline
     buffer = ManualMemory.preserve_buffer(dst)
     GC.@preserve buffer begin
         copyto!(copy_atom, StrideArraysCore.maybe_ptr_array(dst), src)

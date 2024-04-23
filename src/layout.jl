@@ -756,23 +756,27 @@ The domain of `layout′` is chosen to be the maximum continues squence of the d
 left_inverse(layout::Layout) = right_inverse(make_layout(layout, complement(layout)))
 left_inverse(::Colon) = Colon()
 
-function max_common_layout(a::StaticLayout, b::StaticLayout)
+function max_common_layout(a::Layout, b::Layout)
     inv_b = right_inverse(b)
     common = coalesce(composition(a, inv_b))
 
-    if stride(common, 1) == One()
+    if is_static(shape(common, 1)) && (stride(common, 1) == One())
         return composition(inv_b, common[1])
     else
-        return @Layout 1 0 # no vectorization
+        return @Layout 1 0 
     end
 end
 
-function max_common_layout(::Layout, ::Layout)
-    @inline
-    return @Layout 1 0 # no vectorization
-end
+function max_common_vector(a::Layout, b::Layout)
+    inv_b = right_inverse(b)
+    common = coalesce(composition(a, inv_b))
 
-@inline max_common_vector(a::Layout, b::Layout) = size(max_common_layout(a, b))
+    if is_static(shape(common, 1)) && (stride(common, 1) == One())
+        return shape(common, 1)
+    else
+        return One() 
+    end
+end
 
 function _zip(layout::Layout)
     return make_layout(_zip(shape(layout)), _zip(stride(layout)))

@@ -95,7 +95,7 @@ export isgmem, issmem, isrmem
 export axpby!, gemm!
 
 # data movement
-export cucopyto!, cp_async_wait, cp_async_commit
+export cp_async_wait, cp_async_commit
 
 # collective
 export @collective

@@ -65,7 +65,6 @@ using Core: LLVMPtr
                 @test y == x
             end
 
-            @test_deprecated cucopyto!(y, x)
         end
 
         @testset "Parallized Copy" begin
