@@ -13,10 +13,12 @@ struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     end
 end
 
-function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TD, TS}
-    @inline
-    ccall("llvm.nvvm.cp.async.ca.shared.global.$(sizeof(TS))", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+@generated function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TD, TS}
+    intr = "llvm.nvvm.cp.async.ca.shared.global.$(sizeof(TS))"
+    return quote
+        Base.@_inline_meta
+        ccall($intr, llvmcall, Cvoid, (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+    end
 end
 
 struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
@@ -27,10 +29,12 @@ struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     end
 end
 
-function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
-    @inline
-    ccall("llvm.nvvm.cp.async.cg.shared.global.$(sizeof(TS))", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+@generated function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
+    intr = "llvm.nvvm.cp.async.cg.shared.global.$(sizeof(TS))"
+    return quote
+        Base.@_inline_meta
+        ccall($intr, llvmcall, Cvoid, (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+    end
 end
 
 """

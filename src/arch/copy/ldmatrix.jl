@@ -66,7 +66,7 @@ function get_ldmatrix_ops()
     return ld_ops
 end
 
-get_ldmatrix_ops()
+const ldmatrix_ops_list = get_ldmatrix_ops()
 
 """
     copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
