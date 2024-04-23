@@ -22,7 +22,7 @@ end
             Base.@_inline_meta
             src_v = recast(TV, src)
             dest_v = recast(TV, dest)
-            return copyto_if!(dest_v, src_v, TrivialPred())
+            return _copyto_if!(dest_v, src_v, TrivialPred())
         end
     else
         return quote
@@ -42,6 +42,7 @@ it automatically initiates asynchronous copying, if your device supports so.
 function Base.copyto!(dest::MoYeArray, src::MoYeArray) 
     @inline 
     @gc_preserve _copyto!(dest, src)
+    return dest
 end
 
 function _copyto!(dest::NonOwningArray, src::NonOwningArray)
@@ -51,9 +52,10 @@ end
 function _copyto!(dest::NonOwningArray{TD}, src::NonOwningArray{TS}, align::StaticInt{N}) where {TD,TS, N}
     vec_elem = max_common_vector(src, dest)
     src_bits = sizeof(TS) * 8
-    vec_bits = is_static(layout(src)) && is_static(layout(dest)) ? 
-                min(vec_elem * src_bits, 128) : 
-                min(vec_elem * src_bits, N)
+    #vec_bits = is_static(layout(src)) && is_static(layout(dest)) ? 
+    #            min(vec_elem * src_bits, 128) : 
+    #            min(vec_elem * src_bits, N)
+    vec_bits = 8   # explicitly disable vectorization for now
     if vec_elem > 1 && vec_bits > 8
         return _copyto_vec!(dest, src, uint_bit(static(vec_bits)))
     else

@@ -21,7 +21,7 @@ _one(x) = one(x)
         return
     end
 
-    op_to_intrinsic = Dict(MoYe.get_mma_ops())
+    op_to_intrinsic = Dict(MoYe.mma_ops_list)
     for op_name in keys(op_to_intrinsic)
         op = @eval MoYe.$(Symbol(op_name))
         buf = IOBuffer()

@@ -1,6 +1,6 @@
 abstract type AbstractCopyTraits{OP} <: AbstractTraits{OP} end
 
-struct CopyTraits{C <: AbstractCopyOperation, LT, LS, LD, LR} <: AbstractCopyTraits{C}
+struct CopyTraits{C <: AbstractCopyOp, LT, LS, LD, LR} <: AbstractCopyTraits{C}
     copy_op::C
     threadid::LT
     srclayout::LS
@@ -8,7 +8,7 @@ struct CopyTraits{C <: AbstractCopyOperation, LT, LS, LD, LR} <: AbstractCopyTra
     reflayout::LR
 end
 
-function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:AbstractCopyOperation}
+function CopyTraits{OP}(threadid, srclayout, dstlayout, reflayout=srclayout) where {OP<:AbstractCopyOp}
     copy_op = OP()
     return CopyTraits{typeof(copy_op), typeof(threadid), typeof(srclayout), typeof(dstlayout), typeof(reflayout)}(copy_op, threadid, srclayout, dstlayout, reflayout)
 end

@@ -28,7 +28,7 @@ if CUDA.functional()
     end
 end
 
-@testset "Examples" begin
+@testset "Host" begin
     @safetestset "CPU MatMul" begin include("host/tiling_matmul.jl") end
     @safetestset "Copy Async" begin include("host/copy_async.jl") end
 end

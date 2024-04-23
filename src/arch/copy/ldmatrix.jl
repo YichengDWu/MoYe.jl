@@ -1,4 +1,4 @@
-abstract type AbstractLdMatrix{SRegisters, DRegisters} <: AbstractCopyOperation{SRegisters, DRegisters} end
+abstract type AbstractLdMatrix{SRegisters, DRegisters} <: AbstractCopyOp{SRegisters, DRegisters} end
 
 function Base.getproperty(obj::AbstractLdMatrix{SRegisters, DRegisters},
                           sym::Symbol) where {SRegisters, DRegisters}

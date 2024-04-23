@@ -771,7 +771,7 @@ function max_common_vector(a::Layout, b::Layout)
     inv_b = right_inverse(b)
     common = coalesce(composition(a, inv_b))
 
-    if is_static(shape(common, 1)) && (stride(common, 1) == One())
+    if known(is_static(shape(common, 1))) && (stride(common, 1) == One())
         return shape(common, 1)
     else
         return One() 

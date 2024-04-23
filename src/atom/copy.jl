@@ -52,7 +52,7 @@ function CopyAtom{Traits, T}() where {OP, Traits <: CopyTraits{OP}, T}
                                                                                       num_val_dst)
 end
 
-function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOperation, T}
+function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOp, T}
     @inline
     return CopyAtom{CopyTraits{CPOP}, T}()
 end

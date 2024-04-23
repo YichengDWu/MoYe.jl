@@ -8,7 +8,7 @@ end
 struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     @generated function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
-        @asset sizeof(TS) in (4, 8, 16) "Only 4, 8, 16 bytes are supported, got $(sizeof(TS))"
+        @assert sizeof(TS) in (4, 8, 16) "Only 4, 8, 16 bytes are supported, got $(sizeof(TS))"
         return :($(new{TS, TD}()))
     end
 end
@@ -22,7 +22,7 @@ end
 struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     @generated function CPOP_ASYNC_CACHEGLOBAL{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
-        @asset sizeof(TS) in (16, ) "Only 16 bytes are supported, got $(sizeof(TS))" # only 16 for LLVM 15
+        @assert sizeof(TS) in (16, ) "Only 16 bytes are supported, got $(sizeof(TS))" # only 16 for LLVM 15
         return :($(new{TS, TD}()))
     end
 end
