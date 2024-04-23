@@ -46,13 +46,13 @@ end
     return local_partition(x, dice(map(capacity, shape(tile)), proj), get_congr_coord(dice(tile, proj), index))
 end
 
-function composition(x::MoYeArray, layout1, layouts...)
+function composition(x::MoYeArray, l)
     @inline
-    return MoYeArray(pointer(x), composition(layout(x), (layout1, layouts...)))
+    return MoYeArray(pointer(x), composition(layout(x), l))
 end
-function Base.:(∘)(x::MoYeArray, layout1, layouts...)
+function Base.:(∘)(x::MoYeArray, l)
     @inline
-    return MoYeArray(pointer(x), composition(layout(x), (layout1, layouts...)))
+    return MoYeArray(pointer(x), composition(layout(x), l))
 end
 
 _toint(x::Integer) = Int(x)

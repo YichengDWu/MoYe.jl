@@ -625,11 +625,8 @@ function composition(lhs::Layout, rhs)
     return composition(lhs, make_layout(rhs))
 end
 
-function Base.:(∘)(l1::Layout, l2::Layout)
+function Base.:(∘)(l1::Layout, l2)
     return composition(l1, l2)
-end
-function Base.:(∘)(l1::Layout, args::Vararg{Union{Layout, Colon}, N}) where {N}
-    return composition(l1, (args...))
 end
 
 function withshape(l::Layout, shape::GenIntTuple)
