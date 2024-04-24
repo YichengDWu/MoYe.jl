@@ -54,6 +54,8 @@ struct UniversalFMA{D,A,B,C} <: AbstractMMAOP{Registers{D, 1}, Registers{A, 1},
     Registers{B, 1}, Registers{C, 1}}
 end
 
+UniversalFMA{A,B,C}() where {A,B,C} = UniversalFMA{C,A,B,C}()
+
 @inline valtype_a(::UniversalFMA{D,A,B,C}) where {D,A,B,C} = A
 @inline valtype_b(::UniversalFMA{D,A,B,C}) where {D,A,B,C} = B
 @inline valtype_c(::UniversalFMA{D,A,B,C}) where {D,A,B,C} = C
