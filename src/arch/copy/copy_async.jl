@@ -1,5 +1,5 @@
 abstract type AbstractCopyOp_ASYNC{TS,TD} <: AbstractCopyOp{Registers{TS, 1}, Registers{TD, 1}} end
-const CP_SYNC_ENABLED = @static if capability(device()) >= v"8.0"
+const CP_SYNC_ENABLED = @static if CUDA.functional() && capability(device()) >= v"8.0"
     true
 else
     false
