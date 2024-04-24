@@ -114,8 +114,8 @@ end
 @generated function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray{TD,N}, src::NonOwningArray{TS, N}, pred) where {TD, TS, N}
     expr = generate_copy_atom_loops(:sliced_dst, :sliced_src,  layout(dst)[_1](), layout(src)[_1](), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
-        dst_v = group_modes(dst, _2, StaticInt{N}())
-        src_v = group_modes(src, _2, StaticInt{N}())
+        dst_v = group_modes(dst, _2, StaticInt{$N}())
+        src_v = group_modes(src, _2, StaticInt{$N}())
         @loopinfo unroll for i in 1:size(layout(src_v), 2)
             if pred(i)
                 sliced_dst = view(dst_v, :, i)
