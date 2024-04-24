@@ -29,7 +29,7 @@ makedocs(; modules=[MoYe],
                     "MoYeArray" => "api/array.md",
                     "Tiling" => "api/tiling.md",
                     "Data Movement" => "api/copy.md",
-                    "MMA Atoms" => "api/mma.md",
+                    "MMA/Copy Atoms" => "api/atom.md",
                 ],
          ])
 

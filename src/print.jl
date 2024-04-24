@@ -284,9 +284,13 @@ function print_typst_copy(S, TS, D, TD)
 )""")
 end
 
+
+function print_typst end
+
+print_typst(m::MMAAtom) = print_typst(make_tiled_mma(m))
+print_typst(c::CopyAtom) = print_typst(make_tiled_copy(c))
 """
-    print_typst(::MMAAtom)
-    print_typst(::CopyAtom)
+    print_typst(::AbstractMMAAtom)
 
 Print the layout of the A, B, and C matrices in a typst format.
 Go to https://typst.app and paste the output to visualize the layout.
@@ -310,11 +314,6 @@ julia> print_typst(tiled_mma)
 It will print the following image:
 ![](../assets/tiled_mma.png)
 """
-function print_typst end
-
-print_typst(m::MMAAtom) = print_typst(make_tiled_mma(m))
-print_typst(c::CopyAtom) = print_typst(make_tiled_copy(c))
-
 function print_typst(tiled_mma::TiledMMA)
     A, TA = get_layoutA_MK(tiled_mma)
     B, TB = get_layoutB_NK(tiled_mma)
@@ -322,6 +321,21 @@ function print_typst(tiled_mma::TiledMMA)
 
     print_typst_mma(A, TA, B, TB, C, TC)
 end
+
+"""
+    print_typst(::AbstractCopyAtom)
+
+Print the layout of the source and destination matrices in a typst format.
+
+## Example
+
+```julia
+julia> tiled_copy = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, Float32}(), 
+                                    @Layout((32,8)), 
+                                    @Layout((4,1)))
+
+julia> print_typst(tiled_copy)
+"""
 function print_typst(tiled_copy::TiledCopy)
     layoutS_MN, thrID_S = get_layoutS_MN(tiled_copy)
     layoutD_MN, thrID_D = get_layoutD_MN(tiled_copy)

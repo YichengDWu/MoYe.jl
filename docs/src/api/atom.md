@@ -1,4 +1,4 @@
-# Layout 
+# MMA/Copy Atom
 
 ```@meta
 CurrentModule = MoYe
@@ -6,10 +6,11 @@ CurrentModule = MoYe
 ## Index
 
 ```@index
-Pages = ["mma.md"]
+Pages = ["atom.md"]
 ```
 
 ```@docs
 make_tiled_mma
+make_tiled_copy
 print_typst
 ```
