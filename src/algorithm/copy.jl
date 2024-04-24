@@ -1,10 +1,10 @@
 struct TrivialPred end
-@inline Base.getindex(::TrivialPred, i) = true
+@inline (::TrivialPred)(i) = true
 
 function _copyto_if!(dest::NonOwningArray, src::NonOwningArray, mask)
     copy_op = select_elementwise_copy(src, dest) # would select async copy if dest is shared memory and src is global memory
     @loopinfo unroll for i in _1:size(src.layout)
-        if mask[i]
+        if mask(i)
             apply(copy_op, pointer(dest, i), pointer(src, i))
         end
     end
@@ -85,16 +85,21 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     sliced_src = Symbol(:sliced_src_, d)
     push!(loopbody.args, :($sliced_dst = view($dst_v, :, $loop_var)))
     push!(loopbody.args, :($sliced_src = view($src_v, :, $loop_var)))
-
+    args = loopbody.args
+    if d == 1 
+        if_expr = Expr(:if, :(pred($loop_var)))
+        push!(loopbody.args, if_expr)
+        args = if_expr.args
+    end
     # here we use the fact that each slice has the same layout
     sliced_layout_dst = slice(grouped_dst_layout, (:, 1))
     sliced_layout_src = slice(grouped_src_layout, (:, 1))
     if typeof(size(sliced_layout_dst)) == n_dst || typeof((sliced_layout_src)) == n_src
-        push!(loopbody.args, :(copyto_unpack!(copy_atom, $sliced_dst, $sliced_src)))
+        push!(args, :(copyto_unpack!(copy_atom, $sliced_dst, $sliced_src)))
     else
         new_layout_dst = sliced_layout_dst[One()]
         new_layout_src = sliced_layout_src[One()]
-        push!(loopbody.args, generate_copy_atom_loops(sliced_dst, sliced_src, new_layout_dst, new_layout_src, n_src, n_dst, d+1))
+        push!(args, generate_copy_atom_loops(sliced_dst, sliced_src, new_layout_dst, new_layout_src, n_src, n_dst, d+1))
     end
     push!(loopbody.args, :($(Expr(:loopinfo, (Symbol("llvm.loop.unroll.enable"), 1)))))
     push!(loop.args, loopbody)
@@ -102,26 +107,21 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     return expr
 end
 
-@generated function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticNonOwningArray)
+function Base.copyto!(copy_atom::AbstractCopyAtom, dst::MoYeArray, src::MoYeArray)
+    @inline
+    @gc_preserve _copyto!(copy_atom, dst, src)
+    return dst
+end
+
+function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray, src::NonOwningArray)
+    @inline
+    return _copyto!(copy_atom, dst, src, TrivialPred())
+end
+
+@generated function _copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticNonOwningArray, pred)
     expr = generate_copy_atom_loops(:dst, :src,  layout(dst)(), layout(src)(), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
         $expr
         return dst
     end
-end
-function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticOwningArray)
-    @inline
-    buffer = ManualMemory.preserve_buffer(src)
-    GC.@preserve buffer begin
-        copyto!(copy_atom, dst, StrideArraysCore.maybe_ptr_array(src))
-    end
-    return dst
-end
-function Base.copyto!(copy_atom::AbstractCopyAtom, dst::StaticOwningArray, src::StaticNonOwningArray)
-    @inline
-    buffer = ManualMemory.preserve_buffer(dst)
-    GC.@preserve buffer begin
-        copyto!(copy_atom, StrideArraysCore.maybe_ptr_array(dst), src)
-    end
-    return dst
 end
