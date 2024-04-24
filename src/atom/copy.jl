@@ -235,6 +235,13 @@ function make_tiled_copy_C(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
     return TiledCopy(copy_atom, get_layoutC_TV(tiled_mma), (M, N))
 end
 
+"""
+    make_tiled_copy(copy_atom::CopyAtom,
+                    thr_layout::Layout,
+                    val_layout::Layout)
+
+Make a tiled copy atom from a copy atom.
+"""
 function make_tiled_copy(copy_atom::CopyAtom, thr_layout::Layout{TR},
                          val_layout::Layout{TV}=@Layout(1)) where {TR, TV}
     

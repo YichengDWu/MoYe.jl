@@ -105,12 +105,11 @@ end
 @inline MoYeArray(x::AbstractArray, args...) = MoYeArray(pointer(x), args...)
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
-const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
 const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static
 const OwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, L}
 const NonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, L}
-const StaticOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ArrayEngine, L}
-const StaticNonOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ViewEngine, L}
+const StaticOwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, <:Layout{N, <:StaticIntTuple}}
+const StaticNonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, <:Layout{N, <:StaticIntTuple}}
 const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
 const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
 

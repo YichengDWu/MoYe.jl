@@ -75,9 +75,11 @@ const StaticLayout{N, S, R} = Layout{N, S, R
 end
 
 shape(l::Layout) = getfield(l, :shape)
+shape(l::Layout{1}, ::One) = shape(l)
 shape(l, i::IntType) = getindex(shape(l), i)
 shape(l::Type{<:StaticLayout{N, S, R}}) where {N, S, R} = S
 Base.stride(l::Layout) = getfield(l, :stride)
+Base.stride(l::Layout{1}, ::One) = stride(l)
 Base.stride(l::Layout, i::IntType) = getindex(stride(l), i)
 Base.stride(l::Type{<:StaticLayout{N, S, R}}) where {N, S, R} = R
 Static.static(l::Layout) = make_layout(static(shape(l)), static(stride(l)))

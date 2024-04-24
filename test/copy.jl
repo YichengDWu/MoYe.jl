@@ -111,7 +111,7 @@ function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
     end
 
     for tid in 1:size(tiled_copy)
-        thr_copy = get_thread_slice(tiled_copy, tid)
+        thr_copy = get_slice(tiled_copy, tid)
         tXsX = partition_S(thr_copy, t_smem)
         tXgX = partition_D(thr_copy, t_g_out)
         tXrX = MoYeArray{UInt16}(undef, tXgX.layout.shape)
