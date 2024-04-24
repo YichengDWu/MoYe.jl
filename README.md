@@ -5,7 +5,8 @@
 [![Build Status](https://github.com/YichengDWu/MoYe.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/YichengDWu/MoYe.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/YichengDWu/MoYe.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/YichengDWu/MoYe.jl)
 
-`MoYe.jl` is NVIDIA's [Cutlass/CuTe](https://github.com/NVIDIA/cutlass/blob/main/) implemented in Julia. 
+`MoYe.jl` is NVIDIA's [Cutlass/CuTe](https://github.com/NVIDIA/cutlass/blob/main/) implemented in Julia.
+The primary purpose of developing this library is my desire to learn CuTe.
 
 The name **Mo Ye** is derived from an ancient Chinese [legend of swordsmiths](https://en.wikipedia.org/wiki/Gan_Jiang_and_Mo_Ye).
 

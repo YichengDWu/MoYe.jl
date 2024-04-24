@@ -7,11 +7,11 @@ using Core: LLVMPtr
             # single thread
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = MoYeArray(pa, @Layout((4,2)))
+            x = MoYeArray(pa, make_layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = MoYeArray(pb, @Layout((4,2)))
+            y = MoYeArray(pb, make_layout((4,2)))
 
             GC.@preserve a b begin
                 MoYe._copyto_vec!(y, x, Int128)
@@ -34,7 +34,7 @@ using Core: LLVMPtr
 
             GC.@preserve a_data b_data begin
                 thread_layout = @Layout((2,3))
-                layout = @Layout((6,6))
+                layout = make_layout((6,6))
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
