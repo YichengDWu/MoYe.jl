@@ -81,6 +81,8 @@ end
     return ND
 end
 
+@inline get_traits(atom::CopyAtom) = atom.traits
+
 struct TiledCopy{Traits, T, OP, CP, LT, ST} <: AbstractCopyAtom{Traits, T, OP}
     copy_atom::CP
     tiled_layout_TV::LT
@@ -111,6 +113,8 @@ function num_val_dst(::Type{<:TiledCopy{Traits, T, OP, CP}}) where {Traits, T, O
     @inline
     return ND
 end
+
+@inline get_traits(atom::TiledCopy) = get_traits(atom.copy_atom)
 
 function TiledCopy(atom::CopyAtom{Traits, T, OP}, tiled_layout_TV::Layout,
                    tiler_MN) where {Traits, T, OP}
@@ -281,4 +285,22 @@ function Base.show(io::IO, m::ThrCopy)
     println(io, "ThrCopy")
     println(io, "  ThrIdx: ", m.thr_idx)
     return show(io, m.tiled_copy)
+end
+
+Base.@assume_effects :foldable @generated function apply(copy_atom::AbstractCopyAtom, dst::MoYeArray{TS, 1}, src::MoYeArray{TD,1}) where {TS, TD} 
+    if shape(src) <: Tuple && shape(dst) <: Tuple
+        return quote
+            Base.@_inline_meta
+            dst_v = MoYeArray(pointer(dst), dst.layout[_1])
+            src_v = MoYeArray(pointer(src), src.layout[_1])
+            _copyto!(copy_atom, dst_v, src_v, TrivialPred())
+        end
+    else
+        @assert num_val_src(copy_atom) == size(layout(src)) "Expected $(num_val_src(copy_atom)) but got $(size(layout(src)))"
+        @assert num_val_dst(copy_atom) == size(layout(dst)) "Expected $(num_val_dst(copy_atom)) but got $(size(layout(dst)))"
+        return quote
+            Base.@_inline_meta
+            copyto_unpack!(get_traits(copy_atom), dst, src)
+        end
+    end
 end

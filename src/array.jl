@@ -127,6 +127,7 @@ layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
 @inline shape(x::MoYeArray) = shape(layout(x))
+@inline shape(x::Type{<:MoYeArray{T, N, E, L}}) where {T, N, E, L} = shape(L)
 
 # static interface
 @inline StaticArrayInterface.static_size(x::StaticMoYeArray) = map(capacity, shape(layout(x)))

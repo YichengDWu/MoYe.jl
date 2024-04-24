@@ -85,21 +85,16 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     sliced_src = Symbol(:sliced_src_, d)
     push!(loopbody.args, :($sliced_dst = view($dst_v, :, $loop_var)))
     push!(loopbody.args, :($sliced_src = view($src_v, :, $loop_var)))
-    args = loopbody.args
-    if d == 1 
-        if_expr = Expr(:if, :(pred($loop_var)))
-        push!(loopbody.args, if_expr)
-        args = if_expr.args
-    end
+
     # here we use the fact that each slice has the same layout
     sliced_layout_dst = slice(grouped_dst_layout, (:, 1))
     sliced_layout_src = slice(grouped_src_layout, (:, 1))
     if typeof(size(sliced_layout_dst)) == n_dst || typeof((sliced_layout_src)) == n_src
-        push!(args, :(copyto_unpack!(copy_atom, $sliced_dst, $sliced_src)))
+        push!(loopbody.args, :(copyto_unpack!(copy_atom, $sliced_dst, $sliced_src)))
     else
         new_layout_dst = sliced_layout_dst[One()]
         new_layout_src = sliced_layout_src[One()]
-        push!(args, generate_copy_atom_loops(sliced_dst, sliced_src, new_layout_dst, new_layout_src, n_src, n_dst, d+1))
+        push!(loopbody.args, generate_copy_atom_loops(sliced_dst, sliced_src, new_layout_dst, new_layout_src, n_src, n_dst, d+1))
     end
     push!(loopbody.args, :($(Expr(:loopinfo, (Symbol("llvm.loop.unroll.enable"), 1)))))
     push!(loop.args, loopbody)
@@ -112,16 +107,36 @@ function Base.copyto!(copy_atom::AbstractCopyAtom, dst::MoYeArray, src::MoYeArra
     @gc_preserve _copyto!(copy_atom, dst, src)
     return dst
 end
-
 function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray, src::NonOwningArray)
     @inline
     return _copyto!(copy_atom, dst, src, TrivialPred())
 end
-
-@generated function _copyto!(copy_atom::AbstractCopyAtom, dst::StaticNonOwningArray, src::StaticNonOwningArray, pred)
-    expr = generate_copy_atom_loops(:dst, :src,  layout(dst)(), layout(src)(), num_val_src(copy_atom), num_val_dst(copy_atom))
+@generated function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray{TD,N}, src::NonOwningArray{TS, N}, pred) where {TD, TS, N}
+    expr = generate_copy_atom_loops(:sliced_dst, :sliced_src,  layout(dst)[_1](), layout(src)[_1](), num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
-        $expr
+        dst_v = group_modes(dst, _2, StaticInt{N}())
+        src_v = group_modes(src, _2, StaticInt{N}())
+        @loopinfo unroll for i in 1:size(layout(src_v), 2)
+            if pred(i)
+                sliced_dst = view(dst_v, :, i)
+                sliced_src = view(src_v, :, i)
+                $expr
+            end
+        end
         return dst
     end
 end
+
+#Base.@assume_effects :foldable function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray{TD, 1}, src::NonOwningArray{TS, 1}, pred) where {TD, TS}
+#    @inline 
+#    apply(copy_atom, dst, src)
+#end
+#Base.@assume_effects :foldable function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray{TD, N}, src::NonOwningArray{TS, N}, pred) where {TD, TS, N}
+#    src_v = group_modes(src, _2, StaticInt{N}())
+#    dst_v = group_modes(dst, _2, StaticInt{N}())
+#    for i in 1:size(src_v.layout, 2)
+#        if pred(i)
+#            apply(copy_atom, view(dst_v, :, i), view(src_v, :, i))
+#        end
+#    end
+#end
