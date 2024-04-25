@@ -183,7 +183,7 @@ function print_typst_copy(S, TS, D, TD)
     @assert size(S, 1) == size(D, 1)
     @assert size(S, 2) == size(D, 2)
 
-    height = (size(S, 1) + 5) * 2.35
+    height = (size(S, 1) + 2) * 2.35
     width = (size(S, 2) * 2 + 4) * 2.35
 
         println("""
