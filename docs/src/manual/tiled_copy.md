@@ -106,37 +106,37 @@ function matmul_kernel(A, sA_layout, copy_A,
     thr_copy_a = get_slice(copy_A, threadIdx().x)
     tAgA = partition_S(thr_copy_a, gA) # (Val, CopyM, CopyK, k)
     tAsA = partition_D(thr_copy_a, sA)
-	tArA = make_fragment_like(tAsA)
+    tArA = make_fragment_like(tAsA)
 
     thr_copy_b = get_slice(copy_B, threadIdx().x)
     tBgB = partition_S(thr_copy_b, gB)
     tBsB = partition_D(thr_copy_b, sB)
-	tBrB = make_fragment_like(tBsB)
+    tBrB = make_fragment_like(tBsB)
 
     # mma partition
     tCsA = @parallelize sA tC threadIdx().x (1, :) 
     tCsB = @parallelize sB tC threadIdx().x (:, 1)
-    tCgC = @parallelize gC tC threadIdx().x 
+    tCgC = @parallelize gC tC threadIdx().x
 
-	# overlap copy and compute
-	copyto!(copy_A, tArA, view(tAgA, :, :, :, 1))
-	copyto!(copy_B, tBrB, view(tBgB, :, :, :, 1))
+    # overlap copy and compute
+    copyto!(copy_A, tArA, view(tAgA, :, :, :, 1))
+    copyto!(copy_B, tBrB, view(tBgB, :, :, :, 1))
 
-	# accumulator
+    # accumulator
     tCrC = similar(tCgC)
     zeros!(tCrC)
 
-	k_max = size(tAgA, 4)
+    k_max = size(tAgA, 4)
     for k in 1:k_max
         sync_threads()
         copyto!(tAsA, tArA)
         copyto!(tBsB, tBrB)
         sync_threads()
 
-		# load the next tile
-		k_next = k < k_max ? k+1 : k
-		copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
-		copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
+	# load the next tile
+	k_next = k < k_max ? k+1 : k
+	copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
+	copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
 
         @gc_preserve gemm!(tCsA, tCsB, tCrC)
         sync_threads()
@@ -156,8 +156,8 @@ function matmul(A, B, C)
     sA_layout = make_layout((bM, bK), (_1, bM + _1))
     sB_layout = make_layout((bN, bK), (_1, bN + _1))
 
-	TA = eltype(A)
-	TB = eltype(B)
+    TA = eltype(A)
+    TB = eltype(B)
 	
     copy_A = make_tiled_copy(CopyAtom{UniversalCopy{TA}, TA}(),
                              @Layout((32, 8)),
