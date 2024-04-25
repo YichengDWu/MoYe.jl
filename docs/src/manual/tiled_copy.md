@@ -15,6 +15,7 @@ Here, each thread is assigned a data segment defined by the layout (2,3):(1,2). 
 To begin, we initialize these arrays:
 
 ```@repl tiled_copy
+using MoYe
 src_buffer = collect(1:36) .* 0.1;
 src = MoYeArray(src_buffer, @Layout((4,9)))
 dst_buffer = zeros(36);

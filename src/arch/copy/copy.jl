@@ -50,7 +50,7 @@ function (::UniversalCopy{TS, TD})(dest::Ptr, src::LLVMPtr) where {TS, TD}
     dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src, 1, Val(Base.datatype_alignment(TS))))
 end
-function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::LLVMPtr, src::Ptr) where {TS, TD}
     @inline
     src = recast(TS, src)
     dest = recast(TD, dest)
