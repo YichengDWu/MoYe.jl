@@ -52,9 +52,10 @@ function CopyAtom{Traits, T}() where {OP, Traits <: CopyTraits{OP}, T}
                                                                                       num_val_dst)
 end
 
-function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOperation, T}
+function CopyAtom{CPOP, T}() where {CPOP <: AbstractCopyOp, T}
     @inline
-    return CopyAtom{CopyTraits{CPOP}, T}()
+    op = CPOP()
+    return CopyAtom{CopyTraits{typeof(op)}, T}()
 end
 
 @inline function num_val_src(::Type{CopyAtom{Traits, T, OP, VS, VD, VR, NS, ND}}) where {
@@ -80,30 +81,18 @@ end
     return ND
 end
 
+@inline get_traits(atom::CopyAtom) = atom.traits
+
 struct TiledCopy{Traits, T, OP, CP, LT, ST} <: AbstractCopyAtom{Traits, T, OP}
     copy_atom::CP
     tiled_layout_TV::LT
     tiler_MN::ST
 end
 
-function Base.getproperty(tiled_copy::TiledCopy, x::Symbol)
-    if x === :atom_threadid
-        return tiled_copy.copy_atom.threadid
-    elseif x === :atom_layout_src
-        return tiled_copy.copy_atom.val_layout_src
-    elseif x === :atom_layout_dst
-        return tiled_copy.copy_atom.val_layout_dst
-    elseif x === :atom_layout_ref
-        return tiled_copy.copy_atom.val_layout_ref
-    else
-        return getfield(tiled_copy, x)
-    end
-end
-
-function Base.propertynames(::TiledCopy)
-    return (:copy_atom, :tiled_layout_TV, :tiler_MN, :atom_threadid, :atom_layout_src,
-            :atom_layout_dst, :atom_layout_ref)
-end
+@inline atom_threadid(tiled_copy::TiledCopy) = tiled_copy.copy_atom.threadid
+@inline atom_layout_src(tiled_copy::TiledCopy) = tiled_copy.copy_atom.val_layout_src
+@inline atom_layout_dst(tiled_copy::TiledCopy) = tiled_copy.copy_atom.val_layout_dst
+@inline atom_layout_ref(tiled_copy::TiledCopy) = tiled_copy.copy_atom.val_layout_ref
 
 function num_val_src(::Type{<:TiledCopy{Traits, T, OP, CP}}) where {Traits, T, OP, VS, VD,
                                                                     VR, NS, ND,
@@ -125,6 +114,8 @@ function num_val_dst(::Type{<:TiledCopy{Traits, T, OP, CP}}) where {Traits, T, O
     return ND
 end
 
+@inline get_traits(atom::TiledCopy) = get_traits(atom.copy_atom)
+
 function TiledCopy(atom::CopyAtom{Traits, T, OP}, tiled_layout_TV::Layout,
                    tiler_MN) where {Traits, T, OP}
     @assert size(tiled_layout_TV, 1) % size(atom.val_layout_ref, 1) == Zero()
@@ -134,8 +125,8 @@ function TiledCopy(atom::CopyAtom{Traits, T, OP}, tiled_layout_TV::Layout,
 end
 
 function tile2thrfrg(tiled_copy::TiledCopy, x::Layout, ref2trg)
-    atom_num_thr = size(tiled_copy.copy_atom.val_layout_ref, 1)
-    atom_num_val = size(tiled_copy.copy_atom.val_layout_ref, 2)
+    atom_num_thr = size(atom_layout_ref(tiled_copy), 1)
+    atom_num_val = size(atom_layout_ref(tiled_copy), 2)
     atom_layout_TV = zipped_divide(tiled_copy.tiled_layout_TV, (atom_num_thr, atom_num_val))
     trg_layout_TV = composition(atom_layout_TV, (ref2trg, :))
     thrval2mn = coalesce(_zip(trg_layout_TV), (One(), (One(), One())))
@@ -146,22 +137,22 @@ end
 function tidfrg_S(tiled_copy::TiledCopy, src::Layout{N}) where {N}
     @assert N>=rank(shape(tiled_copy.tiler_MN)) "The dimension is too small to be tiled."
     return tile2thrfrg(tiled_copy, zipped_divide(src, tiled_copy.tiler_MN),
-                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                                   tiled_copy.copy_atom.val_layout_src))
+                       composition(right_inverse(atom_layout_ref(tiled_copy)),
+                                   atom_layout_src(tiled_copy)))
 end
 
 function tidfrg_D(tiled_copy::TiledCopy, dst::Layout{N}) where {N}
     @assert N>=rank(shape(tiled_copy.tiler_MN)) "The dimension is too small to be tiled."
     return tile2thrfrg(tiled_copy, zipped_divide(dst, tiled_copy.tiler_MN),
-                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                                   tiled_copy.copy_atom.val_layout_dst))
+                       composition(right_inverse(atom_layout_ref(tiled_copy)),
+                                   atom_layout_dst(tiled_copy)))
 end
 
 function retile(tiled_copy, x::StaticMoYeArray{T, R}) where {T, R}
     V = size(layout(x), 1)
     tiled_layout_TV = tiled_copy.tiled_layout_TV
     tiled_shape_MN = shape(tiled_copy.tiler_MN)
-    atom_num_val = size(tiled_copy.copy_atom.val_layout_ref, 2)
+    atom_num_val = size(atom_layout_ref(tiled_copy), 2)
     tiled_num_thr = size(tiled_layout_TV, 1)
     frg_layout_mn = upcast(composition(right_inverse(tiled_layout_TV),
                                        make_layout(tiled_shape_MN)), tiled_num_thr * V)
@@ -177,8 +168,8 @@ end
 function get_layoutS_TV(tiled_copy::TiledCopy)
     ref_S = make_layout((shape(tiled_copy.tiler_MN), One()))
     return tile2thrfrg(tiled_copy, ref_S,
-                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                                   tiled_copy.copy_atom.val_layout_src))(:, :, One())
+                       composition(right_inverse(atom_layout_ref(tiled_copy)),
+                                   atom_layout_src(tiled_copy)))(:, :, One())
 end
 
 function get_layoutS_MN(tiled_copy::TiledCopy)
@@ -192,8 +183,8 @@ end
 function get_layoutD_TV(tiled_copy::TiledCopy)
     ref_D = make_layout((shape(tiled_copy.tiler_MN), One()))
     return tile2thrfrg(tiled_copy, ref_D,
-                       composition(right_inverse(tiled_copy.copy_atom.val_layout_ref),
-                                   (tiled_copy.copy_atom.val_layout_dst))(:, :, One()))
+                       composition(right_inverse(atom_layout_ref(tiled_copy)),
+                                   atom_layout_dst(tiled_copy)))(:, :, One())
 end
 
 function get_layoutD_MN(tiled_copy::TiledCopy)
@@ -248,17 +239,22 @@ function make_tiled_copy_C(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
     return TiledCopy(copy_atom, get_layoutC_TV(tiled_mma), (M, N))
 end
 
+"""
+    make_tiled_copy(copy_atom::CopyAtom,
+                    thr_layout::Layout,
+                    val_layout::Layout)
+
+Make a tiled copy atom from a copy atom.
+"""
 function make_tiled_copy(copy_atom::CopyAtom, thr_layout::Layout{TR},
                          val_layout::Layout{TV}=@Layout(1)) where {TR, TV}
-    R = max(TR, TV)
-
-    thr_layout_mn = append(thr_layout, @Layout(1), StaticInt{R}())
-    val_layout_mn = append(val_layout, @Layout(1), StaticInt{R}())
-
-    layout_mn = raked_product(thr_layout_mn, val_layout_mn, true)
-    layout_tv = composition(right_inverse(layout_mn),
-                            make_layout((size(thr_layout), size(val_layout))))
-    return TiledCopy(copy_atom, layout_tv, product_each(shape(layout_mn)))
+    
+    # (M, N) -> (thr_idx, val_idx)
+    layout_mn = raked_product(thr_layout, val_layout, true)
+    # (thr_idx, val_idx) -> (M, N)
+    layout_tv = composition(right_inverse(layout_mn), make_layout((size(thr_layout), size(val_layout))))
+    tiler = product_each(shape(layout_mn))    
+    return TiledCopy(copy_atom, layout_tv, tiler)
 end
 
 function tile_size(tiled_copy::TiledCopy)
@@ -289,4 +285,22 @@ function Base.show(io::IO, m::ThrCopy)
     println(io, "ThrCopy")
     println(io, "  ThrIdx: ", m.thr_idx)
     return show(io, m.tiled_copy)
+end
+
+Base.@assume_effects :foldable @generated function apply(copy_atom::AbstractCopyAtom, dst::MoYeArray{TS, 1}, src::MoYeArray{TD,1}) where {TS, TD} 
+    if shape(src) <: Tuple && shape(dst) <: Tuple
+        return quote
+            Base.@_inline_meta
+            dst_v = MoYeArray(pointer(dst), dst.layout[_1])
+            src_v = MoYeArray(pointer(src), src.layout[_1])
+            _copyto!(copy_atom, dst_v, src_v, TrivialPred())
+        end
+    else
+        @assert num_val_src(copy_atom) == size(layout(src)) "Expected $(num_val_src(copy_atom)) but got $(size(layout(src)))"
+        @assert num_val_dst(copy_atom) == size(layout(dst)) "Expected $(num_val_dst(copy_atom)) but got $(size(layout(dst)))"
+        return quote
+            Base.@_inline_meta
+            copyto_unpack!(get_traits(copy_atom), dst, src)
+        end
+    end
 end

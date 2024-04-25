@@ -1,44 +1,40 @@
-abstract type AbstractCopyOperation_ASYNC{TS,TD} <: AbstractCopyOperation{Registers{TS, 1}, Registers{TD, 1}} end
-const CP_SYNC_ENABLED = true # TODO: make this configurable. >=SM_80
+abstract type AbstractCopyOp_ASYNC{TS,TD} <: AbstractCopyOp{Registers{TS, 1}, Registers{TD, 1}} end
+const CP_SYNC_ENABLED = @static if CUDA.functional() && capability(device()) >= v"8.0"
+    true
+else
+    false
+end
 
-struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCopyOperation_ASYNC{TS,TD}
+struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     @generated function CPOP_ASYNC_CACHEALWAYS{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
+        @assert sizeof(TS) in (4, 8, 16) "Only 4, 8, 16 bytes are supported, got $(sizeof(TS))"
         return :($(new{TS, TD}()))
     end
 end
 
-struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOperation_ASYNC{TS,TD}
+@generated function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TD, TS}
+    intr = "llvm.nvvm.cp.async.ca.shared.global.$(sizeof(TS))"
+    return quote
+        Base.@_inline_meta
+        ccall($intr, llvmcall, Cvoid, (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+    end
+end
+
+struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     @generated function CPOP_ASYNC_CACHEGLOBAL{TS, TD}() where {TS, TD}
         @assert sizeof(TS) == sizeof(TD)
+        @assert sizeof(TS) in (16, ) "Only 16 bytes are supported, got $(sizeof(TS))" # only 16 for LLVM 15
         return :($(new{TS, TD}()))
     end
 end
 
-function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{4}) where {TD, TS}
-    @inline
-    ccall("llvm.nvvm.cp.async.ca.shared.global.4", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
-end
-function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{8}) where {TD, TS}
-    @inline
-    ccall("llvm.nvvm.cp.async.ca.shared.global.8", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
-end
-function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TD, TS}
-    @inline
-    ccall("llvm.nvvm.cp.async.ca.shared.global.16", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
-end
-function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}, ::StaticInt{16}) where {TS, TD}
-    @inline
-    ccall("llvm.nvvm.cp.async.cg.shared.global.16", llvmcall, Cvoid,
-          (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
-end
-
-@generated function (cpop::AbstractCopyOperation_ASYNC{TS,TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
-    @assert sizeof(TS) == sizeof(TD)
-    return :(cpop(dst, src, $(StaticInt{sizeof(TS)}())))
+@generated function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
+    intr = "llvm.nvvm.cp.async.cg.shared.global.$(sizeof(TS))"
+    return quote
+        Base.@_inline_meta
+        ccall($intr, llvmcall, Cvoid, (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)
+    end
 end
 
 """

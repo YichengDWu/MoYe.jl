@@ -1,6 +1,6 @@
-abstract type AbstractCopyOperation{SRegisters, DRegisters} <: PTXOperation end
+abstract type AbstractCopyOp{SRegisters, DRegisters} <: PTXOperation end
 
-function Base.getproperty(obj::AbstractCopyOperation{SRegisters, DRegisters},
+function Base.getproperty(obj::AbstractCopyOp{SRegisters, DRegisters},
                           sym::Symbol) where {SRegisters, DRegisters}
     if sym === :DRegisters
         return DRegisters
@@ -11,24 +11,26 @@ function Base.getproperty(obj::AbstractCopyOperation{SRegisters, DRegisters},
     end
 end
 
-function Base.propertynames(::AbstractCopyOperation)
+function Base.propertynames(::AbstractCopyOp)
     return (:SRegisters, :DRegisters)
 end
 
 # default implementation, 1 value per thread
-function Base.copyto!(op::AbstractCopyOperation, dest::MoYeArray, src::MoYeArray)
+function Base.copyto!(op::AbstractCopyOp, dest::MoYeArray, src::MoYeArray)
     op(pointer(dest), pointer(src))
     return dest
 end
 
-@inline Adapt.adapt(to, x::AbstractCopyOperation) = x
+@inline Adapt.adapt(to, x::AbstractCopyOp) = x
 
-struct UniversalCopy{TS, TD} <: AbstractCopyOperation{Registers{TS, 1}, Registers{TD, 1}} end
+struct UniversalCopy{TS, TD} <: AbstractCopyOp{Registers{TS, 1}, Registers{TD, 1}} end
 
 @inline UniversalCopy{S}() where {S} = UniversalCopy{S,S}()
 
-function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::LLVMPtr, src::LLVMPtr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     align_src = Base.datatype_alignment(TS)
     align_dst = Base.datatype_alignment(TD)
 
@@ -36,15 +38,21 @@ function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::LLVMPtr{TS}) where {T
 end
 
 # the following methods should be moved if LocalArray has an address space
-function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::Ptr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::Ptr, src::Ptr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src))
 end
-function (::UniversalCopy{TS, TD})(dest::Ptr{TD}, src::LLVMPtr{TS}) where {TS, TD}
+function (::UniversalCopy{TS, TD})(dest::Ptr, src::LLVMPtr) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src, 1, Val(Base.datatype_alignment(TS))))
 end
 function (::UniversalCopy{TS, TD})(dest::LLVMPtr{TD}, src::Ptr{TS}) where {TS, TD}
     @inline
+    src = recast(TS, src)
+    dest = recast(TD, dest)
     return unsafe_store!(dest, unsafe_load(src), 1, Val(Base.datatype_alignment(TD)))
 end

@@ -12,7 +12,7 @@ if MoYe.LLVM.version().major>=15
             return nothing
         end
 
-        op_to_intrinsic = Dict(MoYe.get_ldmatrix_ops())
+        op_to_intrinsic = Dict(MoYe.ldmatrix_ops_list)
         for op_name in keys(op_to_intrinsic)
             op = @eval MoYe.$(Symbol(op_name))
             buf = IOBuffer()

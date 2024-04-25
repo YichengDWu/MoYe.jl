@@ -38,6 +38,7 @@ include("arch/copy/ldmatrix.jl")
 # Traits
 include("traits/mma.jl")
 include("traits/copy.jl")
+
 include("traits/cp_async.jl")
 include("traits/ldmatrix.jl")
 
@@ -82,7 +83,7 @@ export MoYeSharedArray
 export MMATraits, shape_mnk, thr_id, layout_a, layout_b, layout_c, layout_d
 
 # Atom
-export CopyAtom, make_tiled_copy, get_thread_slice, partition_D, partition_S, UniversalFMA,
+export CopyAtom, make_tiled_copy, get_slice, partition_D, partition_S, UniversalFMA,
        UniversalCopy
 export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size,
        partition_fragment_C, partition_fragment_A, partition_fragment_B, make_tiled_copy_A,
@@ -95,7 +96,7 @@ export isgmem, issmem, isrmem
 export axpby!, gemm!
 
 # data movement
-export cucopyto!, cp_async_wait, cp_async_commit
+export cp_async_wait, cp_async_commit
 
 # collective
 export @collective

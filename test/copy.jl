@@ -7,14 +7,14 @@ using Core: LLVMPtr
             # single thread
             a = [Int32(i) for i in 1:8]
             pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(a))
-            x = MoYeArray(pa, @Layout((4,2)))
+            x = MoYeArray(pa, make_layout((4,2)))
 
             b = [Int32(i) for i in 9:16]
             pb = reinterpret(LLVMPtr{Int32, AS.Generic}, pointer(b))
-            y = MoYeArray(pb, @Layout((4,2)))
+            y = MoYeArray(pb, make_layout((4,2)))
 
             GC.@preserve a b begin
-                MoYe.copyto_vec!(y, x, Int128)
+                MoYe._copyto_vec!(y, x, Int128)
                 @test y == x
             end
         end
@@ -25,7 +25,7 @@ using Core: LLVMPtr
                     thread_tile_a = @parallelize a thread_layout i
                     thread_tile_b = @parallelize b thread_layout i
                     #display(thread_tile_a)
-                    MoYe.copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
+                    MoYe._copyto_vec!(thread_tile_b, thread_tile_a, Int32) # no vectorization here
                 end
             end
 
@@ -34,7 +34,7 @@ using Core: LLVMPtr
 
             GC.@preserve a_data b_data begin
                 thread_layout = @Layout((2,3))
-                layout = @Layout((6,6))
+                layout = make_layout((6,6))
 
                 pa = pointer(a_data)
                 pa = reinterpret(LLVMPtr{Int32, AS.Generic}, pa)
@@ -65,7 +65,6 @@ using Core: LLVMPtr
                 @test y == x
             end
 
-            @test_deprecated cucopyto!(y, x)
         end
 
         @testset "Parallized Copy" begin
@@ -112,7 +111,7 @@ function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
     end
 
     for tid in 1:size(tiled_copy)
-        thr_copy = get_thread_slice(tiled_copy, tid)
+        thr_copy = get_slice(tiled_copy, tid)
         tXsX = partition_S(thr_copy, t_smem)
         tXgX = partition_D(thr_copy, t_g_out)
         tXrX = MoYeArray{UInt16}(undef, tXgX.layout.shape)

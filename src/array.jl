@@ -105,12 +105,11 @@ end
 @inline MoYeArray(x::AbstractArray, args...) = MoYeArray(pointer(x), args...)
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
-const MoYeDeviceArray{T, N} = MoYeArray{T, N, <:ViewEngine{T, <:LLVMPtr{T}}}
 const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static
 const OwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, L}
 const NonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, L}
-const StaticOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ArrayEngine, L}
-const StaticNonOwningArray{T, N, L} = StaticMoYeArray{T, N, <:ViewEngine, L}
+const StaticOwningArray{T, N, L} = MoYeArray{T, N, <:ArrayEngine, <:Layout{N, <:StaticIntTuple}}
+const StaticNonOwningArray{T, N, L} = MoYeArray{T, N, <:ViewEngine, <:Layout{N, <:StaticIntTuple}}
 const LocalArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, Ptr{T}}, L}
 const SharedArray{T, N, L} = MoYeArray{T, N, ViewEngine{T, LLVMPtr{T, AS.Shared}}, L}
 
@@ -128,6 +127,7 @@ layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 @inline rank(x::MoYeArray) = rank(layout(x))
 @inline depth(x::MoYeArray) = depth(layout(x))
 @inline shape(x::MoYeArray) = shape(layout(x))
+@inline shape(x::Type{<:MoYeArray{T, N, E, L}}) where {T, N, E, L} = shape(L)
 
 # static interface
 @inline StaticArrayInterface.static_size(x::StaticMoYeArray) = map(capacity, shape(layout(x)))
