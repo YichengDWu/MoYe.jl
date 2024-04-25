@@ -42,7 +42,8 @@ You can visualize this TiledCopy by using `print_typst(tiled_copy)`. Visit [typs
 The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread's data, for example:
 ```julia
 print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
-                                   @Layout((32,1)), @Layout((1,8))));
+                                          @Layout((16,2)), @Layout((2,4))));
+
 ```
 
 ![matmuil](../assets/ldmatrix.svg)
