@@ -19,7 +19,7 @@ makedocs(; modules=[MoYe],
                 "Layout" => "manual/layout.md",
                 "Array" => "manual/array.md",
                 "Broadcasting" => "manual/broadcast.md",
-                "MatMul" => "manual/atmul.md",
+                "MatMul" => "manual/matmul.md",
                # "Data Movement" => [
                #     "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
                # ]
