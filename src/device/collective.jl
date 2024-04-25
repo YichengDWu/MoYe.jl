@@ -16,7 +16,6 @@ Thread block level collective operation.
 macro collective(tiled_copy, ex)
     @capture(ex, f_(args__)) || error("unexpected expression")
     if f == :copyto!
-        # 解析 args__ 以获得 dest 和 src
         @capture(args__, (dest_, src_)) || error("unexpected arguments for copyto!")
         return collective_copyto!(tiled_copy, dest_, src_)
     end
