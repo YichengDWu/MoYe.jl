@@ -2,15 +2,157 @@
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tiled Copy · MoYe.jl</title><meta name="title" content="Tiled Copy · MoYe.jl"/><meta property="og:title" content="Tiled Copy · MoYe.jl"/><meta property="twitter:title" content="Tiled Copy · MoYe.jl"/><meta name="description" content="Documentation for MoYe.jl."/><meta property="og:description" content="Documentation for MoYe.jl."/><meta property="twitter:description" content="Documentation for MoYe.jl."/><meta property="og:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tiled_copy/"/><meta property="twitter:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tiled_copy/"/><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tiled_copy/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li><a class="tocitem" href="../tiling_matmul/">MatMul</a></li><li class="is-active"><a class="tocitem" href>Tiled Copy</a><ul class="internal"><li><a class="tocitem" href="#MatMul"><span>MatMul</span></a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li><li><a class="tocitem" href="../../api/atom/">MMA/Copy Atoms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tiled Copy</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tiled Copy</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tiled_copy.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Tiled Copy</p><p>We have already introduced how to copy data using @tile and @partition. This process might still appear somewhat cumbersome, and <code>TiledCopy</code> serves to simplify it.</p><p>Consider the following example where we employ six threads to transfer an array src of shape (4, 9) into another array dst with the identical shape. The relationship mapping logic coordinates to thread IDs can be visualized as:</p><pre><code class="language-julia hljs">1 1 1 2 2 2 3 3 3
 1 1 1 2 2 2 3 3 3
 4 4 4 5 5 5 6 6 6
-4 4 4 5 5 5 6 6 6</code></pre><p>Here, each thread is assigned a data segment defined by the layout (2,3):(1,2). The group of threads operates within a layout of (2,3):(3,1), referred to as <code>val_layout</code> and <code>thr_layout</code>, respectively.</p><p>To begin, we initialize these arrays:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_buffer = collect(1:36) .* 0.1;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src = MoYeArray(src_buffer, @Layout((4,9)))</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: LoadError: UndefVarError: `@Layout` not defined
-in expression starting at REPL[2]:1</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_buffer = zeros(36);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst = MoYeArray(dst_buffer, make_layout((_4,_9)));</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `_4` not defined</code></pre><p>We then proceed to set up a <code>TiledCopy</code>:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_layout = @Layout (2, 3) (3, 1)</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: LoadError: UndefVarError: `@Layout` not defined
-in expression starting at REPL[1]:1</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; val_layout = @Layout (2, 3) (1, 2)</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: LoadError: UndefVarError: `@Layout` not defined
-in expression starting at REPL[2]:1</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; tiled_copy = make_tiled_copy(
+4 4 4 5 5 5 6 6 6</code></pre><p>Here, each thread is assigned a data segment defined by the layout (2,3):(1,2). The group of threads operates within a layout of (2,3):(3,1), referred to as <code>val_layout</code> and <code>thr_layout</code>, respectively.</p><p>To begin, we initialize these arrays:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; using MoYe</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_buffer = collect(1:36) .* 0.1;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src = MoYeArray(src_buffer, @Layout((4,9)))</code><code class="nohighlight hljs ansi" style="display:block;">4×9 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, StaticLayout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices _1:_4×_1:_9:
+ 0.1  0.5  0.9  1.3  1.7  2.1  2.5  2.9  3.3
+ 0.2  0.6  1.0  1.4  1.8  2.2  2.6  3.0  3.4
+ 0.3  0.7  1.1  1.5  1.9  2.3  2.7  3.1  3.5
+ 0.4  0.8  1.2  1.6  2.0  2.4  2.8  3.2  3.6</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_buffer = zeros(36);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst = MoYeArray(dst_buffer, make_layout((_4,_9)));</code><code class="nohighlight hljs ansi" style="display:block;"></code></pre><p>We then proceed to set up a <code>TiledCopy</code>:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_layout = @Layout (2, 3) (3, 1)</code><code class="nohighlight hljs ansi" style="display:block;">(_2, _3):(_3, _1)</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; val_layout = @Layout (2, 3) (1, 2)</code><code class="nohighlight hljs ansi" style="display:block;">(_2, _3):(_1, _2)</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; tiled_copy = make_tiled_copy(
        	CopyAtom{UniversalCopy{Float64}, Float64}(),
        	thr_layout,
-       	val_layout)</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `CopyAtom` not defined</code></pre><p>The second parameter Float64 in CopyAtom indicates that the copied data is of <code>Float64</code> type. <code>UniversalCopy{Float64}</code> is used for vectorized copy operations, meaning that the data is recast to Float64, i.e., without vectorization. You can also use <code>UniversalCopy{UInt128}</code> to enable vectoried load and stores.</p><p>You can visualize this TiledCopy by using <code>print_typst(tiled_copy)</code>. Visit <a href="https://typst.app">typst</a>, copy the printed string, and you will see the following image:</p><p><img src="../../assets/tiled_copy1.png" alt="matmuil"/></p><p>The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread&#39;s data, for example:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
-                                          @Layout((32,1)), @Layout((1,8))));</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: LoadError: UndefVarError: `@Layout` not defined
-in expression starting at REPL[1]:2</code></pre><p>As you can see, both thr<em>layout and val</em>layout are actually defined on dst.</p><p>Returning to our example, after making the TiledCopy, we can use it to partition data.</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_idx = 2;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_copy = get_slice(tiled_copy, thr_idx);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `get_slice` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_t = partition_D(thr_copy, dst);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `partition_D` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_t = partition_S(thr_copy, src);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `partition_S` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_t, src_t);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `tiled_copy` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `dst` not defined</code></pre><p>You can see that the second thread has completed the copy.</p><p>The NVIDIA Ampere architecture supports cuda::memcpy_async for asynchronously copying data between GPU global memory and shared memory without needing threads to orchestrate the data movement. In previous architectures, copying from global memory to shared memory usually involved registers for intermediation, corresponding to this syntax:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_idx = 3;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_copy = get_slice(tiled_copy, thr_idx);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `get_slice` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_t = partition_D(thr_copy, dst);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `partition_D` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_t = partition_S(thr_copy, src);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `partition_S` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_r = make_fragment_like(dst_t);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `make_fragment_like` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_r, src_t);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `tiled_copy` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_t, dst_r);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `tiled_copy` not defined</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: `dst` not defined</code></pre><h2 id="MatMul"><a class="docs-heading-anchor" href="#MatMul">MatMul</a><a id="MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#MatMul" title="Permalink"></a></h2><p>Now, we use TiledCopy to upgrade the previous matmul_kernel.</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, copy_A,
+       	val_layout)</code><code class="nohighlight hljs ansi" style="display:block;">TiledCopy
+  Tiler_MN:    (_4, _9)
+  TiledLayout_TV: ((_3, _2), (_2, _3)):((_12, _2), (_1, _4))
+CopyAtom
+  Thread ID: _1:_0
+  ValLayoutSrc: (_1, _1):(_0, _1)
+  ValLayoutDst: (_1, _1):(_0, _1)
+  ValLayoutRef: (_1, _1):(_0, _1)
+  ValueType:    64b</code></pre><p>The second parameter Float64 in CopyAtom indicates that the copied data is of <code>Float64</code> type. <code>UniversalCopy{Float64}</code> is used for vectorized copy operations, meaning that the data is recast to Float64, i.e., without vectorization. You can also use <code>UniversalCopy{UInt128}</code> to enable vectoried load and stores.</p><p>You can visualize this TiledCopy by using <code>print_typst(tiled_copy)</code>. Visit <a href="https://typst.app">typst</a>, copy the printed string, and you will see the following image:</p><p><img src="../../assets/tiled_copy1.png" alt="matmuil"/></p><p>The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread&#39;s data, for example:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
+                                          @Layout((32,1)), @Layout((1,8))));</code><code class="nohighlight hljs ansi" style="display:block;">#set par(leading: 0.25em)
+#set page(width: 47.0em, height: 79.9em, margin: 0pt)
+
+#let color_map = (
+    rgb(175, 175, 255),
+    rgb(175, 255, 175),
+    rgb(255, 255, 175),
+    rgb(255, 175, 175),
+    rgb(210, 210, 255),
+    rgb(210, 255, 210),
+    rgb(255, 210, 210),
+    aqua,
+    teal,
+    red.transparentize(50%),
+    yellow.transparentize(50%),
+    lime.transparentize(50%),
+    fuchsia.transparentize(50%),
+    color.mix((aqua, 10%), (red, 50%)).transparentize(10%),
+    orange.transparentize(30%),
+    purple.transparentize(50%),  
+    maroon.transparentize(70%),
+    rgb(87, 127, 230).transparentize(30%),
+    cmyk(27%, 0%, 3%, 5%),
+    color.hsl(30deg, 50%, 60%).transparentize(30%),
+    color.mix((red, 70%), (blue, 30%)).transparentize(30%),
+    color.mix((red, 70%), (fuchsia, 30%)).transparentize(30%),
+    color.mix((aqua, 70%), (fuchsia, 30%)).transparentize(10%),
+    color.mix((purple, 70%), (blue, 30%)).transparentize(50%),
+    color.mix((red, 30%), (fuchsia, 70%)).transparentize(50%),
+    color.mix((eastern, 30%), (fuchsia, 70%)).transparentize(30%),
+    color.mix((green, 50%), (olive, 50%)).transparentize(30%),
+    color.mix((blue, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((yellow, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((orange, 50%), (purple, 50%)).transparentize(30%),
+    color.mix((teal, 70%), (blue, 30%)).transparentize(30%),
+    color.mix((aqua, 60%), (lime, 40%)).transparentize(30%),
+)
+
+#let cell(thr_idx, val_idx) = table.cell(fill: color_map.at((thr_idx.bit-and(31))))[#block(width: 1.5em, height: 1.5em)[T#(thr_idx) \ V#(val_idx)]]
+#let top_cell(i) = table.cell(stroke:none, align: horizon)[#(if i == 0 {block(width: 1.5em, height: 1.5em)[]} else {block(width: 1.5em, height: 1.5em)[#i]})]
+#let left_cell(i) = table.cell(x: 0, y:i, stroke:none, align: horizon)[#block(width: 1.5em, height: 1.5em)[#i]]
+#let fill_cell(i) = table.cell(stroke:none)[#block(width: 1.5em, height: 1.5em)[]]
+
+#let table_S = table(
+    columns: 9,
+    rows: 32,
+    align: center,
+    table.header(..range(9).map(top_cell)),
+    left_cell(1),cell(1, 1),cell(1, 2),cell(9, 1),cell(9, 2),cell(17, 1),cell(17, 2),cell(25, 1),cell(25, 2),
+left_cell(2),cell(1, 3),cell(1, 4),cell(9, 3),cell(9, 4),cell(17, 3),cell(17, 4),cell(25, 3),cell(25, 4),
+left_cell(3),cell(1, 5),cell(1, 6),cell(9, 5),cell(9, 6),cell(17, 5),cell(17, 6),cell(25, 5),cell(25, 6),
+left_cell(4),cell(1, 7),cell(1, 8),cell(9, 7),cell(9, 8),cell(17, 7),cell(17, 8),cell(25, 7),cell(25, 8),
+left_cell(5),cell(2, 1),cell(2, 2),cell(10, 1),cell(10, 2),cell(18, 1),cell(18, 2),cell(26, 1),cell(26, 2),
+left_cell(6),cell(2, 3),cell(2, 4),cell(10, 3),cell(10, 4),cell(18, 3),cell(18, 4),cell(26, 3),cell(26, 4),
+left_cell(7),cell(2, 5),cell(2, 6),cell(10, 5),cell(10, 6),cell(18, 5),cell(18, 6),cell(26, 5),cell(26, 6),
+left_cell(8),cell(2, 7),cell(2, 8),cell(10, 7),cell(10, 8),cell(18, 7),cell(18, 8),cell(26, 7),cell(26, 8),
+left_cell(9),cell(3, 1),cell(3, 2),cell(11, 1),cell(11, 2),cell(19, 1),cell(19, 2),cell(27, 1),cell(27, 2),
+left_cell(10),cell(3, 3),cell(3, 4),cell(11, 3),cell(11, 4),cell(19, 3),cell(19, 4),cell(27, 3),cell(27, 4),
+left_cell(11),cell(3, 5),cell(3, 6),cell(11, 5),cell(11, 6),cell(19, 5),cell(19, 6),cell(27, 5),cell(27, 6),
+left_cell(12),cell(3, 7),cell(3, 8),cell(11, 7),cell(11, 8),cell(19, 7),cell(19, 8),cell(27, 7),cell(27, 8),
+left_cell(13),cell(4, 1),cell(4, 2),cell(12, 1),cell(12, 2),cell(20, 1),cell(20, 2),cell(28, 1),cell(28, 2),
+left_cell(14),cell(4, 3),cell(4, 4),cell(12, 3),cell(12, 4),cell(20, 3),cell(20, 4),cell(28, 3),cell(28, 4),
+left_cell(15),cell(4, 5),cell(4, 6),cell(12, 5),cell(12, 6),cell(20, 5),cell(20, 6),cell(28, 5),cell(28, 6),
+left_cell(16),cell(4, 7),cell(4, 8),cell(12, 7),cell(12, 8),cell(20, 7),cell(20, 8),cell(28, 7),cell(28, 8),
+left_cell(17),cell(5, 1),cell(5, 2),cell(13, 1),cell(13, 2),cell(21, 1),cell(21, 2),cell(29, 1),cell(29, 2),
+left_cell(18),cell(5, 3),cell(5, 4),cell(13, 3),cell(13, 4),cell(21, 3),cell(21, 4),cell(29, 3),cell(29, 4),
+left_cell(19),cell(5, 5),cell(5, 6),cell(13, 5),cell(13, 6),cell(21, 5),cell(21, 6),cell(29, 5),cell(29, 6),
+left_cell(20),cell(5, 7),cell(5, 8),cell(13, 7),cell(13, 8),cell(21, 7),cell(21, 8),cell(29, 7),cell(29, 8),
+left_cell(21),cell(6, 1),cell(6, 2),cell(14, 1),cell(14, 2),cell(22, 1),cell(22, 2),cell(30, 1),cell(30, 2),
+left_cell(22),cell(6, 3),cell(6, 4),cell(14, 3),cell(14, 4),cell(22, 3),cell(22, 4),cell(30, 3),cell(30, 4),
+left_cell(23),cell(6, 5),cell(6, 6),cell(14, 5),cell(14, 6),cell(22, 5),cell(22, 6),cell(30, 5),cell(30, 6),
+left_cell(24),cell(6, 7),cell(6, 8),cell(14, 7),cell(14, 8),cell(22, 7),cell(22, 8),cell(30, 7),cell(30, 8),
+left_cell(25),cell(7, 1),cell(7, 2),cell(15, 1),cell(15, 2),cell(23, 1),cell(23, 2),cell(31, 1),cell(31, 2),
+left_cell(26),cell(7, 3),cell(7, 4),cell(15, 3),cell(15, 4),cell(23, 3),cell(23, 4),cell(31, 3),cell(31, 4),
+left_cell(27),cell(7, 5),cell(7, 6),cell(15, 5),cell(15, 6),cell(23, 5),cell(23, 6),cell(31, 5),cell(31, 6),
+left_cell(28),cell(7, 7),cell(7, 8),cell(15, 7),cell(15, 8),cell(23, 7),cell(23, 8),cell(31, 7),cell(31, 8),
+left_cell(29),cell(8, 1),cell(8, 2),cell(16, 1),cell(16, 2),cell(24, 1),cell(24, 2),cell(32, 1),cell(32, 2),
+left_cell(30),cell(8, 3),cell(8, 4),cell(16, 3),cell(16, 4),cell(24, 3),cell(24, 4),cell(32, 3),cell(32, 4),
+left_cell(31),cell(8, 5),cell(8, 6),cell(16, 5),cell(16, 6),cell(24, 5),cell(24, 6),cell(32, 5),cell(32, 6),
+left_cell(32),cell(8, 7),cell(8, 8),cell(16, 7),cell(16, 8),cell(24, 7),cell(24, 8),cell(32, 7),cell(32, 8),
+)
+
+#let table_D = table(
+    columns: 9,
+    rows: 32,
+    align: center,
+    table.header(..range(9).map(top_cell)),
+    left_cell(1),cell(1, 1),cell(1, 2),cell(1, 3),cell(1, 4),cell(1, 5),cell(1, 6),cell(1, 7),cell(1, 8),
+left_cell(2),cell(2, 1),cell(2, 2),cell(2, 3),cell(2, 4),cell(2, 5),cell(2, 6),cell(2, 7),cell(2, 8),
+left_cell(3),cell(3, 1),cell(3, 2),cell(3, 3),cell(3, 4),cell(3, 5),cell(3, 6),cell(3, 7),cell(3, 8),
+left_cell(4),cell(4, 1),cell(4, 2),cell(4, 3),cell(4, 4),cell(4, 5),cell(4, 6),cell(4, 7),cell(4, 8),
+left_cell(5),cell(5, 1),cell(5, 2),cell(5, 3),cell(5, 4),cell(5, 5),cell(5, 6),cell(5, 7),cell(5, 8),
+left_cell(6),cell(6, 1),cell(6, 2),cell(6, 3),cell(6, 4),cell(6, 5),cell(6, 6),cell(6, 7),cell(6, 8),
+left_cell(7),cell(7, 1),cell(7, 2),cell(7, 3),cell(7, 4),cell(7, 5),cell(7, 6),cell(7, 7),cell(7, 8),
+left_cell(8),cell(8, 1),cell(8, 2),cell(8, 3),cell(8, 4),cell(8, 5),cell(8, 6),cell(8, 7),cell(8, 8),
+left_cell(9),cell(9, 1),cell(9, 2),cell(9, 3),cell(9, 4),cell(9, 5),cell(9, 6),cell(9, 7),cell(9, 8),
+left_cell(10),cell(10, 1),cell(10, 2),cell(10, 3),cell(10, 4),cell(10, 5),cell(10, 6),cell(10, 7),cell(10, 8),
+left_cell(11),cell(11, 1),cell(11, 2),cell(11, 3),cell(11, 4),cell(11, 5),cell(11, 6),cell(11, 7),cell(11, 8),
+left_cell(12),cell(12, 1),cell(12, 2),cell(12, 3),cell(12, 4),cell(12, 5),cell(12, 6),cell(12, 7),cell(12, 8),
+left_cell(13),cell(13, 1),cell(13, 2),cell(13, 3),cell(13, 4),cell(13, 5),cell(13, 6),cell(13, 7),cell(13, 8),
+left_cell(14),cell(14, 1),cell(14, 2),cell(14, 3),cell(14, 4),cell(14, 5),cell(14, 6),cell(14, 7),cell(14, 8),
+left_cell(15),cell(15, 1),cell(15, 2),cell(15, 3),cell(15, 4),cell(15, 5),cell(15, 6),cell(15, 7),cell(15, 8),
+left_cell(16),cell(16, 1),cell(16, 2),cell(16, 3),cell(16, 4),cell(16, 5),cell(16, 6),cell(16, 7),cell(16, 8),
+left_cell(17),cell(17, 1),cell(17, 2),cell(17, 3),cell(17, 4),cell(17, 5),cell(17, 6),cell(17, 7),cell(17, 8),
+left_cell(18),cell(18, 1),cell(18, 2),cell(18, 3),cell(18, 4),cell(18, 5),cell(18, 6),cell(18, 7),cell(18, 8),
+left_cell(19),cell(19, 1),cell(19, 2),cell(19, 3),cell(19, 4),cell(19, 5),cell(19, 6),cell(19, 7),cell(19, 8),
+left_cell(20),cell(20, 1),cell(20, 2),cell(20, 3),cell(20, 4),cell(20, 5),cell(20, 6),cell(20, 7),cell(20, 8),
+left_cell(21),cell(21, 1),cell(21, 2),cell(21, 3),cell(21, 4),cell(21, 5),cell(21, 6),cell(21, 7),cell(21, 8),
+left_cell(22),cell(22, 1),cell(22, 2),cell(22, 3),cell(22, 4),cell(22, 5),cell(22, 6),cell(22, 7),cell(22, 8),
+left_cell(23),cell(23, 1),cell(23, 2),cell(23, 3),cell(23, 4),cell(23, 5),cell(23, 6),cell(23, 7),cell(23, 8),
+left_cell(24),cell(24, 1),cell(24, 2),cell(24, 3),cell(24, 4),cell(24, 5),cell(24, 6),cell(24, 7),cell(24, 8),
+left_cell(25),cell(25, 1),cell(25, 2),cell(25, 3),cell(25, 4),cell(25, 5),cell(25, 6),cell(25, 7),cell(25, 8),
+left_cell(26),cell(26, 1),cell(26, 2),cell(26, 3),cell(26, 4),cell(26, 5),cell(26, 6),cell(26, 7),cell(26, 8),
+left_cell(27),cell(27, 1),cell(27, 2),cell(27, 3),cell(27, 4),cell(27, 5),cell(27, 6),cell(27, 7),cell(27, 8),
+left_cell(28),cell(28, 1),cell(28, 2),cell(28, 3),cell(28, 4),cell(28, 5),cell(28, 6),cell(28, 7),cell(28, 8),
+left_cell(29),cell(29, 1),cell(29, 2),cell(29, 3),cell(29, 4),cell(29, 5),cell(29, 6),cell(29, 7),cell(29, 8),
+left_cell(30),cell(30, 1),cell(30, 2),cell(30, 3),cell(30, 4),cell(30, 5),cell(30, 6),cell(30, 7),cell(30, 8),
+left_cell(31),cell(31, 1),cell(31, 2),cell(31, 3),cell(31, 4),cell(31, 5),cell(31, 6),cell(31, 7),cell(31, 8),
+left_cell(32),cell(32, 1),cell(32, 2),cell(32, 3),cell(32, 4),cell(32, 5),cell(32, 6),cell(32, 7),cell(32, 8),
+)
+
+#grid(
+    columns: 2,
+    rows: 1,
+    gutter: 3em,
+    table_S, table_D
+)</code></pre><p><img src="../../assets/ldmatrix.png" alt="matmuil"/></p><p>As you can see, both thr<em>layout and val</em>layout are actually defined on dst.</p><p>Returning to our example, after making the TiledCopy, we can use it to partition data.</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_idx = 2;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_copy = get_slice(tiled_copy, thr_idx);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_t = partition_D(thr_copy, dst);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_t = partition_S(thr_copy, src);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_t, src_t);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">4×9 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, StaticLayout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices _1:_4×_1:_9:
+ 0.0  0.0  0.0  1.3  1.7  2.1  0.0  0.0  0.0
+ 0.0  0.0  0.0  1.4  1.8  2.2  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0</code></pre><p>You can see that the second thread has completed the copy.</p><p>The NVIDIA Ampere architecture supports cuda::memcpy_async for asynchronously copying data between GPU global memory and shared memory without needing threads to orchestrate the data movement. In previous architectures, copying from global memory to shared memory usually involved registers for intermediation, corresponding to this syntax:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_idx = 3;</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; thr_copy = get_slice(tiled_copy, thr_idx);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_t = partition_D(thr_copy, dst);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; src_t = partition_S(thr_copy, src);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst_r = make_fragment_like(dst_t);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_r, src_t);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_t, dst_r);</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">4×9 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, StaticLayout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices _1:_4×_1:_9:
+ 0.0  0.0  0.0  1.3  1.7  2.1  2.5  2.9  3.3
+ 0.0  0.0  0.0  1.4  1.8  2.2  2.6  3.0  3.4
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0</code></pre><h2 id="MatMul"><a class="docs-heading-anchor" href="#MatMul">MatMul</a><a id="MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#MatMul" title="Permalink"></a></h2><p>Now, we use TiledCopy to upgrade the previous matmul_kernel.</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, copy_A,
                        B, sB_layout, copy_B,
                        C, tC)
     M = size(A, 1)
@@ -118,4 +260,4 @@ function test()
     CUDA.unsafe_free!(C)
 end
 
-test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tiling_matmul/">« MatMul</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Thursday 25 April 2024 06:29">Thursday 25 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tiling_matmul/">« MatMul</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Thursday 25 April 2024 06:50">Thursday 25 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
