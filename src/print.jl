@@ -335,6 +335,7 @@ julia> tiled_copy = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, Float32}(),
                                     @Layout((4,1)))
 
 julia> print_typst(tiled_copy)
+```
 """
 function print_typst(tiled_copy::TiledCopy)
     layoutS_MN, thrID_S = get_layoutS_MN(tiled_copy)
