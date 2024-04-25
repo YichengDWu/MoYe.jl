@@ -55,7 +55,6 @@ include("deprecated.jl")
 
 # Device
 include("device/smem.jl")
-include("device/collective.jl")
 
 include("print.jl")
 
@@ -97,9 +96,6 @@ export axpby!, gemm!
 
 # data movement
 export cp_async_wait, cp_async_commit
-
-# collective
-export @collective
 
 # constants
 export _0, _1, _2, _3, _4, _5, _6, _8, _9, _10,
