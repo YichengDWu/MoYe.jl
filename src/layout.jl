@@ -976,7 +976,7 @@ function (::Upcast{m})(shape::IntType, stride::StaticInt) where m
     @inline
     return make_layout(shape_div(shape, shape_div(m(), abs(stride))), shape_div(stride, m()))
 end
-function (::Upcast{m})(shape::IntType, stride::Int) where m
+function (::Upcast{m})(shape::IntType, stride::DInt) where m
     @inline
     return make_layout(shape, safe_div(stride, m()))
 end
@@ -1002,7 +1002,7 @@ function (::Downcast{N})(shape::IntType, stride::StaticInt) where N
     @inline
     return make_layout(shape, stride * N())
 end
-function (::Downcast{N})(shape::Int, stride::Int) where N
+function (::Downcast{N})(shape::DInt, stride::DInt) where N
     @inline
     if isone(stride)
         return make_layout(shape * N(), stride)

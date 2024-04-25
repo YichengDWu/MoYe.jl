@@ -1,3 +1,15 @@
+const IntType = Union{Int, StaticInt, Int32}
+const DInt = Union{Int, Int32}
+
+function Base.promote_rule(@nospecialize(T1::Type{<:StaticInt}), T2::Type{Int32})
+    return Int32
+end
+
+Base.rem(x::Int32, ::StaticInt{Y}) where {Y} = rem(x, Int32(Y))
+Base.rem(::StaticInt{X}, y::Int32) where {X} = rem(Int32(X), y)
+Base.div(x::Int32, ::StaticInt{Y}) where {Y} = div(x, Int32(Y))
+Base.div(::StaticInt{X}, y::Int32) where {X} = div(Int32(X), y)
+
 uint_bit(::StaticInt{8}) = UInt8
 uint_bit(::StaticInt{16}) = UInt16
 uint_bit(::StaticInt{32}) = UInt32

@@ -71,7 +71,7 @@ Base.@assume_effects :total function coord_to_index0(coord::IntTuple{N}, shape::
 end
 
 @inline _offset(x::Colon) = Zero()
-@inline _offset(x::Int) = x - one(x)
+@inline _offset(x::DInt) = x - one(x)
 @inline _offset(x::StaticInt{N}) where {N} = StaticInt{N - 1}()
 @inline _offset(x::NTuple{N, Colon}) where {N} = ntuple(Returns(Zero()), Val(N))
 @inline function _offset(x::NTuple{N, Int}) where {N}
