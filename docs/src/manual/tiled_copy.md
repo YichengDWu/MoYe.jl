@@ -36,18 +36,20 @@ The second parameter Float64 in CopyAtom indicates that the copied data is of `F
 
 You can visualize this TiledCopy by using `print_typst(tiled_copy)`. Visit [typst](https://typst.app), copy the printed string, and you will see the following image:
 
-![matmuil](../assets/tiled_copy1.png)
+![matmuil](../assets/tiled_copy.svg)
 
 
 The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread's data, for example:
 ```julia
 print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
-                                   @Layout((32,1)), @Layout((1,8))));
+                             @Layout((16,2)), 
+                             @Layout((2,4))));
 ```
 
-![matmuil](../assets/ldmatrix.png)
+![matmuil](../assets/ldmatrix.svg)
 
-As you can see, both thr_layout and val_layout are actually defined on dst.
+For the `ldmatrix` instruction, each thread supplies a pointer to 128b of data in Shared Memory.
+And each 128b is broadcast to groups of four thread.
 
 Returning to our example, after making the TiledCopy, we can use it to partition data.
 
