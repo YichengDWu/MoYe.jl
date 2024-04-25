@@ -44,6 +44,9 @@ The two tables respectively represent the thread distribution of src and dst, wh
 print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
                                    @Layout((32,1)), @Layout((1,8))));
 ```
+
+![matmuil](../assets/ldmatrix.png)
+
 As you can see, both thr_layout and val_layout are actually defined on dst.
 
 Returning to our example, after making the TiledCopy, we can use it to partition data.
