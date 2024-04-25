@@ -19,11 +19,11 @@ makedocs(; modules=[MoYe],
                 "Layout" => "manual/layout.md",
                 "Array" => "manual/array.md",
                 "Broadcasting" => "manual/broadcast.md",
-                "MatMul" => "manual/tiling_matmul.md",
+                "MatMul" => "manual/atmul.md",
                # "Data Movement" => [
                #     "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
                # ]
-                "Tiled Copy" => "manual/tiled_copy.md",
+                "TiledCopy & TiledMMA" => "manual/tiled_matmul.md",
             ],
             "API Reference" => [
                     "Layout" => "api/layout.md",
