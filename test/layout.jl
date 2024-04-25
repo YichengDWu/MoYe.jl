@@ -1,6 +1,16 @@
 using MoYe, Test, JET
 using Static: One
 
+@testset "Int32" begin
+    a = @Layout (2, (2, 2))  (2, (1, 4))
+    idx_a = a(Int32(2))
+    @test typeof(idx_a) == Int32
+
+    b = make_layout((Int32(2), Int32(4)))
+    idx_b = b(Int32(2))
+    @test typeof(idx_b) == Int32
+end
+
 @testset "Macro Layout" begin
     @test @Layout((2, (2, 2)), (4, (1, 2))) ==
           make_layout(static((2, (2, 2))), static((4, (1, 2))))

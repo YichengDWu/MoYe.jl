@@ -68,7 +68,7 @@ end
         recasted_moye_C = recast(UInt32, moye_C) # 16x4
         recasted_frag_C = recast(UInt32, frag_C) # 2x1
 
-        row, col = fldmod1(Int(threadIdx().x), 4)
+        row, col = fldmod1(threadIdx().x, Int32(4))
 
         # awkward manual indexing
         recasted_moye_C[row, col] = recasted_frag_C[1]

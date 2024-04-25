@@ -36,7 +36,7 @@ end
 @inline function local_partition(x::MoYeArray{T,N}, tile::Tile, coord::Tuple) where {T,N}
     return view(zipped_divide(x, tile), coord, ntuple(i -> Colon(), Val(N)))
 end
-@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::Int)
+@inline function local_partition(@nospecialize(x::MoYeArray), tile::Layout, index::DInt)
     return local_partition(x, map(capacity, shape(tile)), get_congr_coord(tile, index))
 end
 @inline function local_partition(@nospecialize(x::MoYeArray), tile::Tile, coord, proj)
@@ -54,9 +54,6 @@ function Base.:(∘)(x::MoYeArray, l)
     @inline
     return MoYeArray(pointer(x), composition(layout(x), l))
 end
-
-_toint(x::Integer) = Int(x)
-_toint(x::Colon) = x
 
 """
     @parallelize x::MoYeArray threadgroup_layout::Layout thread_idx::Int
@@ -104,11 +101,11 @@ julia> @parallelize a @Layout((2,2), (2, 1)) 2
 macro parallelize(x, tile, coord, proj...)
     if length(proj) == 0
         return quote
-            local_partition($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+            local_partition($(esc(x)), static($(esc(tile))), $(esc(coord)))
         end
     else
         return quote
-            local_partition($(esc(x)), static($(esc(tile))), _toint($(esc(coord))), static($(esc(proj[1]))))
+            local_partition($(esc(x)), static($(esc(tile))), $(esc(coord)), static($(esc(proj[1]))))
         end
     end
 end
@@ -149,11 +146,11 @@ julia> @tile a (_2, _2) (1, 1)
 macro tile(x, tile, coord, proj...)
     if length(proj) == 0
         return quote
-            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))))
+            local_tile($(esc(x)), static($(esc(tile))), $(esc(coord)))
         end
     else
         return quote
-            local_tile($(esc(x)), static($(esc(tile))), map(_toint, $(esc(coord))), static($(esc(proj[1]))))
+            local_tile($(esc(x)), static($(esc(tile))), $(esc(coord)), static($(esc(proj[1]))))
         end
     end
 end

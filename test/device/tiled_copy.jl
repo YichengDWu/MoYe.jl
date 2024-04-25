@@ -3,7 +3,7 @@ function tiled_copy_kernel(g_in, g_out, tiled_copy, smem_layout)
     t_g_in = MoYeArray(pointer(g_in), smem_layout)
     t_g_out = MoYeArray(pointer(g_out), smem_layout)
     t_smem=MoYeSharedArray(UInt16, smem_layout)
-    tid=Int(threadIdx().x)
+    tid=threadIdx().x
 
     for i in tid:size(tiled_copy):size(t_smem.layout)
         @inbounds  t_smem[i] = t_g_in[i]

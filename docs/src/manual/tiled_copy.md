@@ -40,7 +40,7 @@ You can visualize this TiledCopy by using `print_typst(tiled_copy)`. Visit [typs
 
 
 The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread's data, for example:
-```@repl tiled_copy
+```julia
 print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
                                    @Layout((32,1)), @Layout((1,8))));
 ```
@@ -103,12 +103,12 @@ function matmul_kernel(A, sA_layout, copy_A,
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
     # copy partition
-    thr_copy_a = get_slice(copy_A, Int(threadIdx().x))
+    thr_copy_a = get_slice(copy_A, threadIdx().x)
     tAgA = partition_S(thr_copy_a, gA) # (Val, CopyM, CopyK, k)
     tAsA = partition_D(thr_copy_a, sA)
 	tArA = make_fragment_like(tAsA)
 
-    thr_copy_b = get_slice(copy_B, Int(threadIdx().x))
+    thr_copy_b = get_slice(copy_B, threadIdx().x)
     tBgB = partition_S(thr_copy_b, gB)
     tBsB = partition_D(thr_copy_b, sB)
 	tBrB = make_fragment_like(tBsB)

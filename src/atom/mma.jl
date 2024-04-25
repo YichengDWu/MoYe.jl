@@ -169,7 +169,7 @@ function thrfrg_B(m::TiledMMA, B::Layout{2})
     return thr_array
 end
 
-function get_slice(m::TiledMMA, thr_idx::Int)
+function get_slice(m::TiledMMA, thr_idx::DInt)
     @inline
     thr_vmnk = get_congr_coord(get_thr_layout_vmnk(m), thr_idx)
     return ThrMMA(m, thr_vmnk)

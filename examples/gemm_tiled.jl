@@ -22,7 +22,7 @@ function matmul_kernel(A, blocklayout_A, B, blocklayout_B, C, tiled_copy, tiled_
     blk_C = @tile mC (bM, bN) (blockIdx().x, blockIdx().y) # (bM,bN)
 
     # For mma computation
-    thread_idx = Int(threadIdx().x)
+    thread_idx = threadIdx().x
     thr_mma = get_slice(tiled_mma, thread_idx)
     thr_A = partition_A(thr_mma, sA)
     thr_B = partition_B(thr_mma, sB)

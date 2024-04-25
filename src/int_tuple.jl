@@ -1,7 +1,7 @@
-const IntSequence{N} = NTuple{N, Union{Int, StaticInt}}
+const IntSequence{N} = NTuple{N, Union{IntType, StaticInt}}
 
 # the recursive type definition is tricky to get right, we put Tuple here to represent it.
-const IntTuple{N} = Tuple{Vararg{Union{Int, StaticInt, Tuple}, N}}
+const IntTuple{N} = Tuple{Vararg{Union{IntType, Tuple}, N}}
 const GenIntTuple = Union{Int, StaticInt, IntTuple}
 
 # note that this type is only **almost** static
@@ -54,7 +54,6 @@ end
 
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
-#capacity(@nospecialize(x::IntTuple), I::Int, Is::Int) = capacity(getindex(x, I, Is...))
 @inline capacity(::Type{T}) where {T<:StaticInt} = T
 @inline capacity(::Type{T}) where {T<:StaticIntTuple} = product(T)
 
