@@ -157,10 +157,14 @@ end
 function make_layout(shape::GenIntTuple, ::Type{GenRowMajor})
     return make_layout(shape, compact_row_major(shape))
 end
-function make_layout(shape::Type{S}, stride::Type{D}) where {N, S <: StaticIntTuple{N},
-                                                             D <: StaticIntTuple{N}}
+function make_layout(shape::Type{S}, stride::Type{D}) where {N, S <: IntTuple{N},
+                                                             D <: IntTuple{N}}
     @inline
     return Layout{N, S, D}
+end
+function make_layout(shape::Type{S}, stride::Type{D}) where {S <: StaticInt, D <: StaticInt}
+    @inline
+    return Layout{1, S, D}
 end
 
 """
@@ -234,9 +238,9 @@ function Base.getindex(@nospecialize(t::Layout), r::AbstractUnitRange)
     @inline
     return ntuple(i -> t[i + first(r) - 1], length(r))
 end
-function Base.getindex(layout::Type{<:StaticLayout}, ::StaticInt{I}) where {I}
+function Base.getindex(layout::Type{<:Layout}, ::StaticInt{I}) where {I}
     @inline
-    return make_layout(getindex(shape(layout).parameters, I), getindex(stride(layout).parameters, I))
+    return make_layout(shape(layout).parameters[I], stride(layout).parameters[I])
 end
 
 # Layout as iterator
