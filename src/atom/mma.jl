@@ -78,14 +78,16 @@ end
 # TiledMMA 
 struct TiledMMA{Atom<:AbstractMMAAtom, 
               AtomLayoutMNK <: Layout{3},
-              PermutationMNK <: Tile{3}}
+              PermutationMNK <: Tile{3}, Traits} <: AbstractMMAAtom{Traits}
     atom::Atom
     atom_layout_mnk::AtomLayoutMNK
     permutation_mnk::PermutationMNK
-end
-
-function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK}() where {Atom, AtomLayoutMNK, PermutationMNK}
-    return TiledMMA{Atom, AtomLayoutMNK, PermutationMNK}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK, Traits}() where {Atom, AtomLayoutMNK, PermutationMNK, Traits}
+        return new{Atom, AtomLayoutMNK, PermutationMNK, Traits}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    end
+    function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK}() where {Traits,Atom<:AbstractMMAAtom{Traits}, AtomLayoutMNK, PermutationMNK}
+        return new{Atom, AtomLayoutMNK, PermutationMNK, Traits}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    end
 end
 
 function Base.show(io::IO, m::TiledMMA)
@@ -105,13 +107,6 @@ function Base.show(io::IO, m::ThrMMA{TA, ThrVMNK}) where {TA, ThrVMNK}
     println(io, "  Thr VMNK: ", m.thr_vmnk)
     return show(io, m.tiled_mma)
 end
-
-# all the delegation functions
-@inline layout_a(t::TiledMMA) = layout_a(t.atom)
-@inline layout_b(t::TiledMMA) = layout_b(t.atom)
-@inline layout_c(t::TiledMMA) = layout_c(t.atom)
-@inline thr_id(t::TiledMMA) = thr_id(t.atom)
-@inline shape_mnk(t::TiledMMA) = shape_mnk(t.atom)
 
 @inline @generated function get_thr_layout_vmnk(::TiledMMA{Atom, AtomLayoutMNK}) where {Atom, AtomLayoutMNK}
     thr_layout_vmnk_ = tiled_product(thr_id(Atom()), AtomLayoutMNK()) # (thr_id, atom_M, atom_N, atom_K)
@@ -196,7 +191,7 @@ function make_tiled_mma(mma_atom::AbstractMMAAtom,
                         permutations::Tile=(:, :, :))
     atom_layout_mnk = append(atom_layout, @Layout(1, 0), _3)
     permutation_mnk = append(permutations, :, _3)
-    return TiledMMA(mma_atom, atom_layout_mnk, permutation_mnk)
+    return TiledMMA{typeof(mma_atom), typeof(atom_layout_mnk), typeof(permutation_mnk)}()
 end
 
 """

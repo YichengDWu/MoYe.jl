@@ -13,6 +13,8 @@ struct CPOP_ASYNC_CACHEALWAYS{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
     end
 end
 
+@inline CPOP_ASYNC_CACHEALWAYS{S}() where {S} = CPOP_ASYNC_CACHEALWAYS{S,S}()
+
 @generated function (::CPOP_ASYNC_CACHEALWAYS{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TD, TS}
     intr = "llvm.nvvm.cp.async.ca.shared.global.$(sizeof(TS))"
     return quote
@@ -28,6 +30,8 @@ struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
         return :($(new{TS, TD}()))
     end
 end
+
+@inline CPOP_ASYNC_CACHEGLOBAL{S}() where {S} = CPOP_ASYNC_CACHEGLOBAL{S,S}()
 
 @generated function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
     intr = ".$(sizeof(TS))"
