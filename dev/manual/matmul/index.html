@@ -3,14 +3,14 @@
 gA = @tile A (bM, bK) (blockIdx().x, :)            # (bM, bK, K/bK)
 gB = @tile B (bN, bK) (blockIdx().y, :)            # (bN, bK, K/bK)</code></pre><p>For the specific partition syntax, please refer to <a href="../../api/tiling/#MoYe.@tile"><code>@tile</code></a>. Here, <code>gA</code> represents <code>A</code> in shared memory. Next, we use a for loop to index-slice the last dimension of gA and gB (denoted as <code>k</code>), loading them into shared memory. The code for this step is:</p><pre><code class="language-julia hljs">sA = MoYeSharedArray(eltype(gA), sA_layout) # (bM, bK)
 sB = MoYeSharedArray(eltype(gB), sB_layout) # (bN, bK)</code></pre><p><code>MoYeSharedArray</code> automatically allocates shared memory of size <code>cosize(sA_layout) + cosize(sB_layout)</code> and returns a <code>MoYeArray</code>. We will explain how to define the layouts for sA and sB later; for now, it&#39;s only necessary to know that they are predefined at compile time.</p><p>We then need to define how thread groups collectively copy from global to shared memory. There are many ways to organize threads, which will be discussed later, such as:</p><pre><code class="language-julia hljs">tA = @Layout (32, 8)
-tB = @Layout (32, 8)</code></pre><p>This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:</p><pre><code class="language-julia hljs">tAgA = @parallelize tA threadIdx().x
-tBgB = @parallelize tB threadIdx().x
+tB = @Layout (32, 8)</code></pre><p>This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:</p><pre><code class="language-julia hljs">tAgA = @parallelize tA threadIdx().x       # (THR_M, THR_K, k)
+tBgB = @parallelize tB threadIdx().x       # (THR_M, THR_K)
 
-tAsA = @parallelize sA threadIdx().x
-tBsB = @parallelize sB threadIdx().x</code></pre><p>For the specific syntax, please refer to <a href="../../api/tiling/#MoYe.@parallelize"><code>@parallelize</code></a>. After the partition, copying is simply:</p><pre><code class="language-julia hljs">copyto!(tAsA, view(tAgA, :, :, k))
-copyto!(tBsB, view(tBgB, :, :, k))</code></pre><p>After copying, we proceed to the actual matrix-multiply-accumulate (mma) computation. Similarly, we need to define a layout for the thread group for this purpose:</p><pre><code class="language-julia hljs">tC = @Layout (16, 16)</code></pre><p>Then we use it to partition gC:</p><pre><code class="language-julia hljs">tCgC = @parallelize gC tC threadIdx().x 
-tCrC = similar(tCgC)</code></pre><p>To reduce memory access to C, we also create an array <code>tCrC</code> stored in registers, which serves as the accumulator in the mma computation. After the computation, the contents are copied back into <code>tCgC</code>.</p><p>A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:</p><pre><code class="language-julia hljs">tCsA = @parallelize sA tC threadIdx().x (1, :) 
-tCsB = @parallelize sB tC threadIdx().x (:, 1)</code></pre><p>Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:</p><pre><code class="language-julia hljs">for k in axes(tCsA, 2)
+tAsA = @parallelize sA threadIdx().x       # (THR_N, THR_K, k)
+tBsB = @parallelize sB threadIdx().x       # (THR_N, THR_K)</code></pre><p>For the specific syntax, please refer to <a href="../../api/tiling/#MoYe.@parallelize"><code>@parallelize</code></a>. After the partition, copying is simply:</p><pre><code class="language-julia hljs">copyto!(tAsA, view(tAgA, :, :, k))
+copyto!(tBsB, view(tBgB, :, :, k))</code></pre><p>After copying, we proceed to the actual matrix-multiply-accumulate (mma) computation. Similarly, we need to define a layout for the thread group for this purpose:</p><pre><code class="language-julia hljs">tC = @Layout (16, 16)</code></pre><p>Then we use it to partition gC:</p><pre><code class="language-julia hljs">tCgC = @parallelize gC tC threadIdx().x   # (THR_M, THR_N)
+tCrC = similar(tCgC)</code></pre><p>To reduce memory access to C, we also create an array <code>tCrC</code> stored in registers, which serves as the accumulator in the mma computation. After the computation, the contents are copied back into <code>tCgC</code>.</p><p>A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:</p><pre><code class="language-julia hljs">tCsA = @parallelize sA tC threadIdx().x (1, :)    # (THR_M, bK)
+tCsB = @parallelize sB tC threadIdx().x (:, 1)    # (THR_N, bK)</code></pre><p>Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:</p><pre><code class="language-julia hljs">for k in axes(tCsA, 2)
     for m in axes(tCsA, 1)
         for n in axes(tCsB, 1)
             @inbounds tCrC[m, n] += tCsA[m, k] * tCsB[n, k]
@@ -27,30 +27,30 @@ end</code></pre><p>You can also call [<code>gemm!</code>] to perform the same op
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
 
-    sA = MoYeSharedArray(eltype(A), sA_layout)
-    sB = MoYeSharedArray(eltype(B), sB_layout)
+    sA = MoYeSharedArray(eltype(A), sA_layout)           # (bM, bK)
+    sB = MoYeSharedArray(eltype(B), sB_layout)           # (bN, bK)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
     mC = MoYeArray(C, (M, N))
 
-    gA = @tile mA (bM, bK) (blockIdx().x, :)
-    gB = @tile mB (bN, bK) (blockIdx().y, :)
-    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+    gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bN)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bN, bK, K/bK)
 
     # copy partition
-    tAgA = @parallelize gA tA threadIdx().x 
-    tBgB = @parallelize gB tB threadIdx().x
-    tAsA = @parallelize sA tA threadIdx().x
-    tBsB = @parallelize sB tB threadIdx().x
+    tAgA = @parallelize gA tA threadIdx().x               # (THR_M, THR_K, k)
+    tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K)
+    tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K, k)
+    tBsB = @parallelize sB tB threadIdx().x               # (THR_N, THR_K)
 
     # mma partition
-    tCsA = @parallelize sA tC threadIdx().x (1, :) 
-    tCsB = @parallelize sB tC threadIdx().x (:, 1)
-    tCgC = @parallelize gC tC threadIdx().x 
+    tCsA = @parallelize sA tC threadIdx().x (1, :)        # (THR_M, bK)
+    tCsB = @parallelize sB tC threadIdx().x (:, 1)        # (THR_N, bK)
+    tCgC = @parallelize gC tC threadIdx().x               # (THR_M, THR_N)
 
     # accumulator
-    tCrC = similar(tCgC)
+    tCrC = similar(tCgC)                                  # (THR_M, THR_N)
     zeros!(tCrC)
 
     for k in axes(tAgA, 3)
@@ -101,4 +101,4 @@ function test()
     CUDA.unsafe_free!(C)
 end
 
-test()</code></pre><p>This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../tiled_matmul/">TiledCopy &amp; TiledMMA »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Friday 26 April 2024 08:44">Friday 26 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+test()</code></pre><p>This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../tiled_matmul/">TiledCopy &amp; TiledMMA »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Friday 26 April 2024 09:58">Friday 26 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
