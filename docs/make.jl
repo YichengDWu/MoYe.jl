@@ -24,6 +24,8 @@ makedocs(; modules=[MoYe],
                #     "Global Memory & Shared Memory" => "manual/datamovement/gs.md",
                # ]
                 "TiledCopy & TiledMMA" => "manual/tiled_matmul.md",
+                "Memcpy Async" => "manual/async.md",
+
             ],
             "API Reference" => [
                     "Layout" => "api/layout.md",
