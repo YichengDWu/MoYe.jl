@@ -106,7 +106,7 @@ These instructions operate on tensor cores, a topic we haven't covered yet (but 
 
 ## MatMul
 
-Now, we use TiledCopy to upgrade the previous matmul_kernel.
+Now, we use `TiledCopy` and `TiledMMA` to upgrade the previous matmul_kernel.
 
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
