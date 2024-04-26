@@ -82,10 +82,12 @@ struct TiledMMA{Atom<:AbstractMMAAtom,
     atom::Atom
     atom_layout_mnk::AtomLayoutMNK
     permutation_mnk::PermutationMNK
-end
-
-function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK}() where {Traits, Atom<:AbstractMMAAtom{Traits}, AtomLayoutMNK, PermutationMNK}
-    return TiledMMA{Atom, AtomLayoutMNK, PermutationMNK, Traits}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK, Traits}() where {Atom, AtomLayoutMNK, PermutationMNK, Traits}
+        return new{Atom, AtomLayoutMNK, PermutationMNK, Traits}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    end
+    function TiledMMA{Atom, AtomLayoutMNK, PermutationMNK}() where {Traits,Atom<:AbstractMMAAtom{Traits}, AtomLayoutMNK, PermutationMNK}
+        return new{Atom, AtomLayoutMNK, PermutationMNK, Traits}(Atom(), AtomLayoutMNK(), make_tuple(PermutationMNK))
+    end
 end
 
 function Base.show(io::IO, m::TiledMMA)
