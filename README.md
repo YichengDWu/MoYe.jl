@@ -10,3 +10,4 @@ The primary purpose of developing this library is my desire to learn CuTe.
 
 The name **Mo Ye** is derived from an ancient Chinese [legend of swordsmiths](https://en.wikipedia.org/wiki/Gan_Jiang_and_Mo_Ye).
 
+The documentation is mostly my learning notes. Please refer to CuTe's documentation for more details.

@@ -30,11 +30,11 @@ tB = @Layout (32, 8)
 
 This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:
 ```julia
-tAgA = @parallelize tA threadIdx().x
-tBgB = @parallelize tB threadIdx().x
+tAgA = @parallelize tA threadIdx().x       # (THR_M, THR_K, k)
+tBgB = @parallelize tB threadIdx().x       # (THR_M, THR_K)
 
-tAsA = @parallelize sA threadIdx().x
-tBsB = @parallelize sB threadIdx().x
+tAsA = @parallelize sA threadIdx().x       # (THR_N, THR_K, k)
+tBsB = @parallelize sB threadIdx().x       # (THR_N, THR_K)
 ```
 
 For the specific syntax, please refer to [`@parallelize`](@ref). After the partition, copying is simply:
@@ -50,7 +50,7 @@ tC = @Layout (16, 16)
 
 Then we use it to partition gC:
 ```julia
-tCgC = @parallelize gC tC threadIdx().x 
+tCgC = @parallelize gC tC threadIdx().x   # (THR_M, THR_N)
 tCrC = similar(tCgC)
 ```
 
@@ -59,8 +59,8 @@ To reduce memory access to C, we also create an array `tCrC` stored in registers
 A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:
 
 ```julia
-tCsA = @parallelize sA tC threadIdx().x (1, :) 
-tCsB = @parallelize sB tC threadIdx().x (:, 1)
+tCsA = @parallelize sA tC threadIdx().x (1, :)    # (THR_M, bK)
+tCsB = @parallelize sB tC threadIdx().x (:, 1)    # (THR_N, bK)
 ```
 
 Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:
@@ -92,30 +92,30 @@ function matmul_kernel(A, sA_layout, tA,
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
 
-    sA = MoYeSharedArray(eltype(A), sA_layout)
-    sB = MoYeSharedArray(eltype(B), sB_layout)
+    sA = MoYeSharedArray(eltype(A), sA_layout)           # (bM, bK)
+    sB = MoYeSharedArray(eltype(B), sB_layout)           # (bN, bK)
 
     mA = MoYeArray(A, (M, K))
     mB = MoYeArray(B, (N, K))
     mC = MoYeArray(C, (M, N))
 
-    gA = @tile mA (bM, bK) (blockIdx().x, :)
-    gB = @tile mB (bN, bK) (blockIdx().y, :)
-    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+    gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bN)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bN, bK, K/bK)
 
     # copy partition
-    tAgA = @parallelize gA tA threadIdx().x 
-    tBgB = @parallelize gB tB threadIdx().x
-    tAsA = @parallelize sA tA threadIdx().x
-    tBsB = @parallelize sB tB threadIdx().x
+    tAgA = @parallelize gA tA threadIdx().x               # (THR_M, THR_K, k)
+    tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K)
+    tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K, k)
+    tBsB = @parallelize sB tB threadIdx().x               # (THR_N, THR_K)
 
     # mma partition
-    tCsA = @parallelize sA tC threadIdx().x (1, :) 
-    tCsB = @parallelize sB tC threadIdx().x (:, 1)
-    tCgC = @parallelize gC tC threadIdx().x 
+    tCsA = @parallelize sA tC threadIdx().x (1, :)        # (THR_M, bK)
+    tCsB = @parallelize sB tC threadIdx().x (:, 1)        # (THR_N, bK)
+    tCgC = @parallelize gC tC threadIdx().x               # (THR_M, THR_N)
 
     # accumulator
-    tCrC = similar(tCgC)
+    tCrC = similar(tCgC)                                  # (THR_M, THR_N)
     zeros!(tCrC)
 
     for k in axes(tAgA, 3)
