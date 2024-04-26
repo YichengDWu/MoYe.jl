@@ -140,7 +140,7 @@ We still missed a few points, such as:
 
 1. How to design `sA_layout` and `sB_layout`?
 
-For shared memory, we no longer need to consider column-major or row-major but simply need to avoid bank conflicts. This can be simply achieved by padding one column.
+For shared memory, we no longer need to consider column-major or row-major but simply need to **avoid bank conflicts**. This can be simply achieved by padding one column.
 
 ```julia
 sA_layout = make_layout((bM, bK), (_1, bM + _1))
@@ -153,7 +153,7 @@ The design of `tC` is quite flexible; it only needs to satisfy that the shape of
 
 3. How to design `tA` and `tB`?
 
-You generally want every 32 threads to access contiguous elements in A and B, so the specific design depends on the memory layout of A and B. This technique is known as memory coalescing.
+You generally want every 32 threads to access contiguous elements in A and B, so the specific design depends on the memory layout of A and B. This technique is known as **memory coalescing**.
 
 The `matmul` function looks like this:
 
