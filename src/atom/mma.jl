@@ -175,6 +175,7 @@ function get_slice(m::TiledMMA, thr_idx::DInt)
     return ThrMMA(m, thr_vmnk)
 end
 
+@inline Base.size(x::TiledMMA) = size(get_thr_layout_vmnk(x))
 @generated function tile_size(m::TiledMMA, ::StaticInt{I}) where {I}
     @assert I in 1:3
     m = m()

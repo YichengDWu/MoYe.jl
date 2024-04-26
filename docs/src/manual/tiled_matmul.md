@@ -76,6 +76,30 @@ copyto!(tiled_copy, dst_t, dst_r);
 dst
 ```
 
+## TiledMMA
+
+In this section, we'll show you how to use `TiledMMA` to replace an mma partition. First, invoke the function make_tiled_mma as follows:
+```@repl tiled_copy
+mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
+                       @Layout((16,16)))          # Atom layout
+
+```
+
+You can experiment with replacing `UniversalFMA` with another `MMAOp` and use print_typst to view the results. Here are the predefined MMAOps:
+```@repl tiled_copy
+MoYe.mma_ops_list
+```
+
+```julia
+thr_mma = get_slice(mma_C, threadIdx().x);
+tCsA = partition_A(sA);
+tCsB = partition_B(sB);
+tCgC = partition_C(gC);
+
+tCrC = make_fragment_like(tCgC)
+```
+These instructions operate on tensor cores, a topic we haven't covered yet (but will soon!).
+
 ## MatMul
 
 Now, we use TiledCopy to upgrade the previous matmul_kernel.
@@ -83,7 +107,7 @@ Now, we use TiledCopy to upgrade the previous matmul_kernel.
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
                        B, sB_layout, copy_B,
-                       C, tC)
+                       C, mma_C)
     M = size(A, 1)
     N = size(B, 1)
     K = size(A, 2)
@@ -115,16 +139,17 @@ function matmul_kernel(A, sA_layout, copy_A,
     tBrB = make_fragment_like(tBsB)
 
     # mma partition
-    tCsA = @parallelize sA tC threadIdx().x (1, :) 
-    tCsB = @parallelize sB tC threadIdx().x (:, 1)
-    tCgC = @parallelize gC tC threadIdx().x
+    thr_mma = get_slice(mma_C, threadIdx().x)
+    tCsA = partition_A(thr_mma, sA)
+    tCsB = partition_B(thr_mma, sB)
+    tCgC = partition_C(thr_mma, gC)
 
     # overlap copy and compute
     copyto!(copy_A, tArA, view(tAgA, :, :, :, 1))
     copyto!(copy_B, tBrB, view(tBgB, :, :, :, 1))
 
     # accumulator
-    tCrC = similar(tCgC)
+    tCrC = make_fragment_like(tCgC)
     zeros!(tCrC)
 
     k_max = size(tAgA, 4)
@@ -159,6 +184,7 @@ function matmul(A, B, C)
 
     TA = eltype(A)
     TB = eltype(B)
+    TC = eltype(C)
 	
     copy_A = make_tiled_copy(CopyAtom{UniversalCopy{TA}, TA}(),
                              @Layout((32, 8)),
@@ -167,14 +193,15 @@ function matmul(A, B, C)
                              @Layout((32, 8)),
                              @Layout((4, 1)))
 
-    tC = @Layout (16, 16)
+    mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
+                           @Layout((16,16)))          # Atom layout
 
-    threads = Int(size(tC))
+    threads = Int(size(mma_C))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
 
     @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, copy_A,
                                                       B, sB_layout, copy_B,
-                                                      C, tC)
+                                                      C, mma_C)
 end
 
 function test()
