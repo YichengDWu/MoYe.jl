@@ -30,7 +30,7 @@ struct CPOP_ASYNC_CACHEGLOBAL{TS, TD} <: AbstractCopyOp_ASYNC{TS,TD}
 end
 
 @generated function (::CPOP_ASYNC_CACHEGLOBAL{TS, TD})(dst::LLVMPtr{TD, AS.Shared}, src::LLVMPtr{TS, AS.Global}) where {TS, TD}
-    intr = "llvm.nvvm.cp.async.cg.shared.global.$(sizeof(TS))"
+    intr = ".$(sizeof(TS))"
     return quote
         Base.@_inline_meta
         ccall($intr, llvmcall, Cvoid, (LLVMPtr{TD, AS.Shared}, LLVMPtr{TS, AS.Global}), dst, src)

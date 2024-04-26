@@ -56,12 +56,16 @@ Returning to our example, after making the TiledCopy, we can use it to partition
 thr_idx = 2;
 thr_copy = get_slice(tiled_copy, thr_idx);
 dst_t = partition_D(thr_copy, dst);
+dst_t.layout
 src_t = partition_S(thr_copy, src);
+src_t.layout
 copyto!(tiled_copy, dst_t, src_t);
 dst
 ```
 
-You can see that the second thread has completed the copy.
+You can see that the second thread has completed the copy. The shape of `dst_t` is `(CPY, CPY_M, CPY_K)` representing
+the the num of values handle by a thread in a single tile, and the demensions tiled in `dst`'s shape. Notably,
+the left most mode of `CPY` stands for the number of `vectorized` values. In this case it is 1, but try changing to `UniversalCopy{UInt128}` and see how the result changes.
 
 The NVIDIA Ampere architecture supports cuda::memcpy_async for asynchronously copying data between GPU global memory and shared memory without needing threads to orchestrate the data movement. In previous architectures, copying from global memory to shared memory usually involved registers for intermediation, corresponding to this syntax:
 ```@repl tiled_copy
@@ -128,21 +132,21 @@ function matmul_kernel(A, sA_layout, copy_A,
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
     # copy partition
-    thr_copy_a = get_slice(copy_A, threadIdx().x)
-    tAgA = partition_S(thr_copy_a, gA) # (Val, CopyM, CopyK, k)
-    tAsA = partition_D(thr_copy_a, sA)
-    tArA = make_fragment_like(tAsA)
+    thr_copy_a = get_slice(copy_A, threadIdx().x)      
+    tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
+    tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
+    tArA = make_fragment_like(tAsA)                    # (CPY, CPY_M, CPY_K)
 
     thr_copy_b = get_slice(copy_B, threadIdx().x)
-    tBgB = partition_S(thr_copy_b, gB)
-    tBsB = partition_D(thr_copy_b, sB)
-    tBrB = make_fragment_like(tBsB)
+    tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
+    tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
+    tBrB = make_fragment_like(tBsB)                    # (CPY, CPY_N, CPY_K)
 
     # mma partition
     thr_mma = get_slice(mma_C, threadIdx().x)
-    tCsA = partition_A(thr_mma, sA)
-    tCsB = partition_B(thr_mma, sB)
-    tCgC = partition_C(thr_mma, gC)
+    tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
+    tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
+    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # overlap copy and compute
     copyto!(copy_A, tArA, view(tAgA, :, :, :, 1))
