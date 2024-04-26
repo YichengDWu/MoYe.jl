@@ -163,15 +163,13 @@ function matmul_kernel(A, sA_layout, copy_A,
         copyto!(tBsB, tBrB)
         sync_threads()
 
-	# load the next tile
-	k_next = k < k_max ? k+1 : k
-	copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
-	copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
+	    # load the next tile
+	    k_next = k < k_max ? k+1 : k
+	    copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
+	    copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
 
         @gc_preserve gemm!(tCsA, tCsB, tCrC)
-        sync_threads()
     end
-
 
     copyto!(tCgC, tCrC)
     return nothing
