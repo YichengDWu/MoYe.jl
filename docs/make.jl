@@ -31,6 +31,7 @@ makedocs(; modules=[MoYe],
                     "Tiling" => "api/tiling.md",
                     "Data Movement" => "api/copy.md",
                     "MMA/Copy Atoms" => "api/atom.md",
+                    "Memcpy Async" => "api/async.md",
                 ],
          ])
 
