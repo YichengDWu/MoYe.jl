@@ -75,6 +75,12 @@ tCsB = partition_B(thr_mma, sB);
 
 tCrA = make_fragment_A(mma_C, tCsA)
 copyto!(tCrA, tCsA)
+
+
+tCrB = make_fragment_B(mma_C, tCsB)
+copyto!(tCrB, tCsB)
+
+smem_copy_A = make_tiled_copy_A()
 ```
 
 (_1, _8, _8):(0, 16, 32768)
