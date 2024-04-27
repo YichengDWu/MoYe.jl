@@ -15,7 +15,7 @@ print_typst(mma_C)
 ```
 ![](../assets/tensorcore.svg)
 
-At first glance, the diagram may seem complex, but the concept is straightforward: the thread collective loads data from matrices A and B according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix C shown in the illustration.
+At first glance, the diagram may seem complex, but the concept is straightforward: the threads collective load data from matrices A and B according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix C shown in the illustration.
 
 Of course you can also choose other mma atoms. They just work.
 ```julia
