@@ -154,9 +154,9 @@ function matmul_kernel(A, sA_layout, copy_A,
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # mma registers
-    tCrA = make_fragment_A(mma_C, tCsA)                # (MMA, MMA_M, MMA_K)
-    tCrB = make_fragment_B(mma_C, tCsB)                # (MMA, MMA_N, MMA_K)
-    tCrC = make_fragment_C(mma_C, tCgC)                # (MMA, MMA_M, MMA_N)
+    tCrA = make_fragment_A(thr_mma, tCsA)                # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB)                # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
     k_max = size(tAgA, 4)

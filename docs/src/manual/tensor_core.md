@@ -1,100 +1,21 @@
 # Tensor Cores
 
-Tensor cores are specialized hardware accelerators designed to speed up matrix operations, which are fundamental to deep learning and artificial intelligence algorithms. 
+Tensor cores are specialized hardware accelerators designed to optimize matrix operations, which are crucial for deep learning and artificial intelligence algorithms.
 
-To use tensor core, it only requires a line of code to change：
-
-```julia
-mma_C = make_tiled_mma(MMAOP_16x8x16_F32F16F16F32_TN(), 
-                              @Layout((2,4,1)))
-```
-
-However, choosing such a `MMAAtom` poses requirements for the element types of the oprends and 
-the layout of shared memory.
-
-```
-function matmul(A, B, C)
-    bM = _128
-    bN = _128
-    bK = _16
-    
-    sA_layout = make_layout((bM, bK), (_1, bM + _1))
-    sB_layout = make_layout((bN, bK), (_1, bN + _1))
-
-    TA = Float16
-    TB = Float16
-    TC = Float32
-	
-    copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Int32}, TA}(),
-                                    @Layout((32, 8)),
-                                    @Layout((4, 1)))
-    copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Int32}, TB}(),
-                                        @Layout((32, 8)),
-                                        @Layout((4, 1)))
-
-    mma_C = make_tiled_mma(MMAOP_16x8x16_F32F16F16F32_TN(), 
-                           @Layout((2,4,1)))
-
-    threads = Int(size(mma_C))
-    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
-
-    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, copy_A,
-                                                      B, sB_layout, copy_B,
-                                                      C, mma_C)
-end
-```
-
-
-The
-```julia
-mma_atom = MMAAtom{MMAOP_16x8x16_F32F16F16F32_TN}()
-print_typst(mma_atom)
-```
-![matmuil](../assets/mma_atom.svg)
-
-
+Switching to tensor cores can be as simple as modifying just one line of code in the previous matmul function:
 
 ```julia
-sA_buffer = collect(1:16*16) .|> Float16;
-sB_buffer = collect(1:8*16) .|> Float16;
-
-sA = MoYeArray(sA_buffer, @Layout((16,16)));
-sB = MoYeArray(sB_buffer, @Layout((8,16)));
-
-tiled_mma = make_tiled_mma(MMAAtom{MMAOP_16x8x16_F32F16F16F32_TN}());
-thr_idx = 1;
-thr_mma = get_slice(tiled_mma, thr_idx);
-
-sA
-tCsA = partition_A(thr_mma, sA);
-@view tCsA[:,:,1]     
-
-sB'
-tCsB = partition_B(thr_mma, sB);
-@view tCsB[:,:,1]            
-
-tCrA = make_fragment_A(mma_C, tCsA)
-copyto!(tCrA, tCsA)
-
-
-tCrB = make_fragment_B(mma_C, tCsB)
-copyto!(tCrB, tCsB)
-
-smem_copy_A = make_tiled_copy_A()
+mma_C = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
+                       @Layout((2,4,1)))
 ```
 
-(_1, _8, _8):(0, 16, 32768)
-Layout{3, Tuple{Static.StaticInt{1}, Static.StaticInt{8}, Static.StaticInt{8}}, Tuple{Static.StaticInt{0}, Static.StaticInt{16}, Int64}}(...)
+Let's explore what TiledMMA entails.
+```julia
+print_typst(mma_C)
+```
+![](../assets/tensorcore.svg)
 
-StaticLayout{3, Tuple{Static.StaticInt{1}, Static.StaticInt{8}, Static.StaticInt{8}}, Tuple{Static.StaticInt{0}, Static.StaticInt{1}, Static.StaticInt{8}}}(...)
-(_1, _8, _8):(_0, _1, _8)
+At first glance, the diagram may seem complex, but the concept is straightforward: the thread collective loads data from matrices A and B according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix C shown in the illustration.
 
+## LDMatrix
 
-Layout{3, Tuple{Tuple{Static.StaticInt{2}, Static.StaticInt{2}}, Static.StaticInt{4}, Static.StaticInt{4}}, Tuple{Tuple{Int64, Static.StaticInt{8}}, Static.StaticInt{32}, Int64}}
-
-((_2, _2), _4, _4):((2048, _8), _32, 65536)
-
-
-StaticLayout{3, Tuple{Tuple{Static.StaticInt{2}, Static.StaticInt{2}}, Static.StaticInt{4}, Static.StaticInt{4}}, Tuple{Tuple{Static.StaticInt{1}, Static.StaticInt{2}}, Static.StaticInt{4}, Static.StaticInt{16}}}
-
-((_2, _2), _4, _4):((_1, _2), _4, _16)

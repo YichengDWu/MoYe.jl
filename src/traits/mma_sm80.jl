@@ -60,7 +60,6 @@ end
 make_sm80_mmatraits((
     # 16x8x8
     :MMAOP_16x8x8_F16F16F16F16_TN,
-    # :MMAOP_16x8x8_F32TF32TF32F32_TN,
     :MMAOP_16x8x8_F32BF16BF16F32_TN,
 
     # 16x8x16
@@ -105,7 +104,7 @@ make_sm80_mmatraits((
 @inline thr_id(::MMATraits{MMAOP_16x8x8_F32TF32TF32F32_TN}) = @Layout(32)
 @inline layout_a(::MMATraits{MMAOP_16x8x8_F32TF32TF32F32_TN}) = @Layout ((4, 8), (2, 2)) ((16, 1), (8, 64))
 @inline layout_b(::MMATraits{MMAOP_16x8x8_F32TF32TF32F32_TN}) = @Layout ((4, 8), 2) ((8, 1), 32)
-@inline layout_c(::MMATraits{MMAOP_16x8x8_F32TF32TF32F32_TN}) = @Layout ((4, 8), (2, 2)) ((32, 1), (16, 6))
+@inline layout_c(::MMATraits{MMAOP_16x8x8_F32TF32TF32F32_TN}) = @Layout ((4, 8), (2, 2)) ((32, 1), (16, 8))
 
 @inline thr_id(::MMATraits{MMAOP_16x8x4_F32TF32TF32F32_TN}) = @Layout(32)
 @inline layout_a(::MMATraits{MMAOP_16x8x4_F32TF32TF32F32_TN}) = @Layout ((4, 8), 1) ((8, 1),08)
