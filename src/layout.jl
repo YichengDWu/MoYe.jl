@@ -438,67 +438,43 @@ end
     return expr
 end
 
-@generated function bw_coalesce(::StaticInt{I}, old_shape::StaticIntTuple,
-                                                old_stride::StaticIntTuple,
-                                                new_shape::GenStaticIntTuple,
-                                                new_stride::GenStaticIntTuple) where {I}
+@generated function bw_coalesce(::StaticInt{I}, old_shape,
+                                                old_stride,
+                                                new_shape,
+                                                new_stride) where {I}
+    expr = Expr(:block)
     for i in I:-1:1
         if old_shape.parameters[i] == One
             continue
-        elseif new_shape <: StaticInt && new_shape == One
+        elseif new_shape == One
             new_shape = old_shape.parameters[i]
             new_stride = old_stride.parameters[i]
-        elseif old_shape.parameters[i] * old_stride.parameters[i] == ifelse(new_stride <: Tuple, new_stride.parameters[1], new_stride)
-            new_shape = replace_front(new_shape,
-                                      old_shape.parameters[i] * ifelse(new_shape <: Tuple, new_shape.parameters[1], new_shape))
-            new_stride = replace_front(new_stride, old_stride.parameters[i])
+            push!(expr.args, :(new_shape = old_shape[$(static(i))]))
+            push!(expr.args, :(new_stride = old_stride[$(static(i))]))
+        elseif front(new_shape)<:StaticInt && 
+               old_shape.parameters[i]<:StaticInt &&
+               old_stride.parameters[i]<:StaticInt &&
+               front(new_stride)<:StaticInt &&
+               old_shape.parameters[i] * old_stride.parameters[i] == front(new_stride)
+               new_shape = replace_front(new_shape, old_shape.parameters[i] * front(new_shape))
+               new_stride = replace_front(new_stride, old_stride.parameters[i])
+               push!(expr.args, :(new_shape = replace_front(new_shape,
+                                                            old_shape[$(static(i))] * front(new_shape))))
+               push!(expr.args, :(new_stride = replace_front(new_stride, old_stride[$(static(i))])))
         else
             new_shape = prepend(new_shape, old_shape.parameters[i])
             new_stride = prepend(new_stride, old_stride.parameters[i])
+            push!(expr.args, :(new_shape = prepend(new_shape, old_shape[$(static(i))])))
+            push!(expr.args, :(new_stride = prepend(new_stride, old_stride[$(static(i))])))
         end
     end
-
-    if new_shape == One
-        return :($(Layout(One(), Zero())))
-    else
-        return :($(Layout(make_tuple(new_shape), make_tuple(new_stride))))
-    end
-end
-
-function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
-                     new_shape::StaticIntTuple, new_stride::StaticIntTuple)
-    return Layout(new_shape, new_stride)
-end
-function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
-                     new_shape::StaticInt, new_stride::StaticInt)
-    return Layout(new_shape, new_stride)
-end
-function bw_coalesce(::StaticInt{0}, old_shape::StaticIntTuple, old_stride::StaticIntTuple,
-                     new_shape::StaticInt{1}, new_stride::StaticInt)
-    return Layout(one(new_shape), zero(new_shape))
-end
-function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape::StaticInt{1},
-                     new_stride)
-    return Layout(One(), Zero())
-end
-function bw_coalesce(::StaticInt{0}, old_shape, old_stride, new_shape, new_stride)
-    return Layout(new_shape, new_stride)
-end
-
-Base.@assume_effects :total function bw_coalesce(I::StaticInt, old_shape, old_stride,
-                                                 new_shape, new_stride)
-    if isa(old_shape[I], StaticInt) && old_shape[I] == One()
-        return bw_coalesce(I - One(), old_shape, old_stride, new_shape, new_stride)
-    elseif isa(new_shape, StaticInt) && new_shape == One()
-        return bw_coalesce(I - One(), old_shape, old_stride, old_shape[I], old_stride[I])
-    elseif old_shape[I] * old_stride[I] == new_stride[1]
-        return bw_coalesce(I - One(), old_shape, old_stride,
-                           replace_front(new_shape, old_shape[I] * new_shape[1]),
-                           replace_front(new_stride, old_stride[I]))
-    else
-        return bw_coalesce(I - One(), old_shape, old_stride,
-                           prepend(new_shape, old_shape[I]),
-                           prepend(new_stride, old_stride[I]))
+    return quote
+        $expr
+        if isa(new_shape,StaticInt) && new_shape == One()
+            return Layout(One(), Zero())
+        else
+            return Layout(new_shape, new_stride)
+        end
     end
 end
 

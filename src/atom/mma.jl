@@ -97,9 +97,12 @@ function Base.show(io::IO, m::TiledMMA)
     return show(io, m.atom)
 end
 
-struct ThrMMA{TA<:TiledMMA, ThrVMNK}
+struct ThrMMA{TA<:TiledMMA, ThrVMNK, Traits} <: AbstractMMAAtom{Traits}
     tiled_mma::TA
     thr_vmnk::ThrVMNK
+    function ThrMMA(tiled_mma::TA, thr_vmnk::ThrVMNK) where {Traits,TA<:AbstractMMAAtom{Traits}, ThrVMNK}
+        return new{TA, ThrVMNK, Traits}(tiled_mma, thr_vmnk)
+    end
 end
 
 function Base.show(io::IO, m::ThrMMA{TA, ThrVMNK}) where {TA, ThrVMNK}
