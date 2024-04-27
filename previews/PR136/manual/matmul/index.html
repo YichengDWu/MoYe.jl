@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>MatMul · MoYe.jl</title><meta name="title" content="MatMul · MoYe.jl"/><meta property="og:title" content="MatMul · MoYe.jl"/><meta property="twitter:title" content="MatMul · MoYe.jl"/><meta name="description" content="Documentation for MoYe.jl."/><meta property="og:description" content="Documentation for MoYe.jl."/><meta property="twitter:description" content="Documentation for MoYe.jl."/><meta property="og:url" content="https://YichengDWu.github.io/MoYe.jl/manual/matmul/"/><meta property="twitter:url" content="https://YichengDWu.github.io/MoYe.jl/manual/matmul/"/><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/matmul/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li class="is-active"><a class="tocitem" href>MatMul</a></li><li><a class="tocitem" href="../tiled_matmul/">TiledCopy &amp; TiledMMA</a></li><li><a class="tocitem" href="../async/">Memcpy Async</a></li><li><a class="tocitem" href="../tensor_core/">Tensor Cores</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li><li><a class="tocitem" href="../../api/atom/">MMA/Copy Atoms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>MatMul</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>MatMul</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/matmul.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="MatMul"><a class="docs-heading-anchor" href="#MatMul">MatMul</a><a id="MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#MatMul" title="Permalink"></a></h1><p><img src="../../assets/matmul.png" alt="matmuil"/></p><p>In this tutorial, we explore matrix multiplication using MoYe.jl , specifically computing the product <span>$C = A * B^\top$</span>. Here, matrix <span>$A$</span> has dimensions <span>$(M, K)$</span>, matrix <span>$B$</span> has dimensions <span>$(K, N)$</span>, and the resulting matrix <span>$C$</span> will have dimensions <span>$(M, N)$</span>.</p><p>First, we divide the task among each block. We use a tile of size (bM, bN) to partition C, with each block responsible for computing one tile. The tile&#39;s index is determined by (blockIdx().x, blockIdx().y).</p><p>Computing a tile requires all values from A of shape (dM, K) and B of shape (dN, K). To reduce global memory access (since A, B, and C are stored in global memory), we further partition A and B along the K dimension, sequentially loading elements of sizes (dM, dK) and (dN, dK) into shared memory, then performing the matrix multiplication and accumulating the results into the tile of C.</p><p>The partition of the global memory corresponds to the following three lines of code:</p><pre><code class="language-julia hljs">gC = @tile C (bM, bN) (blockIdx().x, blockIdx().y) # (bM, bN)
+gA = @tile A (bM, bK) (blockIdx().x, :)            # (bM, bK, K/bK)
+gB = @tile B (bN, bK) (blockIdx().y, :)            # (bN, bK, K/bK)</code></pre><p>For the specific partition syntax, please refer to <a href="../../api/tiling/#MoYe.@tile"><code>@tile</code></a>. Here, <code>gA</code> represents <code>A</code> in shared memory. Next, we use a for loop to index-slice the last dimension of gA and gB (denoted as <code>k</code>), loading them into shared memory. The code for this step is:</p><pre><code class="language-julia hljs">sA = MoYeSharedArray(eltype(gA), sA_layout) # (bM, bK)
+sB = MoYeSharedArray(eltype(gB), sB_layout) # (bN, bK)</code></pre><p><code>MoYeSharedArray</code> automatically allocates shared memory of size <code>cosize(sA_layout) + cosize(sB_layout)</code> and returns a <code>MoYeArray</code>. We will explain how to define the layouts for sA and sB later; for now, it&#39;s only necessary to know that they are predefined at compile time.</p><p>We then need to define how thread groups collectively copy from global to shared memory. There are many ways to organize threads, which will be discussed later, such as:</p><pre><code class="language-julia hljs">tA = @Layout (32, 8)
+tB = @Layout (32, 8)</code></pre><p>This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:</p><pre><code class="language-julia hljs">tAgA = @parallelize tA threadIdx().x       # (THR_M, THR_K, k)
+tBgB = @parallelize tB threadIdx().x       # (THR_M, THR_K)
+
+tAsA = @parallelize sA threadIdx().x       # (THR_N, THR_K, k)
+tBsB = @parallelize sB threadIdx().x       # (THR_N, THR_K)</code></pre><p>For the specific syntax, please refer to <a href="../../api/tiling/#MoYe.@parallelize"><code>@parallelize</code></a>. After the partition, copying is simply:</p><pre><code class="language-julia hljs">copyto!(tAsA, view(tAgA, :, :, k))
+copyto!(tBsB, view(tBgB, :, :, k))</code></pre><p>After copying, we proceed to the actual matrix-multiply-accumulate (mma) computation. Similarly, we need to define a layout for the thread group for this purpose:</p><pre><code class="language-julia hljs">tC = @Layout (16, 16)</code></pre><p>Then we use it to partition gC:</p><pre><code class="language-julia hljs">tCgC = @parallelize gC tC threadIdx().x   # (THR_M, THR_N)
+tCrC = similar(tCgC)</code></pre><p>To reduce memory access to C, we also create an array <code>tCrC</code> stored in registers, which serves as the accumulator in the mma computation. After the computation, the contents are copied back into <code>tCgC</code>.</p><p>A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:</p><pre><code class="language-julia hljs">tCsA = @parallelize sA tC threadIdx().x (1, :)    # (THR_M, bK)
+tCsB = @parallelize sB tC threadIdx().x (:, 1)    # (THR_N, bK)</code></pre><p>Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:</p><pre><code class="language-julia hljs">for k in axes(tCsA, 2)
+    for m in axes(tCsA, 1)
+        for n in axes(tCsB, 1)
+            @inbounds tCrC[m, n] += tCsA[m, k] * tCsB[n, k]
+        end
+    end
+end</code></pre><p>You can also call [<code>gemm!</code>] to perform the same operation:</p><pre><code class="language-julia hljs">gemm!(tCsA, tCsB, tCrC)</code></pre><p>The complete kernel code is as follows:</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, tA,
+                       B, sB_layout, tB,
+                       C, tC)
+    M = size(A, 1)
+    N = size(B, 1)
+    K = size(A, 2)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
+    sA = MoYeSharedArray(eltype(A), sA_layout)           # (bM, bK)
+    sB = MoYeSharedArray(eltype(B), sB_layout)           # (bN, bK)
+
+    mA = MoYeArray(A, (M, K))
+    mB = MoYeArray(B, (N, K))
+    mC = MoYeArray(C, (M, N))
+
+    gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bN)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bN, bK, K/bK)
+
+    # copy partition
+    tAgA = @parallelize gA tA threadIdx().x               # (THR_M, THR_K, k)
+    tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K)
+    tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K, k)
+    tBsB = @parallelize sB tB threadIdx().x               # (THR_N, THR_K)
+
+    # mma partition
+    tCsA = @parallelize sA tC threadIdx().x (1, :)        # (THR_M, bK)
+    tCsB = @parallelize sB tC threadIdx().x (:, 1)        # (THR_N, bK)
+    tCgC = @parallelize gC tC threadIdx().x               # (THR_M, THR_N)
+
+    # accumulator
+    tCrC = similar(tCgC)                                  # (THR_M, THR_N)
+    zeros!(tCrC)
+
+    for k in axes(tAgA, 3)
+        copyto!(tAsA, view(tAgA, :, :, k))
+        copyto!(tBsB, view(tBgB, :, :, k))
+        
+        cp_async_wait()
+        sync_threads()
+
+        @gc_preserve gemm!(tCsA, tCsB, tCrC)
+        sync_threads()
+    end
+
+
+    copyto!(tCgC, tCrC)
+    return nothing
+end
+</code></pre><p>We still missed a few points, such as:</p><ol><li>How to design <code>sA_layout</code> and <code>sB_layout</code>?</li></ol><p>For shared memory, we no longer need to consider column-major or row-major but simply need to <strong>avoid bank conflicts</strong>. This can be simply achieved by padding one column.</p><pre><code class="language-julia hljs">sA_layout = make_layout((bM, bK), (_1, bM + _1))
+sB_layout = make_layout((bN, bK), (_1, bN + _1))</code></pre><ol><li>How to design <code>tC</code>?</li></ol><p>The design of <code>tC</code> is quite flexible; it only needs to satisfy that the shape of <code>tC</code> evenly divides <code>(bM, bN)</code>.</p><ol><li>How to design <code>tA</code> and <code>tB</code>?</li></ol><p>You generally want every 32 threads to access contiguous elements in A and B, so the specific design depends on the memory layout of A and B. This technique is known as <strong>memory coalescing</strong>.</p><p>The <code>matmul</code> function looks like this:</p><pre><code class="language-julia hljs">function matmul(A, B, C)
+    bM = _128
+    bN = _128
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK), (_1, bM + _1))
+    sB_layout = make_layout((bN, bK), (_1, bN + _1))
+
+    tA = @Layout (32, 8)
+    tB = @Layout (32, 8)
+    tC = @Layout (16, 16)
+
+    threads = Int(size(tC))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, tA,
+                                                      B, sB_layout, tB,
+                                                      C, tC)
+end
+
+function test()
+    A =  CUDA.randn(Float32, 2048, 256)
+    B =  CUDA.randn(Float32, 2048, 256)
+    C =  CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B&#39;
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()</code></pre><p>This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../broadcast/">« Broadcasting</a><a class="docs-footer-nextpage" href="../tiled_matmul/">TiledCopy &amp; TiledMMA »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Saturday 27 April 2024 07:33">Saturday 27 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
