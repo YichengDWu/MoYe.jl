@@ -6,10 +6,10 @@ abstract type AbstractMMAAtom{Traits} end
 @inline valtype_c(::AbstractMMAAtom{Traits}) where {Traits} = valtype_c(Traits())
 @inline valtype_d(::AbstractMMAAtom{Traits}) where {Traits} = valtype_d(Traits())
 
-@inline regtype_a(::AbstractMMAAtom{Traits}) where {Traits} = regtype_a(Traits())
-@inline regtype_b(::AbstractMMAAtom{Traits}) where {Traits} = regtype_b(Traits())
-@inline regtype_c(::AbstractMMAAtom{Traits}) where {Traits} = regtype_c(Traits())
-@inline regtype_d(::AbstractMMAAtom{Traits}) where {Traits} = regtype_d(Traits())
+@inline frgtype_a(::AbstractMMAAtom{Traits}) where {Traits} = valtype_a(Traits())
+@inline frgtype_b(::AbstractMMAAtom{Traits}) where {Traits} = valtype_b(Traits())
+@inline frgtype_c(::AbstractMMAAtom{Traits}) where {Traits} = valtype_c(Traits())
+@inline frgtype_d(::AbstractMMAAtom{Traits}) where {Traits} = valtype_d(Traits())
 
 #@inline regnum_a(::AbstractMMAAtom{OP}) where {OP} = regnum_a(OP())
 #@inline regnum_b(::AbstractMMAAtom{OP}) where {OP} = regnum_b(OP())
@@ -27,23 +27,23 @@ function make_fragment_C(m::AbstractMMAAtom, C::MoYeArray{T, N}) where {T, N}
     @inline
     @assert N ≥ 3
     @assert size(layout(C), 1) == size(layout_c(m), 2)
-    return MoYeArray{regtype_c(m)}(undef, shape(C)) # (V, M, N)
+    return MoYeArray{frgtype_c(m)}(undef, shape(C)) # (V, M, N)
 end
 
 # Note that hopper architecture needs to return a view of A/B for the fragment
-# In this case we always have regtype_a(m) == T
+# In this case we always have frgtype_a(m) == T
 function make_fragment_A(m::AbstractMMAAtom, A::MoYeArray{T, N}) where {T, N}
     @inline
     @assert N ≥ 3
     @assert size(layout(A), 1) == size(layout_a(m), 2)
-    return make_fragment_like(regtype_a(m), A) # (V, M, K)
+    return make_fragment_like(frgtype_a(m), A) # (V, M, K)
 end
 
 function make_fragment_B(m::AbstractMMAAtom, B::MoYeArray{T, N}) where {T, N}
     @inline
     @assert N ≥ 3
     @assert size(layout(B), 1) == size(layout_b(m), 2)
-    return make_fragment_like(regtype_b(m), B) # (V, N, K)
+    return make_fragment_like(frgtype_b(m), B) # (V, N, K)
 end
 
 struct MMAAtom{Traits} <: AbstractMMAAtom{Traits} 
@@ -97,9 +97,12 @@ function Base.show(io::IO, m::TiledMMA)
     return show(io, m.atom)
 end
 
-struct ThrMMA{TA<:TiledMMA, ThrVMNK}
+struct ThrMMA{TA<:TiledMMA, ThrVMNK, Traits} <: AbstractMMAAtom{Traits}
     tiled_mma::TA
     thr_vmnk::ThrVMNK
+    function ThrMMA(tiled_mma::TA, thr_vmnk::ThrVMNK) where {Traits,TA<:AbstractMMAAtom{Traits}, ThrVMNK}
+        return new{TA, ThrVMNK, Traits}(tiled_mma, thr_vmnk)
+    end
 end
 
 function Base.show(io::IO, m::ThrMMA{TA, ThrVMNK}) where {TA, ThrVMNK}
@@ -329,5 +332,5 @@ end
 
 function partition_fragment_C(m::TiledMMA, shape_MN::StaticIntTuple)
     @inline
-    return MoYeArray{regtype_c(m)}(undef, partition_shape_C(m, shape_MN))
+    return MoYeArray{frgtype_c(m)}(undef, partition_shape_C(m, shape_MN))
 end

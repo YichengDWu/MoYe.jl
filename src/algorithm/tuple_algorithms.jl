@@ -1,11 +1,13 @@
 # we don't overload Base.front, the following finds the first non-tuple element
-front(@nospecialize(t::Tuple)) = front(first(t))
+@inline front(@nospecialize(t::Tuple)) = front(first(t))
+@inline front(@nospecialize(x::Type{<:Tuple})) = front(first(x.parameters))
 @inline front(x) = x
 
-back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
+@inline back(@nospecialize(t::Tuple)) = back(getindex(t, length(t)))
+@inline back(@nospecialize(x::Type{<:Tuple})) = back(getindex(x.parameters, length(x.parameters)))
 @inline back(x) = x
 
-unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
+@inline unwrap(@nospecialize(t::Tuple)) = isone(nfields(t)) ? unwrap(first(t)) : t
 @inline unwrap(x) = x
 
 @inline flatten_to_tuple(@nospecialize x::NTuple{N, Union{Int, StaticInt, Colon}}) where {N} = x

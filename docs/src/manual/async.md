@@ -53,17 +53,17 @@ function matmul_kernel(A, sA_layout, copy_A,
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # accumulator
-    tCrC = make_fragment_like(tCgC)
+    tCrC = make_fragment_C(thr_mma, tCgC)
     zeros!(tCrC)
 
     for k in axes(tAgA, 4)
-        copyto!(tAsA, view(tAgA, :, :, :, k))
-        copyto!(tBsB, view(tBgB, :, :, :, k))
+        copyto!(copy_A, tAsA, view(tAgA, :, :, :, k))
+        copyto!(copy_B, tBsB, view(tBgB, :, :, :, k))
         
         cp_async_wait()
         sync_threads()
 
-        @gc_preserve gemm!(tCsA, tCsB, tCrC)
+        @gc_preserve gemm!(mma_C, tCsA, tCsB, tCrC)
         sync_threads()
     end
 
@@ -154,9 +154,9 @@ function matmul_kernel(A, sA_layout, copy_A,
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # mma registers
-    tCrA = make_fragment_A(mma_C, tCsA)                # (MMA, MMA_M, MMA_K)
-    tCrB = make_fragment_B(mma_C, tCsB)                # (MMA, MMA_M, MMA_K)
-    tCrC = make_fragment_C(mma_C, tCgC)                # (MMA, MMA_M, MMA_N)
+    tCrA = make_fragment_A(thr_mma, tCsA)                # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB)                # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
     k_max = size(tAgA, 4)
@@ -170,16 +170,14 @@ function matmul_kernel(A, sA_layout, copy_A,
         sync_threads()
 
         if k < k_max
-            copyto!(tAsA, view(tAgA, :, :, :, k+1))
-            copyto!(tBsB, view(tBgB, :, :, :, k+1))
+            copyto!(copy_A, tAsA, view(tAgA, :, :, :, k+1))
+            copyto!(copy_B, tBsB, view(tBgB, :, :, :, k+1))
         end
 
-        @gc_preserve gemm!(tCrA, tCrB, tCrC)
+        @gc_preserve gemm!(mma_C, tCrA, tCrB, tCrC)
     end
-
 
     copyto!(tCgC, tCrC)
     return nothing
 end
-
 ```

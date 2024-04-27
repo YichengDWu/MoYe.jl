@@ -122,8 +122,8 @@ end
         rB = make_fragment_B(mma_atom, B)
 
         @loopinfo unroll for k in axes(A,3)
-            copyto!(view(rA, :, :, k), view(A, :, :, k))
-            copyto!(view(rB, :, :, k), view(B, :, :, k))
+            _copyto!(view(rA, :, :, k), view(A, :, :, k))
+            _copyto!(view(rB, :, :, k), view(B, :, :, k))
             gemm!(mma_atom, D, view(rA, :, :, k), view(rB, :, :, k), C) 
         end
         return nothing
