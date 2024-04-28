@@ -182,19 +182,19 @@ function matmul(A, B, C)
     bN = _128
     bK = _8
     
-    sA_layout = make_layout((bM, bK, _2), (_1, bM + _1, (bM + _1) * bK))
-    sB_layout = make_layout((bN, bK, _2), (_1, bN + _1, (bN + _1) * bK))
+    sA_layout = make_layout((bM, bK, _2), (_1, bM + _2, (bM + _2) * bK))
+    sB_layout = make_layout((bN, bK, _2), (_1, bN + _2, (bN + _2) * bK))
 
     TA = eltype(A)
     TB = eltype(B)
     TC = eltype(C)
 	
-    copy_A = make_tiled_copy(CopyAtom{UniversalCopy{TA}, TA}(),
+    copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TA}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
-    copy_B = make_tiled_copy(CopyAtom{UniversalCopy{TB}, TB}(),
+                             @Layout((2, 1)))
+    copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TB}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
+                             @Layout((2, 1)))
 
     mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
                            @Layout((16,16)))          # Atom layout

@@ -32,9 +32,17 @@ tiled_copy = make_tiled_copy(
 	val_layout)
 ```
 
-The second parameter Float64 in CopyAtom indicates that the copied data is of `Float64` type. `UniversalCopy{Float64}` is used for vectorized copy operations, meaning that the data is recast to Float64, i.e., without vectorization. You can also use `UniversalCopy{UInt128}` to enable vectoried load and stores.
+The second parameter Float64 in CopyAtom indicates that the copied data is of `Float64` type. `UniversalCopy{Float64}` is used for vectorized copy operations, meaning that the data is recast to Float64, i.e., without vectorization. Here is a vectorized `TiledCopy`
+```julia
+tiled_copy_vec = make_tiled_copy(
+	CopyAtom{UniversalCopy{UInt128}, Float64}(),
+	thr_layout, 
+	val_layout)
+```
+Note that vectorized copy must be comatiable with `val_layout`, i.e., `val_layout` needs to have
+enough and divisible number of elements to be vectorized.
 
-You can visualize this TiledCopy by using `print_typst(tiled_copy)`. Visit [typst](https://typst.app), copy the printed string, and you will see the following image:
+You can visualize this `tiled_copy` by using `print_typst(tiled_copy)`. Visit [typst](https://typst.app), copy the printed string, and you will see the following image:
 
 ![matmuil](../assets/tiled_copy.svg)
 
@@ -50,7 +58,9 @@ print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
 
 As you can see, both thr_layout and val_layout are actually defined on dst.
 
-Returning to our example, after making the TiledCopy, we can use it to partition data.
+We will go back to `ldmatrix` when we talk about tensor cores.
+
+Returning to our example, after making the `tiled_copy`, we can use it to partition data.
 
 ```@repl tiled_copy
 thr_idx = 2;
@@ -190,10 +200,10 @@ function matmul(A, B, C)
 	
     copy_A = make_tiled_copy(CopyAtom{UniversalCopy{TA}, TA}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
+                             @Layout((1, 1)))
     copy_B = make_tiled_copy(CopyAtom{UniversalCopy{TB}, TB}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
+                             @Layout((1, 1)))
 
     mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
                            @Layout((16,16)))          # Atom layout
@@ -219,4 +229,27 @@ function test()
 end
 
 test()
+```
+
+## Vectorized copy
+
+As previously mentioned, you can change to `UniversalCopy{Float64}` or `UniversalCopy{UInt128}`
+to enabled vectoried copy. But we also need to keep in mind the copies are **coalesced**.
+For example, the following one is not coalesced
+```julia
+copy_A = make_tiled_copy(CopyAtom{UniversalCopy{Float64}, TA}(),
+                             @Layout((32, 8)),
+                             @Layout((4, 1)))
+```
+
+since thread 1 is loading from `[1], [2]` and thead 2 is loading from `[5], [6]`.
+
+Theses are coalesced:
+```julia
+copy_A = make_tiled_copy(CopyAtom{UniversalCopy{Float64}, TA}(),
+                             @Layout((32, 8)),
+                             @Layout((2, 1)))
+copy_A = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, TA}(),
+                             @Layout((32, 8)),
+                             @Layout((4, 1)))          
 ```
