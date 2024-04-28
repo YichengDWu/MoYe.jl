@@ -9,7 +9,7 @@ using StrideArraysCore: static_length, static_size, static_axes
 using StrideArraysCore: @gc_preserve
 using CUDA, BFloat16s, LLVM
 using CUDA: @device_override
-using LLVMLoopInfo
+using LLVMLoopInfo: @loopinfo
 using Core: LLVMPtr
 import Adapt
 using MacroTools: @capture
@@ -59,7 +59,7 @@ include("device/smem.jl")
 include("print.jl")
 
 # rexport
-export static, @gc_preserve, static_size
+export static, @gc_preserve, static_size, @loopinfo
 
 # tuple algorithms
 export flatten, unflatten

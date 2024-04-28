@@ -101,6 +101,21 @@ function matmul(A, B, C)
                                                       B, sB_layout, copy_B,
                                                       C, mma_C)
 end
+
+
+function test()
+    A =  CUDA.randn(Float32, 2048, 256)
+    B =  CUDA.randn(Float32, 2048, 256)
+    C =  CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B'
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()
 ```
 
 ## Vectorized copy
