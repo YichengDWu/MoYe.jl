@@ -160,7 +160,7 @@ end
 Return a pointer to the element at the logical index `i` in `A`, not the physical index.
 """
 @inline function Base.pointer(x::MoYeArray{T}, i::IntType) where {T}
-    idx = x.layout(convert(Int, i))
+    idx = x.layout(i)
     return pointer(x) + (idx-one(idx))*sizeof(T)
 end
 @inline function Base.pointer(x::MoYeArray{T}, coord::Tuple) where {T}
