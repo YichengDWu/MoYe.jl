@@ -160,12 +160,8 @@ end
 Return a pointer to the element at the logical index `i` in `A`, not the physical index.
 """
 @inline function Base.pointer(x::MoYeArray{T}, i::IntType) where {T}
-    idx = x.layout(i)
-    return pointer(x) + (idx-one(idx))*sizeof(T)
-end
-@inline function Base.pointer(x::MoYeArray{T}, coord::Tuple) where {T}
-    idx = x.layout(coord)
-    return pointer(x) + (idx-one(idx))*sizeof(T)
+    offset = coord_to_index0(x.layout, i-one(i))
+    return pointer(x) + offset*sizeof(T)
 end
 
 Base.IndexStyle(::Type{<:MoYeArray}) = IndexLinear()
