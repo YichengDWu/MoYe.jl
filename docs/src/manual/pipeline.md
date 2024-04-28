@@ -197,7 +197,7 @@ function matmul(A, B, C)
                              @Layout((2, 1)))
 
     mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
-                           @Layout((16,16)))          # Atom layout
+                           @Layout((32, 8)))          # Atom layout
 
     threads = Int(size(mma_C))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
