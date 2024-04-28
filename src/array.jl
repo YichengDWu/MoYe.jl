@@ -294,6 +294,10 @@ julia> x3 = recast(Int64, x)
     @gc_preserve _recast(NewType, x)
 end
 
+@inline function recast(::Type{OldType}, x::MoYeArray{OldType}) where {OldType}
+    return x
+end
+
 function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType}
     @inline
     old_layout = layout(x)

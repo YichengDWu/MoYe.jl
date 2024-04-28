@@ -86,7 +86,7 @@ We can also overlap shared-to-registers memory copies with mma compute.
 To do this we will need to allocate two shared memory buffers, one for the current compute and one
 for the next tile. We prefetch the next tile from global memory to shared memory asynchronously.
 
-![matmuil](../assets/pipepline.png)
+![matmuil](../assets/pipepline.svg)
 
 ```julia
 @views function matmul_kernel(A, sA_layout, copy_A,
