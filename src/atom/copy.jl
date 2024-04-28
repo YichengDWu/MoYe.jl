@@ -225,17 +225,17 @@ end
 @inline get_thread_slice(tiled_copy::TiledCopy, thr_idx::DInt) = get_slice(tiled_copy, thr_idx)
 
 function make_tiled_copy_A(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
+    M, K = tile_size(tiled_mma, _1), tile_size(tiled_mma, _3)
     return TiledCopy(copy_atom, get_layoutA_TV(tiled_mma), (M, K))
 end
 
 function make_tiled_copy_B(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
+    N, K = tile_size(tiled_mma, _2), tile_size(tiled_mma, _3)
     return TiledCopy(copy_atom, get_layoutB_TV(tiled_mma), (N, K))
 end
 
 function make_tiled_copy_C(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
+    M, N = tile_size(tiled_mma, _1), tile_size(tiled_mma, _2)
     return TiledCopy(copy_atom, get_layoutC_TV(tiled_mma), (M, N))
 end
 

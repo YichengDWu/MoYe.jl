@@ -86,7 +86,8 @@ export CopyAtom, make_tiled_copy, get_slice, partition_D, partition_S, Universal
        UniversalCopy, CPOP_ASYNC_CACHEALWAYS, CPOP_ASYNC_CACHEGLOBAL
 export MMAAtom, make_tiled_mma, partition_C, partition_A, partition_B, tile_size,
        partition_fragment_C, partition_fragment_A, partition_fragment_B, make_tiled_copy_A,
-       make_tiled_copy_B, make_tiled_copy_C, make_fragment_A, make_fragment_B, make_fragment_C
+       make_tiled_copy_B, make_tiled_copy_C, make_fragment_A, make_fragment_B, make_fragment_C,
+       retile_D, retile_S
 
 # pointer
 export isgmem, issmem, isrmem
