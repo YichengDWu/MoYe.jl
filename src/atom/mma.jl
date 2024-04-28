@@ -116,7 +116,7 @@ end
     return :($thr_layout_vmnk_)
 end
 
-function thrfrg_C(m::TiledMMA, C::Layout{2})
+function thrfrg_C(m::TiledMMA, C::Layout)
     thr_layout_vmnk = get_thr_layout_vmnk(m)
     atom_mnk = shape_mnk(m.atom)
     permutation_mnk = m.permutation_mnk
@@ -135,7 +135,7 @@ function thrfrg_C(m::TiledMMA, C::Layout{2})
     return thr_array
 end
 
-function thrfrg_A(m::TiledMMA, A::Layout{2})
+function thrfrg_A(m::TiledMMA, A::Layout)
     thr_layout_vmnk = get_thr_layout_vmnk(m)
     atom_mnk = shape_mnk(m.atom)
     permutation_mnk = m.permutation_mnk
@@ -151,7 +151,7 @@ function thrfrg_A(m::TiledMMA, A::Layout{2})
     return thr_array
 end
 
-function thrfrg_B(m::TiledMMA, B::Layout{2})
+function thrfrg_B(m::TiledMMA, B::Layout)
     thr_layout_vmnk = get_thr_layout_vmnk(m)
     atom_mnk = shape_mnk(m.atom)
     permutation_mnk = m.permutation_mnk

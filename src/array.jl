@@ -131,7 +131,7 @@ layout(::Type{<:StaticMoYeArray{T,N,E,L}}) where {T,N,E,L} = L
 
 # static interface
 @inline StaticArrayInterface.static_size(x::StaticMoYeArray) = map(capacity, shape(layout(x)))
-@inline StaticArrayInterface.static_size(x::StaticMoYeArray, i::IntType) = size(layout(x), i)
+@inline StaticArrayInterface.static_size(x::A, i::Union{Int, StaticInt}) where {A<:StaticMoYeArray}= size(layout(x), i)
 
 @inline function StaticArrayInterface.static_axes(x::StaticMoYeArray{T,N,<:ViewEngine}) where {T,N}
     return map(Base.oneto, static_size(x))
@@ -160,7 +160,7 @@ end
 Return a pointer to the element at the logical index `i` in `A`, not the physical index.
 """
 @inline function Base.pointer(x::MoYeArray{T}, i::IntType) where {T}
-    idx = x.layout(convert(Int, i))
+    idx = x.layout(i)
     return pointer(x) + (idx-one(idx))*sizeof(T)
 end
 @inline function Base.pointer(x::MoYeArray{T}, coord::Tuple) where {T}
@@ -292,6 +292,10 @@ julia> x3 = recast(Int64, x)
 """
 @inline function recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType}
     @gc_preserve _recast(NewType, x)
+end
+
+@inline function recast(::Type{OldType}, x::MoYeArray{OldType}) where {OldType}
+    return x
 end
 
 function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType}

@@ -25,6 +25,7 @@ makedocs(; modules=[MoYe],
                # ]
                 "TiledCopy & TiledMMA" => "manual/tiled_matmul.md",
                 "Memcpy Async" => "manual/async.md",
+                "Pipeline" => "manual/pipeline.md",
                 "Tensor Cores" => "manual/tensor_core.md",
             ],
             "API Reference" => [

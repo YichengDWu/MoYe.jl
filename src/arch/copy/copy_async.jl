@@ -42,10 +42,10 @@ end
 end
 
 """
-    cp_async_wait(i::Int32)
+    cp_async_wait(N::Int32)
     cp_async_wait()
 
-`cp.async.wait.group` and `cp.async.wait.all`.
+`cp_async_wait(N)` is equivalent to `cp.async.wait.group(N)` and `cp_async_wait()` is equivalent to `cp.async.wait.all` in CUDA.
 """
 @inline cp_async_wait(i::Int32) = ccall("llvm.nvvm.cp.async.wait.group", llvmcall, Cvoid, (Int32,), i)
 @inline cp_async_wait() = ccall("llvm.nvvm.cp.async.wait.all", llvmcall, Cvoid, ())
