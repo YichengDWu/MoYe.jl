@@ -6,10 +6,10 @@ To utilize this feature, we simply change the `TiledCopy` to the following
 ```julia
 copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TA}, TA}(),
                                 @Layout((32, 8)),
-                                @Layout((4, 1)))
+                                @Layout((1, 1)))
 copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TB}, TB}(),
                                     @Layout((32, 8)),
-                                    @Layout((4, 1)))
+                                    @Layout((1, 1)))
 ```
 
 The updated kernel function.
@@ -18,20 +18,16 @@ The updated kernel function.
 function matmul_kernel(A, sA_layout, copy_A,
                        B, sB_layout, copy_B,
                        C, mma_C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)
-    sB = MoYeSharedArray(eltype(B), sB_layout)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)
@@ -61,7 +57,6 @@ function matmul_kernel(A, sA_layout, copy_A,
         copyto!(copy_B, tBsB, view(tBgB, :, :, :, k))
         
         cp_async_wait()
-        sync_threads()
 
         @gc_preserve gemm!(mma_C, tCsA, tCsB, tCrC)
         sync_threads()
@@ -86,13 +81,13 @@ function matmul(A, B, C)
 	
     copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TA}, TA}(),
                                     @Layout((32, 8)),
-                                    @Layout((4, 1)))
+                                    @Layout((1, 1)))
     copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TB}, TB}(),
                                         @Layout((32, 8)),
-                                        @Layout((4, 1)))
+                                        @Layout((1, 1)))
 
     mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
-                           @Layout((16,16)))          # Atom layout
+                           @Layout((32,8)))          # Atom layout
 
     threads = Int(size(mma_C))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
@@ -122,7 +117,7 @@ test()
 
 We can change `CPOP_ASYNC_CACHEALWAYS{TA}/CPOP_ASYNC_CACHEALWAYS{TB}` to `CPOP_ASYNC_CACHEALWAYS{Float64}` to enable vectorized copies
 from global memory to shared memory. However, doing so will resul in a memory misaligned error. This is because we have padded `sA`
-and `sB` by one row. The element at `[1,2]` is not aligned to 8 bytes hence the error. We also need the following changes
+and `sB` by one row. The element at `[1,2]` is not aligned to 8 bytes as required by the copy_async instruction, hence the error. We also need the following changes
 ```julia
 sA_layout = make_layout((bM, bK), (_1, bM + _2))
 sB_layout = make_layout((bN, bK), (_1, bN + _2))

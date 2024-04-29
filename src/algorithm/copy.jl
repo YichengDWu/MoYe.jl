@@ -63,23 +63,24 @@ function _copyto!(dest::NonOwningArray{TD}, src::NonOwningArray{TS}, align::Stat
     end
 end
 
-group_tail(l::Layout{2}) = l
-group_tail(l::Layout{N}) where {N} = group(l, _2, StaticInt{N}())
+@inline group_tail(l::Layout{2}) = l
+@inline group_tail(l::Layout{N}) where {N} = group(l, _2, StaticInt{N}())
+@inline group_tail(l::Tuple{Vararg{Union{IntType, Tuple}, 2}}) = l
+@inline group_tail(l::Tuple{Vararg{Union{IntType, Tuple}, N}}) where {N} = (Base.first(l), Base.tail(l))
 
-function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst, d=1)
+function generate_copy_atom_loops(dst, src, dst_shape, src_shape, n_src, n_dst, d=1)
     expr = Expr(:block)
     dst_v = Symbol(:dst_v_, d)
     src_v = Symbol(:src_v_, d)
     loop_var = Symbol(:i_, d)
 
-    grouped_dst_layout = group_tail(dst_layout)
-    grouped_src_layout = group_tail(src_layout)
-    N = size(grouped_dst_layout, 2)
+    grouped_dst_shape = group_tail(dst_shape)
+    grouped_src_shape = group_tail(src_shape)
 
-    push!(expr.args, :($dst_v = MoYeArray(pointer($dst), $grouped_dst_layout)))
-    push!(expr.args, :($src_v = MoYeArray(pointer($src), $grouped_src_layout)))
+    push!(expr.args, :($dst_v = MoYeArray(pointer($dst), group_tail(layout($dst)[_1]))))
+    push!(expr.args, :($src_v = MoYeArray(pointer($src), group_tail(layout($src)[_1]))))
 
-    loop = Expr(:for, :($loop_var = _1:$N))
+    loop = Expr(:for, :($loop_var = _1:$(product(grouped_dst_shape[2]))))
     loopbody = Expr(:block)
     sliced_dst = Symbol(:sliced_dst_, d)
     sliced_src = Symbol(:sliced_src_, d)
@@ -87,13 +88,13 @@ function generate_copy_atom_loops(dst, src, dst_layout, src_layout, n_src, n_dst
     push!(loopbody.args, :($sliced_src = view($src_v, :, $loop_var)))
 
     # here we use the fact that each slice has the same layout
-    sliced_layout_dst = slice(grouped_dst_layout, (:, 1))
-    sliced_layout_src = slice(grouped_src_layout, (:, 1))
-    if typeof(size(sliced_layout_dst)) == n_dst || typeof((sliced_layout_src)) == n_src
+    sliced_layout_dst = slice(grouped_dst_shape, (:, 1))
+    sliced_layout_src = slice(grouped_src_shape, (:, 1))
+    if typeof(product(grouped_dst_shape[1])) == n_dst || typeof(product(grouped_src_shape[1])) == n_src
         push!(loopbody.args, :(copyto_unpack!(copy_atom, $sliced_dst, $sliced_src)))
     else
-        new_layout_dst = sliced_layout_dst[One()]
-        new_layout_src = sliced_layout_src[One()]
+        new_layout_dst = grouped_dst_shape[1]
+        new_layout_src = grouped_src_shape[1]
         push!(loopbody.args, generate_copy_atom_loops(sliced_dst, sliced_src, new_layout_dst, new_layout_src, n_src, n_dst, d+1))
     end
     push!(loopbody.args, :($(Expr(:loopinfo, (Symbol("llvm.loop.unroll.enable"), 1)))))
@@ -112,7 +113,8 @@ function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray, src::NonOwni
     return _copyto!(copy_atom, dst, src, TrivialPred())
 end
 @generated function _copyto!(copy_atom::AbstractCopyAtom, dst::NonOwningArray{TD,N}, src::NonOwningArray{TS, N}, pred) where {TD, TS, N}
-    expr = generate_copy_atom_loops(:sliced_dst, :sliced_src,  layout(dst)[_1](), layout(src)[_1](), num_val_src(copy_atom), num_val_dst(copy_atom))
+    expr = generate_copy_atom_loops(:sliced_dst, :sliced_src,  make_tuple(shape(layout(dst)[_1])), make_tuple(shape(layout(src)[_1])),
+                                    num_val_src(copy_atom), num_val_dst(copy_atom))
     return quote
         dst_v = group_modes(dst, _2, StaticInt{$N}())
         src_v = group_modes(src, _2, StaticInt{$N}())

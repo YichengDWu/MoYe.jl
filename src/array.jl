@@ -92,17 +92,22 @@ end
 @inline function MoYeArray(ptr::LLVMPtr{T}, shape::GenIntTuple, args...) where {T}
     return MoYeArray(ptr, make_layout(shape, args...))
 end
-#@inline function MoYeArray(x::LinearAlgebra.Transpose)
-#    return MoYeArray(pointer(x), make_layout(size(x), GenRowMajor))
-#end
+@inline function MoYeArray(x::LinearAlgebra.Transpose)
+    return MoYeArray(pointer(x.parent), make_layout(size(x), GenRowMajor))
+end
+@inline function MoYeArray(x::LinearAlgebra.Adjoint)
+    return MoYeArray(pointer(x.parent), make_layout(size(x), GenRowMajor))
+end
 @inline function MoYeArray(x::AbstractArray)
     return MoYeArray(pointer(x), make_layout(size(x), GenColMajor))
 end
-#@inline function MoYeArray(x::StaticArraysCore.StaticArray)
+#@inline function MoYeArray(x::StaticArrayInterface.StaticArray)
 #    return MoYeArray(pointer(x), make_layout(StaticArrayInterface.static_size(x)))
 #end
 
 @inline MoYeArray(x::AbstractArray, args...) = MoYeArray(pointer(x), args...)
+@inline MoYeArray(x::LinearAlgebra.Adjoint, args...) = MoYeArray(pointer(x.parent), args...)
+@inline MoYeArray(x::LinearAlgebra.Transpose, args...) = MoYeArray(pointer(x.parent), args...)
 
 const BitMoYeArray{N, E, L} = MoYeArray{Bool, N, E, L}
 const StaticMoYeArray{T, N, A} = MoYeArray{T, N, A, <:Layout{N, <:StaticIntTuple}} # only size needs to be static

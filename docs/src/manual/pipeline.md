@@ -12,20 +12,16 @@ before compute.
 function matmul_kernel(A, sA_layout, copy_A,
                        B, sB_layout, copy_B,
                        C, mma_C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)
-    sB = MoYeSharedArray(eltype(B), sB_layout)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)
@@ -92,20 +88,16 @@ for the next tile. We prefetch the next tile from global memory to shared memory
 @views function matmul_kernel(A, sA_layout, copy_A,
                               B, sB_layout, copy_B,
                               C, mma_C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
+    sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
-    sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)
@@ -182,22 +174,22 @@ function matmul(A, B, C)
     bN = _128
     bK = _8
     
-    sA_layout = make_layout((bM, bK, _2), (_1, bM + _1, (bM + _1) * bK))
-    sB_layout = make_layout((bN, bK, _2), (_1, bN + _1, (bN + _1) * bK))
+    sA_layout = make_layout((bM, bK, _2), (_1, bM + _2, (bM + _2) * bK))
+    sB_layout = make_layout((bN, bK, _2), (_1, bN + _2, (bN + _2) * bK))
 
     TA = eltype(A)
     TB = eltype(B)
     TC = eltype(C)
 	
-    copy_A = make_tiled_copy(CopyAtom{UniversalCopy{TA}, TA}(),
+    copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TA}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
-    copy_B = make_tiled_copy(CopyAtom{UniversalCopy{TB}, TB}(),
+                             @Layout((2, 1)))
+    copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TB}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))
+                             @Layout((2, 1)))
 
     mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
-                           @Layout((16,16)))          # Atom layout
+                           @Layout((32, 8)))          # Atom layout
 
     threads = Int(size(mma_C))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))

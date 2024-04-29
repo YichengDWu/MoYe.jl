@@ -148,8 +148,8 @@ function tidfrg_D(tiled_copy::TiledCopy, dst::Layout{N}) where {N}
                                    atom_layout_dst(tiled_copy)))
 end
 
-function retile(tiled_copy, x::StaticMoYeArray{T, R}) where {T, R}
-    V = size(layout(x), 1)
+function retile(tiled_copy, x::StaticLayout{R}) where {R}
+    V = size(x, 1)
     tiled_layout_TV = tiled_copy.tiled_layout_TV
     tiled_shape_MN = shape(tiled_copy.tiler_MN)
     atom_num_val = size(atom_layout_ref(tiled_copy), 2)
@@ -162,7 +162,7 @@ function retile(tiled_copy, x::StaticMoYeArray{T, R}) where {T, R}
 
     t_array = zipped_divide(x, prepend(product_each(shape(frg_layout_mn)), V))
     v_array = composition(t_array, (frg_layout_v, :))
-    return view(v_array, :, append(One(), :, StaticInt{R}()))
+    return v_array(:, append(One(), :, StaticInt{R}()))
 end
 
 function get_layoutS_TV(tiled_copy::TiledCopy)
@@ -225,17 +225,17 @@ end
 @inline get_thread_slice(tiled_copy::TiledCopy, thr_idx::DInt) = get_slice(tiled_copy, thr_idx)
 
 function make_tiled_copy_A(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    M, K = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[3]
+    M, K = tile_size(tiled_mma, _1), tile_size(tiled_mma, _3)
     return TiledCopy(copy_atom, get_layoutA_TV(tiled_mma), (M, K))
 end
 
 function make_tiled_copy_B(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    N, K = tiled_mma.tiled_MNK[2], tiled_mma.tiled_MNK[3]
+    N, K = tile_size(tiled_mma, _2), tile_size(tiled_mma, _3)
     return TiledCopy(copy_atom, get_layoutB_TV(tiled_mma), (N, K))
 end
 
 function make_tiled_copy_C(copy_atom::AbstractCopyAtom, tiled_mma::TiledMMA)
-    M, N = tiled_mma.tiled_MNK[1], tiled_mma.tiled_MNK[2]
+    M, N = tile_size(tiled_mma, _1), tile_size(tiled_mma, _2)
     return TiledCopy(copy_atom, get_layoutC_TV(tiled_mma), (M, N))
 end
 

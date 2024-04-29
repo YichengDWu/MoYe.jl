@@ -282,7 +282,7 @@ function get_layoutB_TV(tiled_mma::TiledMMA)
     layoutB_TV = thrfrg_B(tiled_mma, ref_B)
     thr_layout_vmnk = get_thr_layout_vmnk(tiled_mma)
     # insert M dimension to reflect the projection in B
-    btile = (:, (make_layout((size(thr_layout_vmnk, _2), size(thr_layout_vmnk, _3)), (One(), Zero())), :))
+    btile = (:, (make_layout((size(thr_layout_vmnk, _2), size(thr_layout_vmnk, _3)), (Zero(), One())), :))
     thridx_to_thrid = right_inverse(thr_layout_vmnk)
     return composition(composition(layoutB_TV, (btile, :)), (thridx_to_thrid, :))
 end
