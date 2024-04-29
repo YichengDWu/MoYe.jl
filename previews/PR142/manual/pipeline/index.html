@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Pipeline · MoYe.jl</title><meta name="title" content="Pipeline · MoYe.jl"/><meta property="og:title" content="Pipeline · MoYe.jl"/><meta property="twitter:title" content="Pipeline · MoYe.jl"/><meta name="description" content="Documentation for MoYe.jl."/><meta property="og:description" content="Documentation for MoYe.jl."/><meta property="twitter:description" content="Documentation for MoYe.jl."/><meta property="og:url" content="https://YichengDWu.github.io/MoYe.jl/manual/pipeline/"/><meta property="twitter:url" content="https://YichengDWu.github.io/MoYe.jl/manual/pipeline/"/><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/pipeline/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li><a class="tocitem" href="../matmul/">MatMul</a></li><li><a class="tocitem" href="../tiled_matmul/">TiledCopy &amp; TiledMMA</a></li><li><a class="tocitem" href="../async/">Memcpy Async</a></li><li class="is-active"><a class="tocitem" href>Pipeline</a><ul class="internal"><li><a class="tocitem" href="#Overlap-global-to-shared-copies-with-mma-compute"><span>Overlap global-to-shared copies with mma compute</span></a></li><li><a class="tocitem" href="#Double-buffer"><span>Double buffer</span></a></li></ul></li><li><a class="tocitem" href="../tensor_core/">Tensor Cores</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li><li><a class="tocitem" href="../../api/atom/">MMA/Copy Atoms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Pipeline</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Pipeline</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/pipeline.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h2 id="Overlap-global-to-shared-copies-with-mma-compute"><a class="docs-heading-anchor" href="#Overlap-global-to-shared-copies-with-mma-compute">Overlap global-to-shared copies with mma compute</a><a id="Overlap-global-to-shared-copies-with-mma-compute-1"></a><a class="docs-heading-anchor-permalink" href="#Overlap-global-to-shared-copies-with-mma-compute" title="Permalink"></a></h2><p>We can overlap global-to-shared memory copies with mma compute.</p><p><img src="https://developer-blogs.nvidia.com/wp-content/uploads/2020/09/sequence-asynchronous-copy-batches-1.png" alt/></p><p>To do this we will explicitly load data from shared memory to registers for the mma computation and submit a new load from global memory to shared memory for the next tile before compute.</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, copy_A,
+                       B, sB_layout, copy_B,
+                       C, mma_C)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+
+    # copy partition
+    thr_copy_a = get_slice(copy_A, threadIdx().x)      
+    tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
+    tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
+
+    thr_copy_b = get_slice(copy_B, threadIdx().x)
+    tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
+    tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
+
+    # Copy gmem to smem for k_tile=1
+    copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
+    copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
+
+    # mma partition
+    thr_mma = get_slice(mma_C, threadIdx().x)
+    tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
+    tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
+    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
+
+    # mma registers
+    tCrA = make_fragment_A(thr_mma, tCsA)                # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB)                # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
+    zeros!(tCrC)
+
+    k_max = size(tAgA, 4)
+    for k in 1:k_max
+        cp_async_wait()
+        sync_threads()
+
+        # copy from smem to rmem
+        copyto!(tCrA, tCsA)
+        copyto!(tCrB, tCsB)
+        sync_threads()
+
+        if k &lt; k_max
+            copyto!(copy_A, tAsA, view(tAgA, :, :, :, k+1))
+            copyto!(copy_B, tBsB, view(tBgB, :, :, :, k+1))
+        end
+
+        @gc_preserve gemm!(mma_C, tCrA, tCrB, tCrC)
+    end
+
+    copyto!(tCgC, tCrC)
+    return nothing
+end</code></pre><h2 id="Double-buffer"><a class="docs-heading-anchor" href="#Double-buffer">Double buffer</a><a id="Double-buffer-1"></a><a class="docs-heading-anchor-permalink" href="#Double-buffer" title="Permalink"></a></h2><p>We can also overlap shared-to-registers memory copies with mma compute.</p><p>To do this we will need to allocate two shared memory buffers, one for the current compute and one for the next tile. We prefetch the next tile from global memory to shared memory asynchronously.</p><p><img src="../../assets/pipeline.svg" alt="matmuil"/></p><pre><code class="language-julia hljs">@views function matmul_kernel(A, sA_layout, copy_A,
+                              B, sB_layout, copy_B,
+                              C, mma_C)
+    sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
+    sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+
+    # copy partition
+    thr_copy_a = get_slice(copy_A, threadIdx().x)      
+    tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
+    tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K, 2)
+
+    thr_copy_b = get_slice(copy_B, threadIdx().x)
+    tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
+    tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K, 2)
+
+    # Copy gmem to smem for k_tile=1
+    copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, _1])
+    copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, _1])
+
+    # mma partition
+    thr_mma = get_slice(mma_C, threadIdx().x)
+    tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K, 2)
+    tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K, 2)
+    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
+
+    # mma registers
+    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])    # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])    # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
+    zeros!(tCrC)
+
+    cp_async_wait()
+    sync_threads()
+
+    # Copy smem to rmem for k_block=1
+    smem_read = 1
+    smem_write = 2
+    tCsA_p = view(tCsA, :, :, :, smem_read)
+    tCsB_p = view(tCsB, :, :, :, smem_read)
+    copyto!(tCrA[:, :, 1], tCsA_p[:, :, _1])
+    copyto!(tCrB[:, :, 1], tCsB_p[:, :, _1])
+
+    k_tile_max = size(tAgA, 4)
+    k_block_max = static_size(tCrA, 3)
+    for k_tile in 1:k_tile_max
+        @loopinfo unroll for k_block in _1:k_block_max
+            k_block_next = k_block + 1 
+            if k_block == k_block_max
+                cp_async_wait()
+                sync_threads()
+                tCsA_p = view(tCsA, :, :, :, smem_read)
+                tCsB_p = view(tCsB, :, :, :, smem_read)
+                k_block_next = 1
+            end
+            
+            copyto!(tCrA[:, :, k_block_next], tCsA_p[:, :, k_block_next])
+            copyto!(tCrB[:, :, k_block_next], tCsB_p[:, :, k_block_next])   
+
+            if k_block == _1 &amp;&amp; k_tile&lt;k_tile_max
+                copyto!(copy_A, tAsA[:, :, :, smem_write], tAgA[:, :, :, k_tile+1])
+                copyto!(copy_B, tBsB[:, :, :, smem_write], tBgB[:, :, :, k_tile+1])
+                smem_read, smem_write = smem_write, smem_read
+            end
+            
+            @gc_preserve gemm!(mma_C, tCrA[:, :, k_block], tCrB[:, :, k_block], tCrC)
+        end
+    end
+
+    copyto!(tCgC, tCrC)
+    return nothing
+end
+
+function matmul(A, B, C)
+    bM = _128
+    bN = _128
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK, _2), (_1, bM + _2, (bM + _2) * bK))
+    sB_layout = make_layout((bN, bK, _2), (_1, bN + _2, (bN + _2) * bK))
+
+    TA = eltype(A)
+    TB = eltype(B)
+    TC = eltype(C)
+	
+    copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TA}(),
+                             @Layout((32, 8)),
+                             @Layout((2, 1)))
+    copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{Float64}, TB}(),
+                             @Layout((32, 8)),
+                             @Layout((2, 1)))
+
+    mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
+                           @Layout((32, 8)))          # Atom layout
+
+    threads = Int(size(mma_C))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, copy_A,
+                                                      B, sB_layout, copy_B,
+                                                      C, mma_C)
+end
+
+function test()
+    A =  CUDA.randn(Float32, 2048, 256)
+    B =  CUDA.randn(Float32, 2048, 256)
+    C =  CUDA.randn(Float32, 2048, 2048)
+    matmul(A, B, C)
+    CUDA.synchronize()
+    @test C == A * B&#39;
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../async/">« Memcpy Async</a><a class="docs-footer-nextpage" href="../tensor_core/">Tensor Cores »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 29 April 2024 22:40">Monday 29 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
