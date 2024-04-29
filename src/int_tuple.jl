@@ -16,12 +16,12 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
     return map(Base.Fix1(getindex, x), I)
 end
 
-@inline ffmap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(fmap, f), t)
-@inline ffmap(f::Function, x) = f(x)
+@inline fmap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(fmap, f), t)
+@inline fmap(f::Function, x) = f(x)
 @generated function fmap(f::Function, @nospecialize(t0::Tuple), t1)
     expr = Expr(:tuple)
     for i in 1:length(t0.parameters)
-    push!(expr.args, :(fmap(f, t0[$i], t1)))
+    push!(expr.args, :(fmap(f, t0[$i], t1[$i])))
     end
     return expr
     end
