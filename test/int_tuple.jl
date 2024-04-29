@@ -1,5 +1,8 @@
 using MoYe, Test, JET
 
+@testset "Product" begin
+    @inferred MoYe.product_like(((_2, _2), _2), ((_32, _512), _2048))
+end
 @testset "Capacity" begin
     @test capacity(((2, 3, (1, 1)), 4)) == 24
     @test_opt capacity(((2, 3, (1, 1)), 4))
