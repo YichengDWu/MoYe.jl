@@ -149,11 +149,11 @@ function tidfrg_D(tiled_copy::TiledCopy, dst::Layout{N}) where {N}
 end
 
 function retile(tiled_copy, x::StaticLayout{R}) where {R}
-    V = size(x, 1)
+    V = size(x, _1)
     tiled_layout_TV = tiled_copy.tiled_layout_TV
     tiled_shape_MN = shape(tiled_copy.tiler_MN)
-    atom_num_val = size(atom_layout_ref(tiled_copy), 2)
-    tiled_num_thr = size(tiled_layout_TV, 1)
+    atom_num_val = size(atom_layout_ref(tiled_copy), _2)
+    tiled_num_thr = size(tiled_layout_TV, _1)
     frg_layout_mn = upcast(composition(right_inverse(tiled_layout_TV),
                                        make_layout(tiled_shape_MN)), tiled_num_thr * V)
     frg_layout_v = zipped_divide(logical_product(make_layout(V),

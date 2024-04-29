@@ -155,8 +155,8 @@ function matmul_kernel(A, sA_layout, copy_A,
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # overlap copy and compute
-    copyto!(copy_A, tArA, view(tAgA, :, :, :, 1))
-    copyto!(copy_B, tBrB, view(tBgB, :, :, :, 1))
+    copyto!(copy_A, tArA, view(tAgA, :, :, :, _1))
+    copyto!(copy_B, tBrB, view(tBgB, :, :, :, _1))
 
     # accumulator
     tCrC = make_fragment_C(thr_mma, tCgC)

@@ -2,7 +2,7 @@
 
 Tensor cores are specialized hardware accelerators designed to optimize matrix operations, which are crucial for deep learning and artificial intelligence algorithms.
 
-Incorporating tensor cores can be as straightforward as modifying a single line of code in the existing `mat_mul` function:
+Enabling tensor cores can be as straightforward as modifying a single line of code in the existing `matmul_kernel` function:
 ```julia
 mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), 
                        @Layout((2,4,1)))
@@ -10,8 +10,7 @@ mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(),
 !!! note
     The NT in MMAOP_8x8x4_F32F16F16F32_NT indicates that A is in M-major order and B is in N-major order.
 
-## Exploring TiledMMA with Tensor Core Operations
-Let's explore what TiledMMA with a tensor core operation entails.
+Let's explore what `TiledMMA` with a tensor core operation entails.
 ```julia
 mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
                      @Layout((2,4,1)))
@@ -19,44 +18,37 @@ print_typst(mma)
 ```
 ![](../assets/tensorcore.svg)
 
-The diagram illustrates the collective loading of data from matrices A and B by threads, according to the specified layout. During the matrix multiply-accumulate (MMA) operation, data is internally shared among threads—this process is seamlessly managed and not visible to the user. Post computation, each thread stores the results as defined by the layout of matrix C, as shown in the illustration.
+At first glance, the diagram may seem complex, but the concept is straightforward: the threads collective load data from matrices `A` and `B` according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix `C` shown in the illustration.
 
 ## LDMatrix
 
-The `ldmatrix` instruction at the warp level facilitates the loading of data from shared memory into registers and rearranges them to align with a tensor core MMA operation.
+The `ldmatrix` instruction at the warp level facilitates the loading of data from shared memory into registers and suffles them to align with a tensor core MMA operation.
 
-Given a tensor core MMA operation, the shuffling can be "inverted" to obtain a TiledCopy count for the shuffling.
+Given a tensor core MMA operation, the shuffling can be "inverted" to obtain a `TiledCopy` count for the shuffling.
 ```julia
 smem_copy_A = make_tiled_copy_A(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
 print_typst(smem_copy_A)
 ```
 ![](../assets/smem_copy_A.svg)
 
-The resulting layout matches the layout of A in the mma.
+The resulting layout matches the layout of A in the `mma`.
 
 !!! note
-    The TN in MMAOP_16x8x8_F32TF32TF32F32_TN specifies that both A and B are in K-major order.
-    The N in LDSM_U32x4_N also indicates K-major order.
+    The `TN` in `MMAOP_16x8x8_F32TF32TF32F32_TN` specifies that both A and B are in `K`-major order.
+    The `N` in `LDSM_U32x4_N` indicates `K`-major order.
 
 !!! note 
-    The `ldmatrix` requires four consecutive threads to load 16 consecutive bytes, demanding that the layout of A in shared memory meet this specification.
+    The `ldmatrix` requires four consecutive threads to load 16 consecutive bytes, demanding that the layout of `A` in shared memory meet this specification.
 
 For B:
 ```julia
 smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, Float32}(), mma)
 print_typst(smem_copy_B)
 ```
+!!! Note
+    However, using LDSM_U32x4_N for `B` would not be compatible with its layout in mma.
+    A developer is resposible to select a compatible `ldmatrix` operation when possible.
 
-However, using LDSM_U32x4_N for `B` would not be compatible with its layout in mma.
-
-Another configuration:
-```julia
-mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
-                            @Layout((2,2,1)),
-                            (_32,_32,_8))
-smem_copy_A = make_tiled_copy_A(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
-smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
-```
 
 We then use `smem_copy_A` and `smem_copy_B` to re-tile the shared memory and registers
 ```julia
@@ -79,20 +71,16 @@ This example computes C = A * B, with A in M-major and B in K-major order.
 @views function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
                               B, sB_layout, gmem_copy_B, smem_copy_B,
                               C, mma)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
-
-    bM = size(sA_layout, 1)
-    bN = size(sB_layout, 1)
-    bK = size(sB_layout, 2)
-
     sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
     sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
 
     mA = MoYeArray(A)
     mB = MoYeArray(B)
     mC = MoYeArray(C)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)
@@ -108,16 +96,16 @@ This example computes C = A * B, with A in M-major and B in K-major order.
     tBsB = partition_D(gmem_thr_copy_B, sB)                 # (CPY, CPY_N, CPY_K, 2)
 
     # Copy gmem to smem for k_tile=1
-    copyto!(gmem_copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, 1])
-    copyto!(gmem_copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, 1])
+    copyto!(gmem_copy_A, tAsA[:, :, :, _1], tAgA[:, :, :, _1])
+    copyto!(gmem_copy_B, tBsB[:, :, :, _1], tBgB[:, :, :, _1])
 
     # mma partition
     thr_mma = get_slice(mma, threadIdx().x)
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # mma registers
-    tCrA = partition_fragment_A(thr_mma, sA[:, :, 1])    # (MMA, MMA_M, MMA_K)
-    tCrB = partition_fragment_B(thr_mma, sB[:, :, 1])    # (MMA, MMA_N, MMA_K)
+    tCrA = partition_fragment_A(thr_mma, sA[:, :, _1])    # (MMA, MMA_M, MMA_K)
+    tCrB = partition_fragment_B(thr_mma, sB[:, :, _1])    # (MMA, MMA_N, MMA_K)
     tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
@@ -138,8 +126,8 @@ This example computes C = A * B, with A in M-major and B in K-major order.
     smem_write = 2
     tCsA_p = view(tCsA, :, :, :, smem_read)
     tCsB_p = view(tCsB, :, :, :, smem_read)
-    copyto!(smem_copy_A, tCrA_copy_view[:, :, 1], tCsA_p[:, :, 1])
-    copyto!(smem_copy_B, tCrB_copy_view[:, :, 1], tCsB_p[:, :, 1])
+    copyto!(smem_copy_A, tCrA_copy_view[:, :, _1], tCsA_p[:, :, _1])
+    copyto!(smem_copy_B, tCrB_copy_view[:, :, _1], tCsB_p[:, :, _1])
 
     k_tile_max = size(tAgA, 4)
     k_block_max = static_size(tCrA, 3)
@@ -174,7 +162,7 @@ end
 function matmul(A, B, C)
     bM = _128
     bN = _128
-    bK = _32
+    bK = _16
     
     sA_layout = make_layout((bM, bK, _2), (_1, bM, bM * bK))    # M-major
     sB_layout = make_layout((bN, bK, _2), (bK, _1, bN * bK))    # K-major
@@ -183,21 +171,21 @@ function matmul(A, B, C)
     TB = eltype(B)
     TC = eltype(C)
 	
-    gmem_copy_A = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, TA}(),
+    gmem_copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
                                   @Layout((16, 8)),
                                   @Layout((4, 1)))
-    gmem_copy_B = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, TB}(),
-                                  @Layout((16, 8), (8, 1)),
+    gmem_copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TB}(),
+                                  @Layout((32, 4), (4, 1)),
                                   @Layout((1, 4)))
 
     mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
-                         @Layout((2,2,1)),
+                         @Layout((2,2,1), (2,1,1)),
                          (_32,_32,_8))
 
     # A is M-major so we cannot use LDSM_U32x4_N 
     smem_copy_A = make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
-    smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma)
-
+    smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma) # still has bugs...
+ 
     threads = Int(size(mma))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
 
@@ -209,7 +197,7 @@ end
 
 function test()
     A = CUDA.randn(Float32, 2048, 256)   # M-major
-    B = CUDA.randn(Float32, 256, 2048)
+    B = CUDA.randn(Float32, 256, 2048)   # K-major
     B_T =  B'  # K-major
     C =  CUDA.randn(Float32, 2048, 2048)
     matmul(A, B_T, C)
