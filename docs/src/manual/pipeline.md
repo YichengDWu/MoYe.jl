@@ -12,20 +12,16 @@ before compute.
 function matmul_kernel(A, sA_layout, copy_A,
                        B, sB_layout, copy_B,
                        C, mma_C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)
-    sB = MoYeSharedArray(eltype(B), sB_layout)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)
@@ -92,20 +88,16 @@ for the next tile. We prefetch the next tile from global memory to shared memory
 @views function matmul_kernel(A, sA_layout, copy_A,
                               B, sB_layout, copy_B,
                               C, mma_C)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
+    sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
-    sB = MoYeSharedArray(eltype(B), sB_layout)        # (bN, bK, 2)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)
     gB = @tile mB (bN, bK) (blockIdx().y, :)

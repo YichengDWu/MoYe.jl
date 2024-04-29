@@ -84,20 +84,16 @@ The complete kernel code is as follows:
 function matmul_kernel(A, sA_layout, tA,
                        B, sB_layout, tB,
                        C, tC)
-    M = size(A, 1)
-    N = size(B, 1)
-    K = size(A, 2)
+    sA = MoYeSharedArray(eltype(A), sA_layout)           # (bM, bK)
+    sB = MoYeSharedArray(eltype(B), sB_layout)           # (bN, bK)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
 
     bM = size(sA_layout, 1)
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
-
-    sA = MoYeSharedArray(eltype(A), sA_layout)           # (bM, bK)
-    sB = MoYeSharedArray(eltype(B), sB_layout)           # (bN, bK)
-
-    mA = MoYeArray(A, (M, K))
-    mB = MoYeArray(B, (N, K))
-    mC = MoYeArray(C, (M, N))
 
     gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bN)
     gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)

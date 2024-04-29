@@ -13,6 +13,7 @@ using LLVMLoopInfo: @loopinfo
 using Core: LLVMPtr
 import Adapt
 using MacroTools: @capture
+import LinearAlgebra
 #import LinearAlgebra
 
 include("utilities.jl")
