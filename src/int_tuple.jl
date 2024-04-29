@@ -16,10 +16,16 @@ Base.@propagate_inbounds function Base.getindex(@nospecialize(x::Tuple),
     return map(Base.Fix1(getindex, x), I)
 end
 
-fmap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(fmap, f), t)
-fmap(f::Function, x) = f(x)
-fmap(f::Function, @nospecialize(t0::Tuple), t1) = map((x,y) -> fmap(f, x, y), t0, t1)
-fmap(f::Function, t0, t1) = f(t0, t1)
+@inline ffmap(f::Function, @nospecialize(t::Tuple)) = map(Base.Fix1(fmap, f), t)
+@inline ffmap(f::Function, x) = f(x)
+@generated function fmap(f::Function, @nospecialize(t0::Tuple), t1)
+    expr = Expr(:tuple)
+    for i in 1:length(t0.parameters)
+    push!(expr.args, :(fmap(f, t0[$i], t1)))
+    end
+    return expr
+    end
+@inline fmap(f::F, t0, t1) where F = f(t0, t1)
 
 @inline rank(@nospecialize x::IntTuple) = nfields(x)
 @inline rank(@nospecialize x::IntType) = one(x)
@@ -50,7 +56,8 @@ end
 end
 
 @inline product_each(x) = map(product, x)
-@inline product_like(x, g) = fmap((_, t) -> product(t), g, x) 
+@inline product_like_helper(a,b) = product(b)
+@inline product_like(x, g) = fmap(product_like_helper, g, x) 
 
 @inline capacity(x::IntType) = x
 @inline capacity(@nospecialize x::IntTuple) = product(x)
