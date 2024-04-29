@@ -37,8 +37,8 @@ function matmul_kernel(A, sA_layout, copy_A,
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
 
     # Copy gmem to smem for k_tile=1
-    copyto!(copy_A, tAsA, view(tAgA, :, :, :, 1))
-    copyto!(copy_B, tBsB, view(tBgB, :, :, :, 1))
+    copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
+    copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
 
     # mma partition
     thr_mma = get_slice(mma_C, threadIdx().x)
@@ -113,8 +113,8 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K, 2)
 
     # Copy gmem to smem for k_tile=1
-    copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, 1])
-    copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, 1])
+    copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, _1])
+    copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, _1])
 
     # mma partition
     thr_mma = get_slice(mma_C, threadIdx().x)
@@ -123,8 +123,8 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # mma registers
-    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, 1])    # (MMA, MMA_M, MMA_K)
-    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, 1])    # (MMA, MMA_N, MMA_K)
+    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])    # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])    # (MMA, MMA_N, MMA_K)
     tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
@@ -136,8 +136,8 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     smem_write = 2
     tCsA_p = view(tCsA, :, :, :, smem_read)
     tCsB_p = view(tCsB, :, :, :, smem_read)
-    copyto!(tCrA[:, :, 1], tCsA_p[:, :, 1])
-    copyto!(tCrB[:, :, 1], tCsB_p[:, :, 1])
+    copyto!(tCrA[:, :, 1], tCsA_p[:, :, _1])
+    copyto!(tCrB[:, :, 1], tCsB_p[:, :, _1])
 
     k_tile_max = size(tAgA, 4)
     k_block_max = static_size(tCrA, 3)
