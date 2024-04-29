@@ -27,8 +27,8 @@
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
 
     # Copy gmem to smem for k_tile=1
-    copyto!(copy_A, tAsA, view(tAgA, :, :, :, 1))
-    copyto!(copy_B, tBsB, view(tBgB, :, :, :, 1))
+    copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
+    copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
 
     # mma partition
     thr_mma = get_slice(mma_C, threadIdx().x)
@@ -90,8 +90,8 @@ end</code></pre><h2 id="Double-buffer"><a class="docs-heading-anchor" href="#Dou
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K, 2)
 
     # Copy gmem to smem for k_tile=1
-    copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, 1])
-    copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, 1])
+    copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, _1])
+    copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, _1])
 
     # mma partition
     thr_mma = get_slice(mma_C, threadIdx().x)
@@ -100,8 +100,8 @@ end</code></pre><h2 id="Double-buffer"><a class="docs-heading-anchor" href="#Dou
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
     # mma registers
-    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, 1])    # (MMA, MMA_M, MMA_K)
-    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, 1])    # (MMA, MMA_N, MMA_K)
+    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])    # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])    # (MMA, MMA_N, MMA_K)
     tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
@@ -113,8 +113,8 @@ end</code></pre><h2 id="Double-buffer"><a class="docs-heading-anchor" href="#Dou
     smem_write = 2
     tCsA_p = view(tCsA, :, :, :, smem_read)
     tCsB_p = view(tCsB, :, :, :, smem_read)
-    copyto!(tCrA[:, :, 1], tCsA_p[:, :, 1])
-    copyto!(tCrB[:, :, 1], tCsB_p[:, :, 1])
+    copyto!(tCrA[:, :, 1], tCsA_p[:, :, _1])
+    copyto!(tCrB[:, :, 1], tCsB_p[:, :, _1])
 
     k_tile_max = size(tAgA, 4)
     k_block_max = static_size(tCrA, 3)
@@ -188,4 +188,4 @@ function test()
     CUDA.unsafe_free!(C)
 end
 
-test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../async/">« Memcpy Async</a><a class="docs-footer-nextpage" href="../tensor_core/">Tensor Cores »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 29 April 2024 16:56">Monday 29 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../async/">« Memcpy Async</a><a class="docs-footer-nextpage" href="../tensor_core/">Tensor Cores »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 29 April 2024 23:30">Monday 29 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
