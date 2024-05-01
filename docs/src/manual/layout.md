@@ -153,7 +153,7 @@ print_layout(raked_product(tile, matrix_of_tiles))
 
 ```@repl layout
 raked_prod = raked_product(tile, matrix_of_tiles);
-subtile = (Layout(2,3), Layout(2,4));
+subtile = (@Layout(2,3), @Layout(2,4));
 print_layout(logical_divide(raked_prod, subtile))
 ```
 
