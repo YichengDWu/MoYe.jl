@@ -174,7 +174,7 @@ function matmul_kernel(A, sA_layout, copy_A,
 	    copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
 	    copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
 
-        @gc_preserve gemm!(mma_C, tCsA, tCsB, tCrC)
+        @gc_preserve gemm!(mma_C, tCrC, tCsA, tCsB, tCrC)
     end
 
     copyto!(tCgC, tCrC)

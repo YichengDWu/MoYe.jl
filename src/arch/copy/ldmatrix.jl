@@ -15,58 +15,85 @@ function Base.propertynames(::AbstractLdMatrix)
     return (:SRegisters, :DRegisters)
 end
 
-function get_ld_type(dest_sz, layout)
-    signature = layout == "" ? "N" : "T"
-    e_type = signature == "N" ? "U32" : "U16"
-    sz = signature == "N" ? dest_sz : 2dest_sz
-    ld_type = "LDSM_$(e_type)x$(sz)_$signature"
-    return ld_type
+struct LDSM_U32x1_N <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 1}} end
+struct LDSM_U32x2_N <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 2}} end
+struct LDSM_U32x4_N <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 4}} end
+
+struct LDSM_U16x2_T <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 1}} end
+struct LDSM_U16x4_T <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 2}} end
+struct LDSM_U16x8_T <: AbstractLdMatrix{Registers{UInt128, 1}, Registers{UInt32, 4}} end
+
+@inline function (::LDSM_U32x1_N)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.b16", llvmcall, UInt32, (LLVMPtr{UInt32, AS.Shared},), src_addr)
 end
 
-function get_ldmatrix_ops()
-    ptr_type = LLVMPtr{UInt32, AS.Shared}
-    src_type, src_sz = UInt128, 1 # each thread provides a 128 bits pointer
-    dest_type = UInt32
-
-    ld_ops = []
-    for (dest_sz, layout) in Iterators.product([1, 2, 4], ["", ".trans"])
-        ld_type = get_ld_type(dest_sz, layout)
-        @eval struct $(Symbol(ld_type)) <: AbstractLdMatrix{Registers{$src_type, $src_sz}, Registers{$dest_type, $dest_sz}} end
-        @eval export $(Symbol(ld_type))
-
-        intrinsic = "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x$(dest_sz)$layout.b16"
-        push!(ld_ops, ld_type => intrinsic)
-
-        llvm_struct = Symbol("LLVMStruct$dest_sz")
-        ret_type = @eval $llvm_struct{$dest_type}
-        if isone(dest_sz)
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
-                return ccall($intrinsic, llvmcall, $dest_type, ($ptr_type,), src_addr)
-            end
-
-            @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
-                src_ptr = pointer(src)
-                val = op(recast(UInt32, src_ptr))
-                return unsafe_store!(pointer(dest), val, 1)
-            end
-        else
-            @eval @inline function (::$(Symbol(ld_type)))(src_addr::$ptr_type)
-                return ccall($intrinsic, llvmcall, $ret_type, ($ptr_type,), src_addr)
-            end
-
-            @eval function Base.copyto!(op::$(Symbol(ld_type)), dest::LocalArray{$dest_type}, src::SharedArray{$src_type})
-                src_ptr = pointer(src)
-                val = op(recast(UInt32, src_ptr))
-                dest_ptr = pointer(dest)
-                Base.Cartesian.@nexprs $dest_sz i -> unsafe_store!(dest_ptr, getfield(val, i), i)
-                return dest
-            end
-        end
-    end
-    return ld_ops
+@inline function (::LDSM_U32x2_N)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.b16", llvmcall, LLVMStruct2{UInt32}, (LLVMPtr{UInt32, AS.Shared},), src_addr)
 end
 
-const ldmatrix_ops_list = get_ldmatrix_ops()
+@inline function (::LDSM_U32x4_N)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.b16", llvmcall, LLVMStruct4{UInt32}, (LLVMPtr{UInt32, AS.Shared},), src_addr)
+end
+
+@inline function (::LDSM_U16x2_T)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.trans.b16", llvmcall, UInt32, (LLVMPtr{UInt32, AS.Shared},), src_addr)
+end
+
+@inline function (::LDSM_U16x4_T)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16", llvmcall, LLVMStruct2{UInt32}, (LLVMPtr{UInt32, AS.Shared},), src_addr)
+end
+
+@inline function (::LDSM_U16x8_T)(src_addr::LLVMPtr{UInt32, AS.Shared})
+    return ccall("llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16", llvmcall, LLVMStruct4{UInt32}, (LLVMPtr{UInt32, AS.Shared},), src_addr)
+end
+
+function Base.copyto!(op::LDSM_U32x1_N, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    return unsafe_store!(pointer(dest), val, 1)
+end
+
+@inbounds function Base.copyto!(op::LDSM_U32x2_N, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    Base.Cartesian.@nexprs 2 i -> dest[i] = getfield(val, i)
+    return dest
+end
+
+@inbounds function Base.copyto!(op::LDSM_U32x4_N, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    Base.Cartesian.@nexprs 4 i -> dest[i] = getfield(val, i)
+    return dest
+end
+
+function Base.copyto!(op::LDSM_U16x2_T, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    return unsafe_store!(pointer(dest), val, 1)
+end
+
+@inbounds function Base.copyto!(op::LDSM_U16x4_T, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    dest_ptr = pointer(dest)
+    Base.Cartesian.@nexprs 2 i -> dest[i] = getfield(val, i)
+    return dest
+end
+
+@inbounds function Base.copyto!(op::LDSM_U16x8_T, dest::LocalArray{UInt32}, src::SharedArray{UInt128})
+    @inline 
+    src_ptr = pointer(src)
+    val = op(recast(UInt32, src_ptr))
+    dest_ptr = pointer(dest)
+    Base.Cartesian.@nexprs 4 i -> dest[i] = getfield(val, i)
+    return dest
+end
 
 """
     copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray{UInt32}, src::MoYeArray{UInt128})
@@ -85,7 +112,7 @@ Load data from shared memory to registers. The available `AbstractLdMatrix`s are
 You can inspect the number and the type of  registers used per thread by
 ```julia
 julia> LDSM_U32x4_N()
-LD_U32x4_N()
+LDSM_U32x4_N()
 
 julia> ans.DRegisters
 Registers{UInt32, 4}
@@ -94,3 +121,15 @@ Registers{UInt32, 4}
 function Base.copyto!(ldmatrix::AbstractLdMatrix, dest::MoYeArray, src::MoYeArray)
     throw(MethodError(copyto!, (ldmatrix, dest, src)))
 end
+
+
+const ldmatrix_ops_list = [
+    "LDSM_U32x1_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.b16"
+"LDSM_U32x2_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.b16"
+"LDSM_U32x4_N" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.b16"
+"LDSM_U16x2_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x1.trans.b16"
+"LDSM_U16x4_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x2.trans.b16"
+"LDSM_U16x8_T" => "llvm.nvvm.ldmatrix.sync.aligned.m8n8.x4.trans.b16"
+]
+
+export LDSM_U32x1_N, LDSM_U32x2_N, LDSM_U32x4_N, LDSM_U16x2_T, LDSM_U16x4_T, LDSM_U16x8_T

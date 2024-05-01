@@ -67,7 +67,7 @@ function matmul_kernel(A, sA_layout, copy_A,
             copyto!(copy_B, tBsB, view(tBgB, :, :, :, k+1))
         end
 
-        @gc_preserve gemm!(mma_C, tCrA, tCrB, tCrC)
+        @gc_preserve gemm!(mma_C, tCrC, tCrA, tCrB, tCrC)
     end
 
     copyto!(tCgC, tCrC)
@@ -161,7 +161,7 @@ for the next tile. We prefetch the next tile from global memory to shared memory
                 smem_read, smem_write = smem_write, smem_read
             end
             
-            @gc_preserve gemm!(mma_C, tCrA[:, :, k_block], tCrB[:, :, k_block], tCrC)
+            @gc_preserve gemm!(mma_C, tCrC, tCrA[:, :, k_block], tCrB[:, :, k_block], tCrC)
         end
     end
 
