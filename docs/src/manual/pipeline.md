@@ -125,7 +125,7 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     # mma registers
     tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])    # (MMA, MMA_M, MMA_K)
     tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])    # (MMA, MMA_N, MMA_K)
-    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
+    tCrC = make_fragment_C(thr_mma, tCgC)                 # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
     cp_async_wait()
