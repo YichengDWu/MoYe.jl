@@ -51,9 +51,6 @@ include("atom/ldmatrix.jl")
 include("algorithm/copy.jl")
 include("algorithm/blas.jl")
 
-# Deprecations
-include("deprecated.jl")
-
 # Device
 include("device/smem.jl")
 
