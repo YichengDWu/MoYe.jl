@@ -1,16 +1,260 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tensor Cores · MoYe.jl</title><meta name="title" content="Tensor Cores · MoYe.jl"/><meta property="og:title" content="Tensor Cores · MoYe.jl"/><meta property="twitter:title" content="Tensor Cores · MoYe.jl"/><meta name="description" content="Documentation for MoYe.jl."/><meta property="og:description" content="Documentation for MoYe.jl."/><meta property="twitter:description" content="Documentation for MoYe.jl."/><meta property="og:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><meta property="twitter:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li><a class="tocitem" href="../matmul/">MatMul</a></li><li><a class="tocitem" href="../tiled_matmul/">TiledCopy &amp; TiledMMA</a></li><li><a class="tocitem" href="../async/">Memcpy Async</a></li><li><a class="tocitem" href="../pipeline/">Pipeline</a></li><li class="is-active"><a class="tocitem" href>Tensor Cores</a><ul class="internal"><li><a class="tocitem" href="#LDMatrix"><span>LDMatrix</span></a></li><li><a class="tocitem" href="#MatMul"><span>MatMul</span></a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li><li><a class="tocitem" href="../../api/atom/">MMA/Copy Atoms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tensor Cores</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tensor Cores</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tensor_core.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tensor-Cores"><a class="docs-heading-anchor" href="#Tensor-Cores">Tensor Cores</a><a id="Tensor-Cores-1"></a><a class="docs-heading-anchor-permalink" href="#Tensor-Cores" title="Permalink"></a></h1><p>Tensor cores are specialized hardware accelerators designed to optimize matrix operations, which are crucial for deep learning and artificial intelligence algorithms.</p><p>Enabling tensor cores can be as straightforward as modifying a single line of code in the existing <code>matmul_kernel</code> function:</p><pre><code class="language-julia hljs">mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), 
-                       @Layout((2,4,1)))</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The NT in MMAOP<em>8x8x4</em>F32F16F16F32_NT indicates that A is in M-major order and B is in N-major order.</p></div></div><p>Let&#39;s explore what <code>TiledMMA</code> with a tensor core operation entails.</p><pre><code class="language-julia hljs">mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
-                     @Layout((2,4,1)))
-print_typst(mma)</code></pre><p><img src="../../assets/tensorcore.svg" alt/></p><p>At first glance, the diagram may seem complex, but the concept is straightforward: the threads collective load data from matrices <code>A</code> and <code>B</code> according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix <code>C</code> shown in the illustration.</p><h2 id="LDMatrix"><a class="docs-heading-anchor" href="#LDMatrix">LDMatrix</a><a id="LDMatrix-1"></a><a class="docs-heading-anchor-permalink" href="#LDMatrix" title="Permalink"></a></h2><p>The <code>ldmatrix</code> instruction at the warp level facilitates the loading of data from shared memory into registers and suffles them to align with a tensor core MMA operation.</p><p>Given a tensor core MMA operation, the shuffling can be &quot;inverted&quot; to obtain a <code>TiledCopy</code> count for the shuffling.</p><pre><code class="language-julia hljs">smem_copy_A = make_tiled_copy_A(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
-print_typst(smem_copy_A)</code></pre><p><img src="../../assets/smem_copy_A.svg" alt/></p><p>The resulting layout matches the layout of A in the <code>mma</code>.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The <code>TN</code> in <code>MMAOP_16x8x8_F32TF32TF32F32_TN</code> specifies that both A and B are in <code>K</code>-major order. The <code>N</code> in <code>LDSM_U32x4_N</code> indicates <code>K</code>-major order.</p></div></div><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The <code>ldmatrix</code> requires four consecutive threads to load 16 consecutive bytes, demanding that the layout of <code>A</code> in shared memory meet this specification.</p></div></div><p>For B:</p><pre><code class="language-julia hljs">smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, Float32}(), mma)
-print_typst(smem_copy_B)</code></pre><p>!!! Note     However, using LDSM<em>U32x4</em>N for <code>B</code> would not be compatible with its layout in mma.     A developer is resposible to select a compatible <code>ldmatrix</code> operation when possible.</p><p>We then use <code>smem_copy_A</code> and <code>smem_copy_B</code> to re-tile the shared memory and registers</p><pre><code class="language-julia hljs">smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)   
-tCsA            = partition_S(smem_thr_copy_A, sA)                
-tCrA_copy_view  = retile_D(smem_thr_copy_A, tCrA)
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tensor Cores · MoYe.jl</title><meta name="title" content="Tensor Cores · MoYe.jl"/><meta property="og:title" content="Tensor Cores · MoYe.jl"/><meta property="twitter:title" content="Tensor Cores · MoYe.jl"/><meta name="description" content="Documentation for MoYe.jl."/><meta property="og:description" content="Documentation for MoYe.jl."/><meta property="twitter:description" content="Documentation for MoYe.jl."/><meta property="og:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><meta property="twitter:url" content="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><link rel="canonical" href="https://YichengDWu.github.io/MoYe.jl/manual/tensor_core/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MoYe.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../layout/">Layout</a></li><li><a class="tocitem" href="../array/">Array</a></li><li><a class="tocitem" href="../broadcast/">Broadcasting</a></li><li><a class="tocitem" href="../matmul/">MatMul</a></li><li><a class="tocitem" href="../tiled_matmul/">TiledCopy &amp; TiledMMA</a></li><li><a class="tocitem" href="../async/">Memcpy Async</a></li><li><a class="tocitem" href="../pipeline/">Pipeline</a></li><li class="is-active"><a class="tocitem" href>Tensor Cores</a><ul class="internal"><li><a class="tocitem" href="#LDMatrix"><span>LDMatrix</span></a></li><li><a class="tocitem" href="#Tiled-LdMatrix"><span>Tiled LdMatrix</span></a></li><li><a class="tocitem" href="#Double-buffering"><span>Double buffering</span></a></li></ul></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../api/layout/">Layout</a></li><li><a class="tocitem" href="../../api/array/">MoYeArray</a></li><li><a class="tocitem" href="../../api/tiling/">Tiling</a></li><li><a class="tocitem" href="../../api/copy/">Data Movement</a></li><li><a class="tocitem" href="../../api/atom/">MMA/Copy Atoms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tensor Cores</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tensor Cores</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/YichengDWu/MoYe.jl/blob/main/docs/src/manual/tensor_core.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tensor-Cores"><a class="docs-heading-anchor" href="#Tensor-Cores">Tensor Cores</a><a id="Tensor-Cores-1"></a><a class="docs-heading-anchor-permalink" href="#Tensor-Cores" title="Permalink"></a></h1><p>Tensor cores are specialized hardware accelerators designed to optimize matrix operations, which are crucial for deep learning and artificial intelligence algorithms.</p><p>Enabling tensor cores can be as straightforward as modifying a single line of code in the existing <code>matmul_kernel</code> function:</p><pre><code class="language-julia hljs">mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), 
+                     atom_layout, 
+                     tiler)</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The NT in MMAOP<em>8x8x4</em>F32F16F16F32_NT indicates that A is in M-major order and B is in N-major order.</p></div></div><p>Let&#39;s explore a minimal example</p><pre><code class="language-julia hljs">mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN())
+print_typst(mma)</code></pre><p><img src="../../assets/TF32F32.svg" alt/></p><p>At first glance, the diagram may seem complex, but the concept is straightforward: the threads collective load data from matrices <code>A</code> and <code>B</code> according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix <code>C</code> shown in the illustration.</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, copy_A,
+                       B, sB_layout, copy_B,
+                       C, mma)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
 
-smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)   
-tCsB            = partition_S(smem_thr_copy_B, sB)                
-tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Here, <code>retile_D</code> acts as a composition of <code>tCrA</code> with the partitioner <code>smem_thr_copy_A</code>.</p><h2 id="MatMul"><a class="docs-heading-anchor" href="#MatMul">MatMul</a><a id="MatMul-1"></a><a class="docs-heading-anchor-permalink" href="#MatMul" title="Permalink"></a></h2><p>This example computes C = A * B, with A in M-major and B in K-major order.</p><pre><code class="language-julia hljs">@views function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+
+    # copy partition
+    thr_copy_a = get_slice(copy_A, threadIdx().x)      
+    tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
+    tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
+
+    thr_copy_b = get_slice(copy_B, threadIdx().x)
+    tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
+    tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
+
+    # mma partition
+    thr_mma = get_slice(mma, threadIdx().x)
+    tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
+    tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
+    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
+
+    tCrA = make_fragment_A(thr_mma, tCsA)              # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB) 
+    tCrC = make_fragment_C(thr_mma, tCgC)
+    zeros!(tCrC)
+
+    # copy from global to shared
+    copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
+    copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
+    
+    cp_async_wait()
+
+    # copy from shared to registers
+    copyto!(tCrA, tCsA)
+    copyto!(tCrB, tCsB)
+
+    @gc_preserve gemm!(mma, tCrC, tCrA, tCrB, tCrC)
+
+    copyto!(tCgC, tCrC) 
+    @inbounds tCrC[1]  # compiler bug, have to load after copyto!
+
+    return nothing
+end
+
+function matmul(A, B, C)
+    bM = _16
+    bN = _8
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK), (_1, bM))
+    sB_layout = make_layout((bN, bK), (bK, _1))
+
+    TA = eltype(A)
+    TB = eltype(B)
+    TC = eltype(C)
+	
+    copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
+                             @Layout((4, 8)),
+                             @Layout((4, 1)))
+    copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt64}, TB}(),
+                             @Layout((8, 4), (4, 1)),
+                             @Layout((1, 2)))
+
+    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN()) 
+
+    threads = Int(size(mma))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, copy_A, 
+                                                      B, sB_layout, copy_B, 
+                                                      C, mma)
+end
+
+function test()
+    A =  CuArray(reshape(collect(1:16*8) .* 1f0, (16,8))) 
+    B =  CuArray(reshape(collect(1:8*8) .* 1f0, (8,8)))
+    C =  CuArray(ones(Float32, (16,8)))
+    matmul(A, B&#39;, C)
+    CUDA.synchronize()
+    @test C == A * B
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end</code></pre><h2 id="LDMatrix"><a class="docs-heading-anchor" href="#LDMatrix">LDMatrix</a><a id="LDMatrix-1"></a><a class="docs-heading-anchor-permalink" href="#LDMatrix" title="Permalink"></a></h2><p>The <code>ldmatrix</code> instruction at the warp level facilitates the loading of data from shared memory into registers and suffles them to align with a tensor core MMA operation.</p><p>Given a tensor core MMA operation, the shuffling can be &quot;inverted&quot; to obtain a <code>TiledCopy</code> count for the shuffling.</p><pre><code class="language-julia hljs">mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN())
+smem_copy_A = make_tiled_copy_A(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
+print_typst(smem_copy_A)</code></pre><p><img src="../../assets/smem_copy_A.svg" alt/></p><p>The resulting layout on the right hand side matches the layout of A in the <code>mma</code>.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The <code>TN</code> in <code>MMAOP_16x8x8_F32TF32TF32F32_TN</code> means that both A and B are in <code>K</code>-major order. The <code>N</code> in <code>LDSM_U32x4_N</code> means the source array is <code>K</code>-major order.</p></div></div><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The <code>ldmatrix</code> requires four consecutive threads to load 16 consecutive bytes, demanding that the layout of <code>A</code> in shared memory meet this specification.</p></div></div><p>For B:</p><pre><code class="language-julia hljs">smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, Float32}(), mma)
+print_typst(smem_copy_B)</code></pre><p><img src="../../assets/smem_copy_B.svg" alt/></p><p>!!! Note     The visualization of <code>B</code> in <code>mma</code> is draw as <code>(K, N)</code> but <code>(N, K)</code> in <code>smem_copy_B</code>.</p><p>We then use <code>smem_copy_A</code> and <code>smem_copy_B</code> to re-tile the shared memory and registers</p><pre><code class="language-julia hljs">smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)
+smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)
+tCsA_retiled = partition_S(smem_thr_copy_A, sA)
+tCsB_retiled = partition_S(smem_thr_copy_B, sB)
+tCrA_retiled = retile_D(smem_thr_copy_A, tCrA)
+tCrB_retiled = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Complete code:</p><pre><code class="language-julia hljs">function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
+                       B, sB_layout, gmem_copy_B, smem_copy_B,
+                       C, mma)
+    sA = MoYeSharedArray(eltype(A), sA_layout)
+    sB = MoYeSharedArray(eltype(B), sB_layout)
+
+    mA = MoYeArray(A)
+    mB = MoYeArray(B)
+    mC = MoYeArray(C)
+
+    bM = size(sA_layout, 1)
+    bN = size(sB_layout, 1)
+    bK = size(sB_layout, 2)
+
+    gA = @tile mA (bM, bK) (blockIdx().x, :)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
+
+    # gmem copy partition
+    gmem_thr_copy_a = get_slice(gmem_copy_A, threadIdx().x)      
+    tAgA = partition_S(gmem_thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
+    tAsA = partition_D(gmem_thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
+
+    gmem_thr_copy_b = get_slice(gmem_copy_B, threadIdx().x)
+    tBgB = partition_S(gmem_thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
+    tBsB = partition_D(gmem_thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
+
+    # copy from global to shared
+    copyto!(gmem_copy_A, tAsA, view(tAgA, :, :, :, _1))
+    copyto!(gmem_copy_B, tBsB, view(tBgB, :, :, :, _1))
+
+    # mma partition
+    thr_mma = get_slice(mma, threadIdx().x)
+    tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
+    tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
+    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
+
+    tCrA = make_fragment_A(thr_mma, tCsA)              # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB)              # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)              # (MMA, MMA_M, MMA_N)
+    zeros!(tCrC)
+
+    # retile 
+    smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)
+    smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)
+    tCsA_retiled = partition_S(smem_thr_copy_A, sA)
+    tCsB_retiled = partition_S(smem_thr_copy_B, sB)
+    tCrA_retiled = retile_D(smem_thr_copy_A, tCrA)
+    tCrB_retiled = retile_D(smem_thr_copy_B, tCrB)
+    
+    cp_async_wait()
+
+    # copy from shared to registers
+    copyto!(smem_copy_A, tCrA_retiled, tCsA_retiled)
+    copyto!(smem_copy_B, tCrB_retiled, tCsB_retiled)
+
+    @gc_preserve gemm!(mma, tCrC, tCrA, tCrB, tCrC)
+
+    copyto!(tCgC, tCrC) 
+    @inbounds tCrC[1]  # compiler bug, have to load after copyto!
+
+    return nothing
+end
+
+
+function matmul(A, B, C)
+    bM = _16
+    bN = _8
+    bK = _8
+    
+    sA_layout = make_layout((bM, bK), (_1, bM))
+    sB_layout = make_layout((bN, bK), (bK, _1))
+
+    TA = eltype(A)
+    TB = eltype(B)
+    TC = eltype(C)
+	
+    gmem_copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
+                                  @Layout((4, 8)),
+                                  @Layout((4, 1)))
+    gmem_copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt64}, TB}(),
+                                  @Layout((8, 4), (4, 1)),
+                                  @Layout((1, 2)))
+
+    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN()) 
+
+    # Note: A is M-major so we can only use `UniversalCopy`
+    smem_copy_A =  make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
+    smem_copy_B =  make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, TB}(), mma)
+
+    threads = Int(size(mma))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
+                                                      B, sB_layout, gmem_copy_B, smem_copy_B,
+                                                      C, mma)
+end
+</code></pre><h2 id="Tiled-LdMatrix"><a class="docs-heading-anchor" href="#Tiled-LdMatrix">Tiled LdMatrix</a><a id="Tiled-LdMatrix-1"></a><a class="docs-heading-anchor-permalink" href="#Tiled-LdMatrix" title="Permalink"></a></h2><p>So far we have only talked about how to use a single <code>ldmatrix</code> instruction.  We can use <code>tile_to_shape</code> to tile it to a larger shape.</p><pre><code class="language-julia hljs">sB_atom_layout = make_layout((_8, _8), (_8, _1))
+sB_layout = tile_to_shape(sB_atom_layout, static((24, 16)))
+
+print_layout(sB_atom_layout)
+print_layout(sB_layout)</code></pre><p>Note how the internal layout of <code>sB_atom_layout</code> is preserved in <code>sB_layout</code>.</p><p>Updated code:</p><pre><code class="language-julia hljs">function matmul(A, B, C)
+    bM = _16
+    bN = _8
+    bK = _16
+
+    sA_atom_layout = @Layout (16, 8) (1, 16)
+    sB_atom_layout = @Layout (8, 8) (8, 1)
+    
+    sA_layout = MoYe.tile_to_shape(sA_atom_layout, (bM, bK))
+    sB_layout = MoYe.tile_to_shape(sB_atom_layout, (bN, bK))
+
+    TA = eltype(A)
+    TB = eltype(B)
+    TC = eltype(C)
+	
+    gmem_copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
+                                  @Layout((4, 8)),
+                                  @Layout((4, 1)))
+    gmem_copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TB}(),
+                                  @Layout((8, 4), (4, 1)),
+                                  @Layout((1, 4)))
+
+    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN()) 
+
+    # Note: A is M-major so we can only use `UniversalCopy`
+    smem_copy_A =  make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
+    smem_copy_B =  make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, TB}(), mma)
+
+    threads = Int(size(mma))
+    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
+
+    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
+                                                      B, sB_layout, gmem_copy_B, smem_copy_B,
+                                                      C, mma)
+end
+
+function test()
+    A = CUDA.randn(Float32, 16, 16)   # M-major
+    B = CUDA.randn(Float32, 16,  8)   # K-major
+    C = CUDA.randn(Float32, 16, 8)
+    matmul(A, B&#39;, C)
+    CUDA.synchronize()
+    @test C == A * B
+    CUDA.unsafe_free!(A)
+    CUDA.unsafe_free!(B)
+    CUDA.unsafe_free!(C)
+end
+
+test()</code></pre><h2 id="Double-buffering"><a class="docs-heading-anchor" href="#Double-buffering">Double buffering</a><a id="Double-buffering-1"></a><a class="docs-heading-anchor-permalink" href="#Double-buffering" title="Permalink"></a></h2><pre><code class="language-julia hljs">@views function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
                               B, sB_layout, gmem_copy_B, smem_copy_B,
                               C, mma)
     sA = MoYeSharedArray(eltype(A), sA_layout)        # (bM, bK, 2)
@@ -43,22 +287,22 @@ tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Here, <code>ret
 
     # mma partition
     thr_mma = get_slice(mma, threadIdx().x)
-    tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
+    tCsA = partition_A(thr_mma, sA)                         # (MMA, MMA_M, MMA_K, 2)
+    tCsB = partition_B(thr_mma, sB)                         # (MMA, MMA_M, MMA_K, 2)
+    tCgC = partition_C(thr_mma, gC)                         # (MMA, MMA_M, MMA_N)
 
-    # mma registers
-    tCrA = partition_fragment_A(thr_mma, sA[:, :, _1])    # (MMA, MMA_M, MMA_K)
-    tCrB = partition_fragment_B(thr_mma, sB[:, :, _1])    # (MMA, MMA_N, MMA_K)
-    tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
+    tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])      # (MMA, MMA_M, MMA_K)
+    tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])      # (MMA, MMA_N, MMA_K)
+    tCrC = make_fragment_C(thr_mma, tCgC)                   # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
     # retile 
     smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)   
-    tCsA            = partition_S(smem_thr_copy_A, sA)   # (MMA, MMA_M, MMA_K, 2)      
-    tCrA_copy_view  = retile_D(smem_thr_copy_A, tCrA)    # (MMA, MMA_M, MMA_K)    
-
     smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)   
-    tCsB            = partition_S(smem_thr_copy_B, sB)  # (MMA, MMA_N, MMA_K, 2) 
-    tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)   # (MMA, MMA_N, MMA_K) 
+    tCsA_retiled = partition_S(smem_thr_copy_A, sA)         # (MMA, MMA_M, MMA_K, 2)   
+    tCsB_retiled = partition_S(smem_thr_copy_B, sB)         # (MMA, MMA_N, MMA_K, 2)      
+    tCrA_retiled = retile_D(smem_thr_copy_A, tCrA)          # (MMA, MMA_M, MMA_K)    
+    tCrB_retiled = retile_D(smem_thr_copy_B, tCrB)          # (MMA, MMA_N, MMA_K)    
 
     cp_async_wait()
     sync_threads()
@@ -66,10 +310,10 @@ tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Here, <code>ret
     # Copy smem to rmem for k_block=1
     smem_read = 1
     smem_write = 2
-    tCsA_p = view(tCsA, :, :, :, smem_read)
-    tCsB_p = view(tCsB, :, :, :, smem_read)
-    copyto!(smem_copy_A, tCrA_copy_view[:, :, _1], tCsA_p[:, :, _1])
-    copyto!(smem_copy_B, tCrB_copy_view[:, :, _1], tCsB_p[:, :, _1])
+    tCsA_p = view(tCsA_retiled, :, :, :, smem_read)
+    tCsB_p = view(tCsB_retiled, :, :, :, smem_read)
+    copyto!(smem_copy_A, tCrA_retiled[:, :, _1], tCsA_p[:, :, _1])
+    copyto!(smem_copy_B, tCrB_retiled[:, :, _1], tCsB_p[:, :, _1])
 
     k_tile_max = size(tAgA, 4)
     k_block_max = static_size(tCrA, 3)
@@ -79,13 +323,13 @@ tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Here, <code>ret
             if k_block == k_block_max
                 cp_async_wait()
                 sync_threads()
-                tCsA_p = view(tCsA, :, :, :, smem_read)
-                tCsB_p = view(tCsB, :, :, :, smem_read)
+                tCsA_p = view(tCsA_retiled, :, :, :, smem_read)
+                tCsB_p = view(tCsB_retiled, :, :, :, smem_read)
                 k_block_next = 1
             end
             
-            copyto!(smem_copy_A, tCrA_copy_view[:, :, k_block_next], tCsA_p[:, :, k_block_next])
-            copyto!(smem_copy_B, tCrB_copy_view[:, :, k_block_next], tCsB_p[:, :, k_block_next])   
+            copyto!(smem_copy_A, tCrA_retiled[:, :, k_block_next], tCsA_p[:, :, k_block_next])
+            copyto!(smem_copy_B, tCrB_retiled[:, :, k_block_next], tCsB_p[:, :, k_block_next])   
 
             if k_block == _1 &amp;&amp; k_tile&lt;k_tile_max
                 copyto!(gmem_copy_A, tAsA[:, :, :, smem_write], tAgA[:, :, :, k_tile+1])
@@ -93,26 +337,29 @@ tCrB_copy_view  = retile_D(smem_thr_copy_B, tCrB)</code></pre><p>Here, <code>ret
                 smem_read, smem_write = smem_write, smem_read
             end
             
-            @gc_preserve gemm!(mma, tCrA[:, :, k_block], tCrB[:, :, k_block], tCrC)
+            @gc_preserve gemm!(mma, tCrC, tCrA[:, :, k_block], tCrB[:, :, k_block], tCrC)
         end
     end
 
     copyto!(tCgC, tCrC)
+    sync_threads()
     return nothing
 end
+
 
 function matmul(A, B, C)
     bM = _128
     bN = _128
     bK = _16
-    
-    sA_layout = make_layout((bM, bK, _2), (_1, bM, bM * bK))    # M-major
-    sB_layout = make_layout((bN, bK, _2), (bK, _1, bN * bK))    # K-major
 
     TA = eltype(A)
     TB = eltype(B)
     TC = eltype(C)
 	
+    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
+                         @Layout((2,2,1), (2,1,1)),
+                         (_32,_32,_8))
+
     gmem_copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
                                   @Layout((16, 8)),
                                   @Layout((4, 1)))
@@ -120,13 +367,17 @@ function matmul(A, B, C)
                                   @Layout((32, 4), (4, 1)),
                                   @Layout((1, 4)))
 
-    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN(), 
-                         @Layout((2,2,1), (2,1,1)),
-                         (_32,_32,_8))
-
     # A is M-major so we cannot use LDSM_U32x4_N 
     smem_copy_A = make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
-    smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma) # still has bugs...
+    smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma)
+
+
+    sA_atom_layout = @Layout (32, 8) (1, 32)
+    sB_atom_layout = @Layout (8, 16) (16, 1)
+
+    sA_layout = tile_to_shape(sA_atom_layout, (bM, bK, _2))
+    sB_layout = tile_to_shape(sB_atom_layout, (bN, bK, _2))
+
  
     threads = Int(size(mma))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
@@ -140,9 +391,8 @@ end
 function test()
     A = CUDA.randn(Float32, 2048, 256)   # M-major
     B = CUDA.randn(Float32, 256, 2048)   # K-major
-    B_T =  B&#39;  # K-major
     C =  CUDA.randn(Float32, 2048, 2048)
-    matmul(A, B_T, C)
+    matmul(A, B&#39;, C)
     CUDA.synchronize()
     @test C == A * B
     CUDA.unsafe_free!(A)
@@ -150,4 +400,4 @@ function test()
     CUDA.unsafe_free!(C)
 end
 
-test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pipeline/">« Pipeline</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 29 April 2024 23:30">Monday 29 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+test()</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pipeline/">« Pipeline</a><a class="docs-footer-nextpage" href="../../api/layout/">Layout »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Wednesday 1 May 2024 10:28">Wednesday 1 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
