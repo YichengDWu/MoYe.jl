@@ -58,7 +58,7 @@ function matmul_kernel(A, sA_layout, copy_A,
         
         cp_async_wait()
 
-        @gc_preserve gemm!(mma_C, tCsA, tCsB, tCrC)
+        @gc_preserve gemm!(mma_C, tCrC, tCsA, tCsB, tCrC)
         sync_threads()
     end
 

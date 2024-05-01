@@ -8,8 +8,8 @@
     end
 end
 
-gemm!(A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(C, A, B, C)
-gemm!(mma::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
+@inline gemm!(A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(C, A, B, C)
+@inline gemm!(mma::AbstractMMAAtom, A::MoYeArray, B::MoYeArray, C::MoYeArray) = gemm!(mma,C,A,B,C)
 
 function gemm!(D::MoYeArray{TD}, A::MoYeArray{TA}, B::MoYeArray{TB}, C::MoYeArray{TC}) where {TD,TA,TB,TC}
     @inline

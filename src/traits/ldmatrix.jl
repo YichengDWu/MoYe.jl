@@ -16,7 +16,7 @@ function CopyTraits{LDSM_U32x4_N}()
     threadid = @Layout 32
     srclayout = @Layout (32, 128) (128, 1)
     dstlayout = @Layout (32, (32, 4)) (32, (1, 1024))
-    return CopyTraits{LDSM_U32x2_N}(threadid, srclayout, dstlayout, dstlayout)
+    return CopyTraits{LDSM_U32x4_N}(threadid, srclayout, dstlayout, dstlayout)
 end
 
 function CopyTraits{LDSM_U16x2_T}()

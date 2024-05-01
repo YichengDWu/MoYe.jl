@@ -76,7 +76,7 @@ end
 ```
 You can also call [`gemm!`] to perform the same operation:
 ```julia
-gemm!(tCsA, tCsB, tCrC)
+gemm!(tCrC, tCsA, tCsB, tCrC)
 ```
 
 The complete kernel code is as follows:
@@ -121,7 +121,7 @@ function matmul_kernel(A, sA_layout, tA,
         cp_async_wait()
         sync_threads()
 
-        @gc_preserve gemm!(tCsA, tCsB, tCrC)
+        @gc_preserve gemm!(tCrC, tCsA, tCsB, tCrC)
         sync_threads()
     end
 

@@ -398,10 +398,10 @@ function make_mma_ops(geoms, types_a, types_b, types_c, types_d)
                             return ccall($mma_intrinsic, llvmcall, $d_types, ($(a_types...), $(b_types...), $(c_types...)), $(a_vars...), $(b_vars...), $(c_vars...))
                         end
 
-                        @eval @inline function fma!(op::$_struct_name, d::MoYeArray, a::MoYeArray, b::MoYeArray, c::MoYeArray)
+                        @eval @inline @inbounds function fma!(op::$_struct_name, d::MoYeArray, a::MoYeArray, b::MoYeArray, c::MoYeArray)
                             val = op(a,b,c)
                             ptr = pointer(d)
-                            Base.Cartesian.@nexprs $d_sz i -> unsafe_store!(ptr, getfield(val, i), i)
+                            Base.Cartesian.@nexprs $d_sz i -> d[i] = getfield(val, i)
                             return d
                         end
                     end

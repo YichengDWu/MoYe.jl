@@ -59,6 +59,7 @@ end
 
 function Base.show(io::IO, m::MMAAtom)
     println(io, "MMAAtom")
+    println(io, "  Shape_MNK: ", shape_mnk(m))
     println(io, "  Thread ID: ", thr_id(m))
     println(io, "  Layout_A_TV: ", layout_a(m))
     println(io, "  Layout_B_TV: ", layout_b(m))
