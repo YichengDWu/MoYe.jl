@@ -264,73 +264,6 @@ end
 
 ```
 
-## Tiled LdMatrix
-
-So far we have only talked about how to use a single `ldmatrix` instruction. 
-We can use `tile_to_shape` to tile it to a larger shape.
-```julia
-sB_atom_layout = make_layout((_8, _8), (_8, _1))
-sB_layout = tile_to_shape(sB_atom_layout, static((24, 16)))
-
-print_layout(sB_atom_layout)
-print_layout(sB_layout)
-```
-Note how the internal layout of `sB_atom_layout` is preserved in `sB_layout`.
-
-Updated code:
-```julia
-function matmul(A, B, C)
-    bM = _16
-    bN = _8
-    bK = _16
-
-    sA_atom_layout = @Layout (16, 8) (1, 16)
-    sB_atom_layout = @Layout (8, 8) (8, 1)
-    
-    sA_layout = MoYe.tile_to_shape(sA_atom_layout, (bM, bK))
-    sB_layout = MoYe.tile_to_shape(sB_atom_layout, (bN, bK))
-
-    TA = eltype(A)
-    TB = eltype(B)
-    TC = eltype(C)
-	
-    gmem_copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TA}(),
-                                  @Layout((4, 8)),
-                                  @Layout((4, 1)))
-    gmem_copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{UInt128}, TB}(),
-                                  @Layout((8, 4), (4, 1)),
-                                  @Layout((1, 4)))
-
-    mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN()) 
-
-    # Note: A is M-major so we can only use `UniversalCopy`
-    smem_copy_A =  make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
-    smem_copy_B =  make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, TB}(), mma)
-
-    threads = Int(size(mma))
-    blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
-
-    @cuda threads=threads blocks=blocks matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
-                                                      B, sB_layout, gmem_copy_B, smem_copy_B,
-                                                      C, mma)
-end
-
-function test()
-    A = CUDA.randn(Float32, 16, 16)   # M-major
-    B = CUDA.randn(Float32, 16,  8)   # K-major
-    C = CUDA.randn(Float32, 16, 8)
-    matmul(A, B', C)
-    CUDA.synchronize()
-    @test C == A * B
-    CUDA.unsafe_free!(A)
-    CUDA.unsafe_free!(B)
-    CUDA.unsafe_free!(C)
-end
-
-test()
-```
-
-
 ## Double buffering
 
 
@@ -452,12 +385,10 @@ function matmul(A, B, C)
     smem_copy_A = make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
     smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma)
 
-
-    sA_atom_layout = @Layout (32, 8) (1, 32)
-    sB_atom_layout = @Layout (8, 16) (16, 1)
-
-    sA_layout = tile_to_shape(sA_atom_layout, (bM, bK, _2))
-    sB_layout = tile_to_shape(sB_atom_layout, (bN, bK, _2))
+    sA_layout = @Layout (128, 16, 2) (1, 128, 2048)
+    sB_layout = @Layout (128, 16, 2) (16, 1,  2048)
+    
+    tile_to_shape(sB_atom_layout, (bN, bK, _2))
 
  
     threads = Int(size(mma))
