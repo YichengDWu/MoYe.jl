@@ -1,6 +1,6 @@
 Tiled Copy
 
-We have already introduced how to copy data using @tile and @partition. This process might still appear somewhat cumbersome, and `TiledCopy` serves to simplify it.
+We have already introduced how to copy data using @tile and @parallelize. This process might still appear somewhat cumbersome, and `TiledCopy` serves to simplify it.
 
 Consider the following example where we employ six threads to transfer an array src of shape (4, 9) into another array dst with the identical shape. The relationship mapping logic coordinates to thread IDs can be visualized as:
 
