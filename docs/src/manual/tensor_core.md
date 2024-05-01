@@ -387,9 +387,6 @@ function matmul(A, B, C)
 
     sA_layout = @Layout (128, 16, 2) (1, 128, 2048)
     sB_layout = @Layout (128, 16, 2) (16, 1,  2048)
-    
-    tile_to_shape(sB_atom_layout, (bN, bK, _2))
-
  
     threads = Int(size(mma))
     blocks = (cld(size(A, 1), bM), cld(size(B, 1), bN))
