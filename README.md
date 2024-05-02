@@ -14,7 +14,7 @@ The documentation is mostly my learning notes. Please refer to CuTe's documentat
 
 GEMM essentially faces two main performance hurdles not implemented yet:
 
-    1. Swizzling to prevent bank conflicts.
-    2. An efficient epilogue, which involves transferring data from registers to shared memory, followed by a vectorized transfer back to global memory.
+1. Swizzling to prevent bank conflicts.
+2. An efficient epilogue, which involves transferring data from registers to shared memory, followed by a vectorized copy back to global memory.
 
 Since I've sold my computer, I no longer have access to an NVIDIA GPU, thus the development of this library will be put on hold indefinitely.
