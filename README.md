@@ -12,7 +12,7 @@ The name **Mo Ye** is derived from an ancient Chinese [legend of swordsmiths](ht
 
 The documentation is mostly my learning notes. Please refer to CuTe's documentation for more details.
 
-GEMM essentially faces two main performance hurdles:
+GEMM essentially faces two main performance hurdles not implemented yet:
 
     1. Swizzling to prevent bank conflicts.
     2. An efficient epilogue, which involves transferring data from registers to shared memory, followed by a vectorized transfer back to global memory.
