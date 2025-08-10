@@ -1,70 +1,75 @@
-# MatMul
-![matmuil](../assets/matmul.png)
+# Matrix Multiplication
 
-In this tutorial, we explore matrix multiplication using MoYe.jl , specifically computing the product $C = A * B^\top$. Here, matrix $A$ has dimensions $(M, K)$, matrix $B$ has dimensions $(K, N)$, and the resulting matrix $C$ will have dimensions $(M, N)$.
+![matmul](../assets/matmul.png)
 
-First, we divide the task among each block. We use a tile of size (bM, bN) to partition C, with each block responsible for computing one tile. The tile's index is determined by (blockIdx().x, blockIdx().y).
+This tutorial explores matrix multiplication using MoYe.jl, specifically computing the product $C = A \times B^T$. Here, A is an $(M, K)$ matrix, B is a $(K, N)$ matrix, and C is an $(M, N)$ matrix.
 
-Computing a tile requires all values from A of shape (dM, K) and B of shape (dN, K). To reduce global memory access (since A, B, and C are stored in global memory), we further partition A and B along the K dimension, sequentially loading elements of sizes (dM, dK) and (dN, dK) into shared memory, then performing the matrix multiplication and accumulating the results into the tile of C.
+## Tiling Strategy
 
-The partition of the global memory corresponds to the following three lines of code:
+We divide the computation among thread blocks, where each block computes a tile of C of size `(bM, bN)`. The tile index is determined by `(blockIdx().x, blockIdx().y)`.
+
+Computing a tile of C requires a corresponding tile of A of shape `(bM, K)` and a tile of B of shape `(bN, K)`. To minimize global memory access, we further partition A and B along the K dimension into smaller tiles of size `(bM, bK)` and `(bN, bK)`, respectively. These smaller tiles are loaded into shared memory sequentially.
+
+### Global Memory Partitioning
+
+The global memory partitioning is defined as follows:
 ```julia
 gC = @tile C (bM, bN) (blockIdx().x, blockIdx().y) # (bM, bN)
 gA = @tile A (bM, bK) (blockIdx().x, :)            # (bM, bK, K/bK)
 gB = @tile B (bN, bK) (blockIdx().y, :)            # (bN, bK, K/bK)
 ```
-For the specific partition syntax, please refer to [`@tile`](@ref). Here, `gA` represents `A` in shared memory. Next, we use a for loop to index-slice the last dimension of gA and gB (denoted as `k`), loading them into shared memory. The code for this step is:
+Refer to [`@tile`](@ref) for more details on the syntax. Here, `gA` represents a tile of A in global memory. We then loop over the last dimension of `gA` and `gB` (denoted as `k`) to load them into shared memory.
 
+### Shared Memory Allocation
+
+Shared memory is allocated using `MoYeSharedArray`:
 ```julia
 sA = MoYeSharedArray(eltype(gA), sA_layout) # (bM, bK)
 sB = MoYeSharedArray(eltype(gB), sB_layout) # (bN, bK)
 ```
+`MoYeSharedArray` automatically allocates shared memory of size `cosize(sA_layout) + cosize(sB_layout)` and returns a `MoYeArray`. The layouts `sA_layout` and `sB_layout` are predefined at compile time.
 
-`MoYeSharedArray` automatically allocates shared memory of size `cosize(sA_layout) + cosize(sB_layout)` and returns a `MoYeArray`. We will explain how to define the layouts for sA and sB later; for now, it's only necessary to know that they are predefined at compile time.
+### Thread Partitioning
 
-We then need to define how thread groups collectively copy from global to shared memory. There are many ways to organize threads, which will be discussed later, such as:
+We then define how thread groups copy data from global to shared memory. For example:
 ```julia
 tA = @Layout (32, 8)
 tB = @Layout (32, 8)
 ```
-
-This implies that there are 32x8 threads arranged in a column-major format. Next, we use them to partition the arrays:
+This creates a 32x8 thread group in column-major format. We use this to partition the arrays:
 ```julia
-tAgA = @parallelize tA threadIdx().x       # (THR_M, THR_K, k)
-tBgB = @parallelize tB threadIdx().x       # (THR_M, THR_K)
+tAgA = @parallelize gA tA threadIdx().x       # (THR_M, THR_K, k)
+tBgB = @parallelize gB tB threadIdx().x       # (THR_M, THR_K)
 
-tAsA = @parallelize sA threadIdx().x       # (THR_N, THR_K, k)
-tBsB = @parallelize sB threadIdx().x       # (THR_N, THR_K)
+tAsA = @parallelize sA tA threadIdx().x       # (THR_N, THR_K, k)
+tBsB = @parallelize sB tB threadIdx().x       # (THR_N, THR_K)
 ```
-
-For the specific syntax, please refer to [`@parallelize`](@ref). After the partition, copying is simply:
+Refer to [`@parallelize`](@ref) for more details. After partitioning, copying is straightforward:
 ```julia
 copyto!(tAsA, view(tAgA, :, :, k))
 copyto!(tBsB, view(tBgB, :, :, k))
 ```
 
-After copying, we proceed to the actual matrix-multiply-accumulate (mma) computation. Similarly, we need to define a layout for the thread group for this purpose:
+### MMA Computation
+
+For the matrix-multiply-accumulate (MMA) computation, we define another thread group layout:
 ```julia
 tC = @Layout (16, 16)
 ```
-
-Then we use it to partition gC:
+We then partition `gC`:
 ```julia
 tCgC = @parallelize gC tC threadIdx().x   # (THR_M, THR_N)
 tCrC = similar(tCgC)
 ```
+To reduce memory access to C, we create `tCrC` in registers to serve as an accumulator. The results are copied back to `tCgC` after the computation.
 
-To reduce memory access to C, we also create an array `tCrC` stored in registers, which serves as the accumulator in the mma computation. After the computation, the contents are copied back into `tCgC`.
-
-A and B are slightly different because computing an element in C requires an entire row from A and an entire column from B, which is reflected in the following code:
-
+Computing an element in C requires a full row from A and a full column from B:
 ```julia
 tCsA = @parallelize sA tC threadIdx().x (1, :)    # (THR_M, bK)
 tCsB = @parallelize sB tC threadIdx().x (:, 1)    # (THR_N, bK)
 ```
 
-Congratulations, you have now completed all the partitions, and finally, we can compute the matrix multiplication, just as we would on a CPU:
-
+Finally, the matrix multiplication can be performed:
 ```julia
 for k in axes(tCsA, 2)
     for m in axes(tCsA, 1)
@@ -74,12 +79,13 @@ for k in axes(tCsA, 2)
     end
 end
 ```
-You can also call [`gemm!`] to perform the same operation:
+Alternatively, you can use the `gemm!` function:
 ```julia
 gemm!(tCrC, tCsA, tCsB, tCrC)
 ```
 
-The complete kernel code is as follows:
+## Complete Kernel
+
 ```julia
 function matmul_kernel(A, sA_layout, tA,
                        B, sB_layout, tB,
@@ -99,18 +105,18 @@ function matmul_kernel(A, sA_layout, tA,
     gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bN, bK, K/bK)
 
-    # copy partition
+    # Copy partition
     tAgA = @parallelize gA tA threadIdx().x               # (THR_M, THR_K, k)
     tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K)
     tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K, k)
     tBsB = @parallelize sB tB threadIdx().x               # (THR_N, THR_K)
 
-    # mma partition
+    # MMA partition
     tCsA = @parallelize sA tC threadIdx().x (1, :)        # (THR_M, bK)
     tCsB = @parallelize sB tC threadIdx().x (:, 1)        # (THR_N, bK)
     tCgC = @parallelize gC tC threadIdx().x               # (THR_M, THR_N)
 
-    # accumulator
+    # Accumulator
     tCrC = similar(tCgC)                                  # (THR_M, THR_N)
     zeros!(tCrC)
 
@@ -129,29 +135,27 @@ function matmul_kernel(A, sA_layout, tA,
     copyto!(tCgC, tCrC)
     return nothing
 end
-
 ```
 
-We still missed a few points, such as:
+## Design Considerations
 
-1. How to design `sA_layout` and `sB_layout`?
+### Shared Memory Layout
 
-For shared memory, we no longer need to consider column-major or row-major but simply need to **avoid bank conflicts**. This can be simply achieved by padding one column.
-
+To avoid **bank conflicts** in shared memory, we pad the layouts by one column:
 ```julia
 sA_layout = make_layout((bM, bK), (_1, bM + _1))
 sB_layout = make_layout((bN, bK), (_1, bN + _1))
 ```
 
-2. How to design `tC`?
+### Thread Layout for MMA
 
-The design of `tC` is quite flexible; it only needs to satisfy that the shape of `tC` evenly divides `(bM, bN)`.
+The shape of `tC` must evenly divide `(bM, bN)`.
 
-3. How to design `tA` and `tB`?
+### Thread Layout for Copying
 
-You generally want every 32 threads to access contiguous elements in A and B, so the specific design depends on the memory layout of A and B. This technique is known as **memory coalescing**.
+To achieve **memory coalescing**, every 32 threads should access contiguous elements in A and B. The optimal design depends on the memory layout of A and B.
 
-The `matmul` function looks like this:
+## Host Function
 
 ```julia
 function matmul(A, B, C)
@@ -188,5 +192,4 @@ end
 
 test()
 ```
-
-This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and
+This concludes the guide to implementing matrix multiplication with MoYe.jl, focusing on efficient memory management and tiling strategies.
