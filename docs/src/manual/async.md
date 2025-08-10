@@ -1,8 +1,8 @@
-## Memcpy Async
+# Asynchronous Memory Copies
 
-With the NVIDIA Ampere architecture, you can asynchronously copy data between GPU global memory and shared memory and not tie up threads to shepherd data movement.
+The NVIDIA Ampere architecture introduced `memcpy_async`, a feature that allows for asynchronous data copies between GPU global and shared memory. This frees up threads from managing data movement, allowing them to focus on computation.
 
-To utilize this feature, we simply change the `TiledCopy` to the following 
+To use this feature, we change the `TiledCopy` to the following:
 ```julia
 copy_A = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TA}, TA}(),
                                 @Layout((32, 8)),
@@ -12,7 +12,7 @@ copy_B = make_tiled_copy(CopyAtom{CPOP_ASYNC_CACHEALWAYS{TB}, TB}(),
                                     @Layout((1, 1)))
 ```
 
-The updated kernel function.
+## Updated Kernel
 
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
@@ -33,7 +33,7 @@ function matmul_kernel(A, sA_layout, copy_A,
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # copy partition
+    # Copy partition
     thr_copy_a = get_slice(copy_A, threadIdx().x)      
     tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
@@ -42,13 +42,13 @@ function matmul_kernel(A, sA_layout, copy_A,
     tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma_C, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
-    # accumulator
+    # Accumulator
     tCrC = make_fragment_C(thr_mma, tCgC)
     zeros!(tCrC)
 
@@ -113,11 +113,11 @@ end
 test()
 ```
 
-## Vectorized copy
+## Vectorized Copy
 
-We can change `CPOP_ASYNC_CACHEALWAYS{TA}/CPOP_ASYNC_CACHEALWAYS{TB}` to `CPOP_ASYNC_CACHEALWAYS{Float64}` to enable vectorized copies
-from global memory to shared memory. However, doing so will resul in a memory misaligned error. This is because we have padded `sA`
-and `sB` by one row. The element at `[1,2]` is not aligned to 8 bytes as required by the copy_async instruction, hence the error. We also need the following changes
+We can enable vectorized copies from global to shared memory by changing `CPOP_ASYNC_CACHEALWAYS{TA}` and `CPOP_ASYNC_CACHEALWAYS{TB}` to `CPOP_ASYNC_CACHEALWAYS{Float64}`. However, this will result in a memory misalignment error because we padded `sA` and `sB` by one row. The element at `[1,2]` is not aligned to 8 bytes as required by the `copy_async` instruction.
+
+To fix this, we need to adjust the padding:
 ```julia
 sA_layout = make_layout((bM, bK), (_1, bM + _2))
 sB_layout = make_layout((bN, bK), (_1, bN + _2))

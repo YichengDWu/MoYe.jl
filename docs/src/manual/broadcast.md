@@ -1,16 +1,16 @@
 # Broadcasting
 
-Broadcasting is only defined for [`MoYeArray`](@ref)s with static sizes. 
+Broadcasting is a powerful feature that allows you to perform element-wise operations on arrays of different shapes and sizes. In MoYe.jl, broadcasting is defined for `MoYeArray`s with static sizes.
 
-In-place broadcasting preserves the original layout.
+## In-Place vs. Out-of-Place Broadcasting
 
-Out-of-place broadcasting always returns an owning array of a compact layout with
-the same shape and the stride ordered the same.
+-   **In-place broadcasting** (`.=`, `.+=`, etc.) modifies the original array and preserves its layout.
+-   **Out-of-place broadcasting** (`.`, `+`, etc.) returns a new array with a compact layout, the same shape, and the same stride order.
 
 ```@repl bc
 using MoYe
 a = MoYeArray{Float64}(undef, @Layout((3,2), (2,1)))
-fill!(a, 1.0); 
+fill!(a, 1.0);
 a .* 3
 a .+ a
 ```
@@ -19,8 +19,10 @@ a .+ a
 b = MoYeArray{Float64}(undef, @Layout((3,), (2,))) |> zeros!; # Create a vector
 a .- b 
 ```
-## On GPU
-(In-place) broadcasting on device should just work:
+
+## Broadcasting on the GPU
+
+In-place broadcasting on the GPU works seamlessly:
 
 ```julia
 julia> function f()

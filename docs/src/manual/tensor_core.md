@@ -1,24 +1,24 @@
 # Tensor Cores
 
-Tensor cores are specialized hardware accelerators designed to optimize matrix operations, which are crucial for deep learning and artificial intelligence algorithms.
+Tensor Cores are specialized hardware accelerators designed to optimize matrix operations, crucial for deep learning and AI algorithms.
 
-Enabling tensor cores can be as straightforward as modifying a single line of code in the existing `matmul_kernel` function:
+Enabling Tensor Cores can be as simple as modifying a single line in the `matmul_kernel` function:
 ```julia
 mma = make_tiled_mma(MMAOP_8x8x4_F32F16F16F32_NT(), 
                      atom_layout, 
                      tiler)
 ```
 !!! note
-    The NT in MMAOP_8x8x4_F32F16F16F32_NT indicates that A is in M-major order and B is in N-major order.
+    The `NT` in `MMAOP_8x8x4_F32F16F16F32_NT` indicates that matrix A is in M-major order and matrix B is in N-major order.
 
-Let's explore a minimal example
+Let's explore a minimal example:
 ```julia
 mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN())
 print_typst(mma)
 ```
 ![](../assets/TF32F32.svg)
 
-At first glance, the diagram may seem complex, but the concept is straightforward: the threads collective load data from matrices `A` and `B` according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process that is not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix `C` shown in the illustration.
+At first glance, the diagram may seem complex, but the concept is straightforward. Threads collectively load data from matrices `A` and `B` according to the specified layout. During the matrix multiply-accumulate (MMA) computation, data is internally shared among threads—a process not transparent to the user. Once the computation is complete, each thread stores the results as dictated by the layout of matrix `C`.
 
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
@@ -39,7 +39,7 @@ function matmul_kernel(A, sA_layout, copy_A,
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # copy partition
+    # Copy partition
     thr_copy_a = get_slice(copy_A, threadIdx().x)      
     tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
@@ -48,7 +48,7 @@ function matmul_kernel(A, sA_layout, copy_A,
     tBgB = partition_S(thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
@@ -59,20 +59,20 @@ function matmul_kernel(A, sA_layout, copy_A,
     tCrC = make_fragment_C(thr_mma, tCgC)
     zeros!(tCrC)
 
-    # copy from global to shared
+    # Copy from global to shared memory
     copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
     copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
     
     cp_async_wait()
 
-    # copy from shared to registers
+    # Copy from shared memory to registers
     copyto!(tCrA, tCsA)
     copyto!(tCrB, tCsB)
 
     @gc_preserve gemm!(mma, tCrC, tCrA, tCrB, tCrC)
 
     copyto!(tCgC, tCrC) 
-    @inbounds tCrC[1]  # compiler bug, have to load after copyto!
+    @inbounds tCrC[1]  # Compiler bug: must load after copyto!
 
     return nothing
 end
@@ -119,12 +119,9 @@ function test()
 end
 ```
 
-
 ## LDMatrix
 
-The `ldmatrix` instruction at the warp level facilitates the loading of data from shared memory into registers and suffles them to align with a tensor core MMA operation.
-
-Given a tensor core MMA operation, the shuffling can be "inverted" to obtain a `TiledCopy` count for the shuffling.
+The `ldmatrix` instruction loads data from shared memory into registers and shuffles it to align with a Tensor Core MMA operation. Given a Tensor Core MMA operation, this shuffling can be "inverted" to obtain a `TiledCopy` for the operation.
 ```julia
 mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN())
 smem_copy_A = make_tiled_copy_A(CopyAtom{LDSM_U32x4_N, Float32}(), mma)
@@ -132,14 +129,12 @@ print_typst(smem_copy_A)
 ```
 ![](../assets/smem_copy_A.svg)
 
-The resulting layout on the right hand side matches the layout of A in the `mma`.
+The resulting layout on the right-hand side matches the layout of A in the `mma`.
 
 !!! note
-    The `TN` in `MMAOP_16x8x8_F32TF32TF32F32_TN` means that both A and B are in `K`-major order.
-    The `N` in `LDSM_U32x4_N` means the source array is `K`-major order.
-
-!!! note 
-    The `ldmatrix` requires four consecutive threads to load 16 consecutive bytes, demanding that the layout of `A` in shared memory meet this specification.
+    - The `TN` in `MMAOP_16x8x8_F32TF32TF32F32_TN` means that both A and B are in K-major order.
+    - The `N` in `LDSM_U32x4_N` means the source array is in K-major order.
+    - `ldmatrix` requires four consecutive threads to load 16 consecutive bytes, meaning the layout of `A` in shared memory must meet this specification.
 
 For B:
 ```julia
@@ -149,10 +144,10 @@ print_typst(smem_copy_B)
 
 ![](../assets/smem_copy_B.svg)
 
-!!! Note
-    The visualization of `B` in `mma` is draw as `(K, N)` but `(N, K)` in `smem_copy_B`.
+!!! note
+    The visualization of `B` in `mma` is drawn as `(K, N)` but as `(N, K)` in `smem_copy_B`.
 
-We then use `smem_copy_A` and `smem_copy_B` to re-tile the shared memory and registers
+We then use `smem_copy_A` and `smem_copy_B` to re-tile the shared memory and registers:
 ```julia
 smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)
 smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)
@@ -162,7 +157,8 @@ tCrA_retiled = retile_D(smem_thr_copy_A, tCrA)
 tCrB_retiled = retile_D(smem_thr_copy_B, tCrB)
 ```
 
-Complete code:
+### Complete Code
+
 ```julia
 function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
                        B, sB_layout, gmem_copy_B, smem_copy_B,
@@ -182,7 +178,7 @@ function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # gmem copy partition
+    # Gmem copy partition
     gmem_thr_copy_a = get_slice(gmem_copy_A, threadIdx().x)      
     tAgA = partition_S(gmem_thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(gmem_thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
@@ -191,11 +187,11 @@ function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
     tBgB = partition_S(gmem_thr_copy_b, gB)                 # (CPY, CPY_N, CPY_K, k)
     tBsB = partition_D(gmem_thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
 
-    # copy from global to shared
+    # Copy from global to shared memory
     copyto!(gmem_copy_A, tAsA, view(tAgA, :, :, :, _1))
     copyto!(gmem_copy_B, tBsB, view(tBgB, :, :, :, _1))
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
@@ -206,7 +202,7 @@ function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
     tCrC = make_fragment_C(thr_mma, tCgC)              # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
-    # retile 
+    # Retile
     smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)
     smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)
     tCsA_retiled = partition_S(smem_thr_copy_A, sA)
@@ -216,14 +212,14 @@ function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
     
     cp_async_wait()
 
-    # copy from shared to registers
+    # Copy from shared memory to registers
     copyto!(smem_copy_A, tCrA_retiled, tCsA_retiled)
     copyto!(smem_copy_B, tCrB_retiled, tCsB_retiled)
 
     @gc_preserve gemm!(mma, tCrC, tCrA, tCrB, tCrC)
 
     copyto!(tCgC, tCrC) 
-    @inbounds tCrC[1]  # compiler bug, have to load after copyto!
+    @inbounds tCrC[1]  # Compiler bug: must load after copyto!
 
     return nothing
 end
@@ -250,7 +246,7 @@ function matmul(A, B, C)
 
     mma = make_tiled_mma(MMAOP_16x8x8_F32TF32TF32F32_TN()) 
 
-    # Note: A is M-major so we can only use `UniversalCopy`
+    # Note: A is M-major, so we can only use `UniversalCopy`
     smem_copy_A =  make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
     smem_copy_B =  make_tiled_copy_B(CopyAtom{LDSM_U32x2_N, TB}(), mma)
 
@@ -261,11 +257,9 @@ function matmul(A, B, C)
                                                       B, sB_layout, gmem_copy_B, smem_copy_B,
                                                       C, mma)
 end
-
 ```
 
-## Double buffering
-
+## Double Buffering
 
 ```julia
 @views function matmul_kernel(A, sA_layout, gmem_copy_A, smem_copy_A,
@@ -286,7 +280,7 @@ end
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # gmem copy partition
+    # Gmem copy partition
     gmem_thr_copy_A = get_slice(gmem_copy_A, threadIdx().x)      
     tAgA = partition_S(gmem_thr_copy_A, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(gmem_thr_copy_A, sA)                 # (CPY, CPY_M, CPY_K, 2)
@@ -299,7 +293,7 @@ end
     copyto!(gmem_copy_A, tAsA[:, :, :, _1], tAgA[:, :, :, _1])
     copyto!(gmem_copy_B, tBsB[:, :, :, _1], tBgB[:, :, :, _1])
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                         # (MMA, MMA_M, MMA_K, 2)
     tCsB = partition_B(thr_mma, sB)                         # (MMA, MMA_M, MMA_K, 2)
@@ -310,7 +304,7 @@ end
     tCrC = make_fragment_C(thr_mma, tCgC)                   # (MMA, MMA_M, MMA_N)
     zeros!(tCrC)
 
-    # retile 
+    # Retile
     smem_thr_copy_A = get_slice(smem_copy_A, threadIdx().x)   
     smem_thr_copy_B = get_slice(smem_copy_B, threadIdx().x)   
     tCsA_retiled = partition_S(smem_thr_copy_A, sA)         # (MMA, MMA_M, MMA_K, 2)   
@@ -381,7 +375,7 @@ function matmul(A, B, C)
                                   @Layout((32, 4), (4, 1)),
                                   @Layout((1, 4)))
 
-    # A is M-major so we cannot use LDSM_U32x4_N 
+    # A is M-major, so we cannot use LDSM_U32x4_N 
     smem_copy_A = make_tiled_copy_A(CopyAtom{UniversalCopy{TA}, TA}(), mma)
     smem_copy_B = make_tiled_copy_B(CopyAtom{LDSM_U32x4_N, TB}(), mma)
 

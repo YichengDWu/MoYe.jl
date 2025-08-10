@@ -1,15 +1,14 @@
-# Matrix Transpose Tutorial
+# Global to Shared Memory Copy
 
-This tutorial illustrates the process copying data between global memory and shared memory using `MoYe`. 
-
-In this tutorial, we will use the following configuration:
+This tutorial demonstrates how to copy data between global and shared memory using `MoYe.jl`. We will use the following configuration:
 
 - Array size: 2048 x 2048
 - Block size: 32 x 32
 - Thread size: 32 x 8
 
 ## Copy Kernel
-We start with a copy kernel.
+
+We start with a simple copy kernel:
 ```julia
 using MoYe, Test, CUDA
 
@@ -43,9 +42,9 @@ function test_copy_async(M, N)
     a = CUDA.rand(Float32, M, N)
     b = CUDA.rand(Float32, M, N)
 
-    blocklayout = @Layout (32, 32) # 32 * 32 elements in a block
-    smemlayout = @Layout (32, 32)  # 32 * 32 elements in shared memory
-    threadlayout = @Layout (32, 8) # 32 * 8 threads in a block
+    blocklayout = @Layout (32, 32) # 32x32 elements per block
+    smemlayout = @Layout (32, 32)  # 32x32 elements in shared memory
+    threadlayout = @Layout (32, 8) # 32x8 threads per block
 
     bM = size(blocklayout, 1)
     bN = size(blocklayout, 2)
@@ -60,47 +59,46 @@ end
 
 test_copy_async(2048, 2048)
 ```
-## Code Explanation
 
-The device function follows these steps:
+### Code Explanation
 
-1. Allocate shared memory using `MoYeSharedArray` with a static layout.
-2. Wrap the destination and source arrays with dynamic layouts.
-3. Get the size of each block in the grid (bM and bN).
-4. Create local tiles for the destination and source arrays using [`@tile`](@ref).
-5. Partition the local tiles into thread tiles using [`@parallelize`](@ref).
-6. Copy data from the source thread tile to the shared memory thread tile.
-7. Synchronize threads.
-8. Copy data back from the shared memory thread tile to the destination thread tile.
+The device function performs the following steps:
 
-The host function tests the copy_kernel function with the following steps:
+1.  **Allocate shared memory**: `MoYeSharedArray` allocates shared memory with a static layout.
+2.  **Wrap arrays**: The destination and source arrays are wrapped with dynamic layouts.
+3.  **Get block size**: Get the size of each block in the grid (`bM` and `bN`).
+4.  **Create local tiles**: Create local tiles for the destination and source arrays using [`@tile`](@ref).
+5.  **Partition tiles**: Partition the local tiles into thread tiles using [`@parallelize`](@ref).
+6.  **Copy to shared memory**: Copy data from the source thread tile to the shared memory thread tile.
+7.  **Synchronize threads**.
+8.  **Copy to destination**: Copy data from the shared memory thread tile to the destination thread tile.
 
-1. Define the dimensions M and N for the source and destination arrays.
-2. Create random GPU arrays a and b with the specified dimensions using CUDA.rand.
-3. Define the block and thread layouts using [`@Layout`](@ref) for creating **static** layouts.
-4. Calculate the number of blocks in the grid using `cld`. Here we assume the divisibility.
+The host function tests the `copy_kernel` function:
 
-A few things to notice here:
+1.  **Define dimensions**: Define the dimensions `M` and `N` for the source and destination arrays.
+2.  **Create GPU arrays**: Create random GPU arrays `a` and `b`.
+3.  **Define layouts**: Define the block and thread layouts using [`@Layout`](@ref).
+4.  **Calculate grid size**: Calculate the number of blocks in the grid using `cld`.
 
-1. [`@tile`](@ref) means that all of our blocks cover the entire array.
-2. Each block contains 32 x 32 elements of the original array, but we have 32 x 8 threads per block, which means that each thread processes 4 elements. The code
-```julia
-@parallelize blocktile_dest threadlayout threadIdx().x
-```
-returns the set of elements that the thread corresponding to threadIdx().x is processing, which in this case is an array of length 4.
+Key points to note:
 
-3. Once we have completed all the tiling, we just perform computations as if we were dealing with a regular array:
+1.  [`@tile`](@ref) ensures that all blocks cover the entire array.
+2.  Each block contains 32x32 elements, but we have 32x8 threads per block, so each thread processes 4 elements. The code `@parallelize blocktile_dest threadlayout threadIdx().x` returns the set of elements that the current thread is responsible for, which is an array of length 4.
+3.  Once tiling is complete, we can perform computations as if we were working with a regular array:
 
 ```julia
 for i in eachindex(threadtile_smem)
     threadtile_smem[i] = threadtile_src[i]
 end
 ```
-You need not concern yourself with index bookkeeping, it is implicitly handled by the layout; instead, concentrate on the computation aspect, as it is a fundamental objective of MoYe.jl.
 
-Additionally, you can use the [`copyto!`](@ref) function for static `MoYeArray` with two key feature: copying from global memory to shared memory automatically calls `cp.async` (Requires `sm_80` or higher), and automatic vectorization when possible.
+MoYe.jl handles the index bookkeeping implicitly, allowing you to focus on the computation.
 
-Here is how it would look like using `copyto!`.
+### Using `copyto!`
+
+You can also use [`copyto!`](@ref) for static `MoYeArray`s. This function automatically calls `cp.async` when copying from global to shared memory (requires `sm_80` or higher) and performs automatic vectorization when possible.
+
+Here is the kernel using `copyto!`:
 ```julia
 function copy_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
@@ -128,15 +126,15 @@ end
 
 ## Padding Shared Memory
 
-Note that in the above code, the layout of the shared memory is the same as the block layout. However, we often need to pad the shared array to avoid bank conflicts. We just need to change one line of code:
+In the above code, the shared memory layout is the same as the block layout. However, it is often necessary to pad the shared array to avoid **bank conflicts**. This can be done by changing one line of code:
 ```julia
-smemlayout = @Layout (32, 32) (1, 31)  # pad one row
+smemlayout = @Layout (32, 32) (1, 31)  # Pad one row
 ```
-Also note that our kernel will recompile for different static layout parameters.
+Note that the kernel will recompile for different static layout parameters.
 
-## Transpose kernel
+## Transpose Kernel
 
-Now we turn to the transpose kernel.
+Now, let's look at a transpose kernel:
 ```julia
 function transpose_kernel(dest, src, smemlayout, blocklayout, threadlayout)
     moye_smem = MoYeSharedArray(eltype(dest), smemlayout) 
@@ -188,8 +186,8 @@ end
 test_transpose(2048, 2048)
 ```
 
-It is almost identical to the copy kernel， but we would need to transpose the shared memory by simply transposing its layout
+This is almost identical to the copy kernel, but we transpose the shared memory by transposing its layout:
 ```julia
     moye_smem′ = MoYe.transpose(moye_smem)
 ```
-and then compute the new thread tiles. Note that each thread would work on different elements now so we need to call `sync_threads()`.
+We then compute the new thread tiles. Note that each thread will now work on different elements, so we need to call `sync_threads()`.

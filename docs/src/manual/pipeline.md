@@ -1,12 +1,14 @@
-## Overlap global-to-shared copies with mma compute
+# Pipelining
 
-We can overlap global-to-shared memory copies with mma compute.
+Instruction-level parallelism (ILP) is a technique used to improve the performance of processors by executing multiple instructions simultaneously. In the context of GPU programming, we can apply ILP to overlap memory operations with computation, effectively hiding memory latency.
+
+## Overlapping Global-to-Shared Copies with MMA Computation
+
+We can overlap global-to-shared memory copies with MMA (Matrix Multiply-Accumulate) computation. This is achieved by prefetching the next tile of data from global memory into shared memory while the current tile is being processed.
 
 ![](https://developer-blogs.nvidia.com/wp-content/uploads/2020/09/sequence-asynchronous-copy-batches-1.png)
 
-To do this we will explicitly load data from shared memory to registers for
-the mma computation and submit a new load from global memory to shared memory for the next tile
-before compute.
+To implement this, we explicitly load data from shared memory to registers for the MMA computation and initiate a new load from global memory to shared memory for the next tile before starting the computation.
 
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
@@ -27,7 +29,7 @@ function matmul_kernel(A, sA_layout, copy_A,
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # copy partition
+    # Copy partition
     thr_copy_a = get_slice(copy_A, threadIdx().x)      
     tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
@@ -40,13 +42,13 @@ function matmul_kernel(A, sA_layout, copy_A,
     copyto!(copy_A, tAsA, view(tAgA, :, :, :, _1))
     copyto!(copy_B, tBsB, view(tBgB, :, :, :, _1))
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma_C, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
-    # mma registers
+    # MMA registers
     tCrA = make_fragment_A(thr_mma, tCsA)                # (MMA, MMA_M, MMA_K)
     tCrB = make_fragment_B(thr_mma, tCsB)                # (MMA, MMA_N, MMA_K)
     tCrC = make_fragment_C(thr_mma, tCgC)                # (MMA, MMA_M, MMA_N)
@@ -57,7 +59,7 @@ function matmul_kernel(A, sA_layout, copy_A,
         cp_async_wait()
         sync_threads()
 
-        # copy from smem to rmem
+        # Copy from smem to rmem
         copyto!(tCrA, tCsA)
         copyto!(tCrB, tCsB)
         sync_threads()
@@ -75,12 +77,11 @@ function matmul_kernel(A, sA_layout, copy_A,
 end
 ```
 
-## Double buffer
+## Double Buffering
 
-We can also overlap shared-to-registers memory copies with mma compute.
+We can also overlap shared-to-register memory copies with MMA computation using a technique called **double buffering**.
 
-To do this we will need to allocate two shared memory buffers, one for the current compute and one
-for the next tile. We prefetch the next tile from global memory to shared memory asynchronously.
+This involves allocating two shared memory buffers: one for the current computation and one for prefetching the next tile. We asynchronously prefetch the next tile from global memory to the second shared memory buffer while the first is being used for computation.
 
 ![matmuil](../assets/pipeline.svg)
 
@@ -103,7 +104,7 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # copy partition
+    # Copy partition
     thr_copy_a = get_slice(copy_A, threadIdx().x)      
     tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K, 2)
@@ -116,13 +117,13 @@ for the next tile. We prefetch the next tile from global memory to shared memory
     copyto!(copy_A, tAsA[:, :, :, 1], tAgA[:, :, :, _1])
     copyto!(copy_B, tBsB[:, :, :, 1], tBgB[:, :, :, _1])
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma_C, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K, 2)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K, 2)
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
-    # mma registers
+    # MMA registers
     tCrA = make_fragment_A(thr_mma, tCsA[:, :, :, _1])    # (MMA, MMA_M, MMA_K)
     tCrB = make_fragment_B(thr_mma, tCsB[:, :, :, _1])    # (MMA, MMA_N, MMA_K)
     tCrC = make_fragment_C(thr_mma, tCgC)                 # (MMA, MMA_M, MMA_N)

@@ -1,18 +1,21 @@
-Tiled Copy
+# Tiled Matmul
 
-We have already introduced how to copy data using @tile and @parallelize. This process might still appear somewhat cumbersome, and `TiledCopy` serves to simplify it.
+While `@tile` and `@parallelize` are powerful tools for data manipulation, they can be cumbersome. `TiledCopy` and `TiledMMA` simplify this process.
 
-Consider the following example where we employ six threads to transfer an array src of shape (4, 9) into another array dst with the identical shape. The relationship mapping logic coordinates to thread IDs can be visualized as:
+## Tiled Copy
 
-```julia
+`TiledCopy` streamlines data transfer between arrays. Consider an example where six threads copy a 4x9 `src` array to a `dst` array of the same shape. The mapping of logical coordinates to thread IDs is as follows:
+
+```
 1 1 1 2 2 2 3 3 3
 1 1 1 2 2 2 3 3 3
 4 4 4 5 5 5 6 6 6
 4 4 4 5 5 5 6 6 6
 ```
-Here, each thread is assigned a data segment defined by the layout (2,3):(1,2). The group of threads operates within a layout of (2,3):(3,1), referred to as `val_layout` and `thr_layout`, respectively.
 
-To begin, we initialize these arrays:
+Each thread is assigned a data segment defined by `val_layout` (2,3):(1,2), while the thread group operates within `thr_layout` (2,3):(3,1).
+
+First, initialize the arrays:
 
 ```@repl tiled_copy
 using MoYe
@@ -22,7 +25,7 @@ dst_buffer = zeros(36);
 dst = MoYeArray(dst_buffer, make_layout((_4,_9)));
 ```
 
-We then proceed to set up a `TiledCopy`:
+Next, set up the `TiledCopy`:
 ```@repl tiled_copy
 thr_layout = @Layout (2, 3) (3, 1)
 val_layout = @Layout (2, 3) (1, 2)
@@ -32,22 +35,20 @@ tiled_copy = make_tiled_copy(
 	val_layout)
 ```
 
-The second parameter Float64 in CopyAtom indicates that the copied data is of `Float64` type. `UniversalCopy{Float64}` is used for vectorized copy operations, meaning that the data is recast to Float64, i.e., without vectorization. Here is a vectorized `TiledCopy`
+The `Float64` in `CopyAtom` specifies the data type. `UniversalCopy{Float64}` indicates a non-vectorized copy. For vectorized copies, use a type like `UInt128`:
 ```julia
 tiled_copy_vec = make_tiled_copy(
 	CopyAtom{UniversalCopy{UInt128}, Float64}(),
 	thr_layout, 
 	val_layout)
 ```
-Note that vectorized copy must be comatiable with `val_layout`, i.e., `val_layout` needs to have
-enough and divisible number of elements to be vectorized.
+Note that for vectorized copies, `val_layout` must have a divisible number of elements.
 
-You can visualize this `tiled_copy` by using `print_typst(tiled_copy)`. Visit [typst](https://typst.app), copy the printed string, and you will see the following image:
+Visualize the `tiled_copy` using `print_typst(tiled_copy)` in the [Typst](https://typst.app) web app:
 
 ![matmuil](../assets/tiled_copy.svg)
 
-
-The two tables respectively represent the thread distribution of src and dst, which are the same here. There are also some PTX instructions involved in reallocating each thread's data, for example:
+The two tables show the thread distribution for `src` and `dst`. PTX instructions may reallocate each thread's data. For example:
 ```julia
 print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
                                           @Layout((16,2)), @Layout((2,4))));
@@ -56,11 +57,9 @@ print_typst(make_tiled_copy(MoYe.CopyAtom{LDSM_U32x4_N, UInt16}(),
 
 ![matmuil](../assets/ldmatrix.svg)
 
-As you can see, both thr_layout and val_layout are actually defined on dst.
+As shown, `thr_layout` and `val_layout` are defined on `dst`. We will revisit `ldmatrix` when discussing Tensor Cores.
 
-We will go back to `ldmatrix` when we talk about tensor cores.
-
-Returning to our example, after making the `tiled_copy`, we can use it to partition data.
+After creating the `tiled_copy`, partition the data:
 
 ```@repl tiled_copy
 thr_idx = 2;
@@ -73,11 +72,9 @@ copyto!(tiled_copy, dst_t, src_t);
 dst
 ```
 
-You can see that the second thread has completed the copy. The shape of `dst_t` is `(CPY, CPY_M, CPY_K)` representing
-the the num of values handle by a thread in a single tile, and the demensions tiled in `dst`'s shape. Notably,
-the left most mode of `CPY` stands for the number of `vectorized` values. In this case it is 1, but try changing to `UniversalCopy{UInt128}` and see how the result changes.
+The second thread has now completed its copy. The shape of `dst_t` is `(CPY, CPY_M, CPY_K)`, where `CPY` is the number of vectorized values per thread. In this case, it's 1. Changing to `UniversalCopy{UInt128}` would alter this.
 
-The NVIDIA Ampere architecture supports cuda::memcpy_async for asynchronously copying data between GPU global memory and shared memory without needing threads to orchestrate the data movement. In previous architectures, copying from global memory to shared memory usually involved registers for intermediation, corresponding to this syntax:
+The NVIDIA Ampere architecture supports `cuda::memcpy_async` for asynchronous data copies between global and shared memory. In older architectures, this required intermediate registers:
 ```@repl tiled_copy
 thr_idx = 3;
 thr_copy = get_slice(tiled_copy, thr_idx);
@@ -92,14 +89,14 @@ dst
 
 ## TiledMMA
 
-In this section, we'll show you how to use `TiledMMA` to replace an mma partition. First, invoke the function make_tiled_mma as follows:
+`TiledMMA` simplifies MMA partitions. Invoke `make_tiled_mma` as follows:
 ```@repl tiled_copy
 mma_C = make_tiled_mma(UniversalFMA{TA,TB, TC}(), # MMA operation
                        @Layout((16,16)))          # Atom layout
 
 ```
 
-You can experiment with replacing `UniversalFMA` with another `MMAOp` and use print_typst to view the results. Here are the predefined MMAOps:
+You can replace `UniversalFMA` with other `MMAOp` types. View the predefined `MMAOps` with:
 ```@repl tiled_copy
 MoYe.mma_ops_list
 ```
@@ -112,11 +109,11 @@ tCgC = partition_C(gC);
 
 tCrC = make_fragment_like(tCgC)
 ```
-These instructions operate on tensor cores, a topic we haven't covered yet (but will soon!).
+These instructions operate on Tensor Cores, which are covered in a later section.
 
-## MatMul
+## Matmul with Tiled Operations
 
-Now, we use `TiledCopy` and `TiledMMA` to upgrade the previous matmul_kernel.
+Now, let's upgrade the `matmul_kernel` with `TiledCopy` and `TiledMMA`.
 
 ```julia
 function matmul_kernel(A, sA_layout, copy_A,
@@ -137,7 +134,7 @@ function matmul_kernel(A, sA_layout, copy_A,
     gB = @tile mB (bN, bK) (blockIdx().y, :)
     gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)
 
-    # copy partition
+    # Copy partition
     thr_copy_a = get_slice(copy_A, threadIdx().x)      
     tAgA = partition_S(thr_copy_a, gA)                 # (CPY, CPY_M, CPY_K, k)
     tAsA = partition_D(thr_copy_a, sA)                 # (CPY, CPY_M, CPY_K)
@@ -148,17 +145,17 @@ function matmul_kernel(A, sA_layout, copy_A,
     tBsB = partition_D(thr_copy_b, sB)                 # (CPY, CPY_N, CPY_K)
     tBrB = make_fragment_like(tBsB)                    # (CPY, CPY_N, CPY_K)
 
-    # mma partition
+    # MMA partition
     thr_mma = get_slice(mma_C, threadIdx().x)
     tCsA = partition_A(thr_mma, sA)                    # (MMA, MMA_M, MMA_K)
     tCsB = partition_B(thr_mma, sB)                    # (MMA, MMA_M, MMA_K)
     tCgC = partition_C(thr_mma, gC)                    # (MMA, MMA_M, MMA_N)
 
-    # overlap copy and compute
+    # Overlap copy and compute
     copyto!(copy_A, tArA, view(tAgA, :, :, :, _1))
     copyto!(copy_B, tBrB, view(tBgB, :, :, :, _1))
 
-    # accumulator
+    # Accumulator
     tCrC = make_fragment_C(thr_mma, tCgC)
     zeros!(tCrC)
 
@@ -169,7 +166,7 @@ function matmul_kernel(A, sA_layout, copy_A,
         copyto!(tBsB, tBrB)
         sync_threads()
 
-	    # load the next tile
+	    # Load the next tile
 	    k_next = k < k_max ? k+1 : k
 	    copyto!(copy_A, tArA, view(tAgA, :, :, :, k_next))
 	    copyto!(copy_B, tBrB, view(tBgB, :, :, :, k_next))
@@ -227,20 +224,19 @@ end
 test()
 ```
 
-## Vectorized copy
+## Vectorized Copy and Memory Coalescing
 
-As previously mentioned, you can change to `UniversalCopy{Float64}` or `UniversalCopy{UInt128}`
-to enabled vectoried copy. But we also need to keep in mind the copies are **coalesced**.
-For example, the following one is not coalesced
+As mentioned, you can use `UniversalCopy{Float64}` or `UniversalCopy{UInt128}` for vectorized copies. However, it is crucial to ensure that memory accesses are **coalesced**.
+
+An uncoalesced copy:
 ```julia
 copy_A = make_tiled_copy(CopyAtom{UniversalCopy{Float64}, TA}(),
                              @Layout((32, 8)),
                              @Layout((4, 1)))
 ```
+Here, thread 1 loads from `[1], [2]` and thread 2 loads from `[5], [6]`, which is not coalesced.
 
-since thread 1 is loading from `[1], [2]` and thead 2 is loading from `[5], [6]`.
-
-Theses are coalesced:
+Coalesced copies:
 ```julia
 copy_A = make_tiled_copy(CopyAtom{UniversalCopy{Float64}, TA}(),
                              @Layout((32, 8)),
@@ -249,3 +245,4 @@ copy_A = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, TA}(),
                              @Layout((32, 8)),
                              @Layout((4, 1)))          
 ```
+In these examples, threads access contiguous memory locations, leading to coalesced memory access and better performance.
