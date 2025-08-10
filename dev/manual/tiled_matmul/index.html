@@ -30,8 +30,8 @@ Closest candidates are:
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">operators.jl:596</span></span>
   +(<span class="sgr91">::Missing</span>, ::Number)
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">missing.jl:123</span></span>
-  +(<span class="sgr91">::Static.StaticInteger{X}</span>, ::Static.StaticInteger{Y}) where {X, Y}
-<span class="sgr90">   @</span> <span class="sgr35">Static</span> <span class="sgr90">~/.julia/packages/Static/SeEGr/src/<span class="sgr4">Static.jl:447</span></span>
+  +(<span class="sgr91">::LinearAlgebra.UniformScaling</span>, ::Number)
+<span class="sgr90">   @</span> <span class="sgr35">LinearAlgebra</span> <span class="sgr90">/opt/hostedtoolcache/julia/1.11.6/x64/share/julia/stdlib/v1.11/LinearAlgebra/src/<span class="sgr4">uniformscaling.jl:144</span></span>
   ...</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">4×9 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, StaticLayout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices _1:_4×_1:_9:
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
@@ -44,8 +44,8 @@ Closest candidates are:
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">operators.jl:596</span></span>
   +(<span class="sgr91">::Missing</span>, ::Number)
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">missing.jl:123</span></span>
-  +(<span class="sgr91">::Static.StaticInteger{X}</span>, ::Static.StaticInteger{Y}) where {X, Y}
-<span class="sgr90">   @</span> <span class="sgr35">Static</span> <span class="sgr90">~/.julia/packages/Static/SeEGr/src/<span class="sgr4">Static.jl:447</span></span>
+  +(<span class="sgr91">::LinearAlgebra.UniformScaling</span>, ::Number)
+<span class="sgr90">   @</span> <span class="sgr35">LinearAlgebra</span> <span class="sgr90">/opt/hostedtoolcache/julia/1.11.6/x64/share/julia/stdlib/v1.11/LinearAlgebra/src/<span class="sgr4">uniformscaling.jl:144</span></span>
   ...</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; copyto!(tiled_copy, dst_t, dst_r);</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: MethodError: no method matching +(::Ptr{Float64}, ::Static.StaticInt{0})
 The function `+` exists, but no method is defined for this combination of argument types.
 
@@ -54,8 +54,8 @@ Closest candidates are:
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">operators.jl:596</span></span>
   +(<span class="sgr91">::Missing</span>, ::Number)
 <span class="sgr90">   @</span> <span class="sgr90">Base</span> <span class="sgr90"><span class="sgr4">missing.jl:123</span></span>
-  +(<span class="sgr91">::Static.StaticInteger{X}</span>, ::Static.StaticInteger{Y}) where {X, Y}
-<span class="sgr90">   @</span> <span class="sgr35">Static</span> <span class="sgr90">~/.julia/packages/Static/SeEGr/src/<span class="sgr4">Static.jl:447</span></span>
+  +(<span class="sgr91">::LinearAlgebra.UniformScaling</span>, ::Number)
+<span class="sgr90">   @</span> <span class="sgr35">LinearAlgebra</span> <span class="sgr90">/opt/hostedtoolcache/julia/1.11.6/x64/share/julia/stdlib/v1.11/LinearAlgebra/src/<span class="sgr4">uniformscaling.jl:144</span></span>
   ...</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; dst</code><code class="nohighlight hljs ansi" style="display:block;">4×9 MoYeArray{Float64, 2, ViewEngine{Float64, Ptr{Float64}}, StaticLayout{2, Tuple{Static.StaticInt{4}, Static.StaticInt{9}}, Tuple{Static.StaticInt{1}, Static.StaticInt{4}}}} with indices _1:_4×_1:_9:
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
@@ -199,4 +199,4 @@ test()</code></pre><h2 id="Vectorized-copy"><a class="docs-heading-anchor" href=
                              @Layout((2, 1)))
 copy_A = make_tiled_copy(CopyAtom{UniversalCopy{UInt128}, TA}(),
                              @Layout((32, 8)),
-                             @Layout((4, 1)))          </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../matmul/">« MatMul</a><a class="docs-footer-nextpage" href="../async/">Memcpy Async »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.2 on <span class="colophon-date" title="Tuesday 6 May 2025 21:44">Tuesday 6 May 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+                             @Layout((4, 1)))          </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../matmul/">« MatMul</a><a class="docs-footer-nextpage" href="../async/">Memcpy Async »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 10 August 2025 21:42">Sunday 10 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
