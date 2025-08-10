@@ -307,7 +307,7 @@ function _recast(::Type{NewType}, x::MoYeArray{OldType}) where {NewType, OldType
         shape_diff = map(-, flatten(shape(old_layout)), flatten(shape(new_layout)))
         extent_diff = map(*, shape_diff, flatten(stride(old_layout)))
         offset = _foldl((i,a)->i+min(a, Zero()), extent_diff, Zero())
-        return MoYeArray(recast(NewType, pointer(x) + offset * sizeof(OldType)), new_layout)
+        return MoYeArray(recast(NewType, pointer(x) + Int(offset) * sizeof(OldType)), new_layout)
     else
         return MoYeArray(recast(NewType, pointer(x)), new_layout)
     end
