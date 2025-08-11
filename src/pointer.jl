@@ -13,3 +13,8 @@ Base.:(-)(x::LLVMPtr, ::StaticInt{N}) where {N} = x - N
 Base.:(-)(::StaticInt{N}, y::LLVMPtr) where {N} = y - N
 Base.:(+)(x::LLVMPtr, ::StaticInt{N}) where {N} = x + N
 Base.:(+)(::StaticInt{N}, y::LLVMPtr) where {N} = y + N
+
+Base.:(-)(x::Ptr, ::StaticInt{N}) where {N} = x - N
+Base.:(-)(::StaticInt{N}, y::Ptr) where {N} = y - N
+Base.:(+)(x::Ptr, ::StaticInt{N}) where {N} = x + N
+Base.:(+)(::StaticInt{N}, y::Ptr) where {N} = y + N
