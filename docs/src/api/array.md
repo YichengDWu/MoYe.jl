@@ -1,4 +1,4 @@
-## MoYeArray
+## Array
 
 ```@meta
 CurrentModule = MoYe
@@ -17,4 +17,5 @@ MoYeArray
 recast
 zeros!
 ```
+
 
