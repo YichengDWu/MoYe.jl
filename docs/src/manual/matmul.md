@@ -39,9 +39,9 @@ tB = @Layout (32, 8)
 This creates a 32x8 thread group in column-major format. We use this to partition the arrays:
 ```julia
 tAgA = @parallelize gA tA threadIdx().x       # (THR_M, THR_K, k)
-tBgB = @parallelize gB tB threadIdx().x       # (THR_M, THR_K)
+tBgB = @parallelize gB tB threadIdx().x       # (THR_M, THR_K, k)
 
-tAsA = @parallelize sA tA threadIdx().x       # (THR_N, THR_K, k)
+tAsA = @parallelize sA tA threadIdx().x       # (THR_N, THR_K)
 tBsB = @parallelize sB tB threadIdx().x       # (THR_N, THR_K)
 ```
 Refer to [`@parallelize`](@ref) for more details. After partitioning, copying is straightforward:
