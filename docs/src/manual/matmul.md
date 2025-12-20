@@ -2,7 +2,7 @@
 
 ![matmul](../assets/matmul.png)
 
-This tutorial explores matrix multiplication using MoYe.jl, specifically computing the product $C = A \times B^T$. Here, A is an $(M, K)$ matrix, B is a $(K, N)$ matrix, and C is an $(M, N)$ matrix.
+This tutorial explores matrix multiplication using MoYe.jl, specifically computing the product $C = A \times B^T$. Here, A is an $(M, K)$ matrix, B is a $(N, K)$ matrix, and C is an $(M, N)$ matrix.
 
 ## Tiling Strategy
 
@@ -101,14 +101,14 @@ function matmul_kernel(A, sA_layout, tA,
     bN = size(sB_layout, 1)
     bK = size(sB_layout, 2)
 
-    gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bN)
-    gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bM, bK, K/bK)
-    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bN, bK, K/bK)
+    gA = @tile mA (bM, bK) (blockIdx().x, :)              # (bM, bK, K/bK)
+    gB = @tile mB (bN, bK) (blockIdx().y, :)              # (bN, bK, K/bK)
+    gC = @tile mC (bM, bN) (blockIdx().x, blockIdx().y)   # (bM, bN)
 
     # Copy partition
     tAgA = @parallelize gA tA threadIdx().x               # (THR_M, THR_K, k)
-    tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K)
-    tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K, k)
+    tBgB = @parallelize gB tB threadIdx().x               # (THR_M, THR_K, k)
+    tAsA = @parallelize sA tA threadIdx().x               # (THR_N, THR_K)
     tBsB = @parallelize sB tB threadIdx().x               # (THR_N, THR_K)
 
     # MMA partition
