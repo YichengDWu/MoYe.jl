@@ -1,4 +1,4 @@
-# Layout 
+# Layout {#layout-page}
 
 ```@meta
 CurrentModule = MoYe
@@ -68,4 +68,5 @@ tiled_divide
 ```@docs
 coalesce
 flatten(layout::Layout)
+
 ```
