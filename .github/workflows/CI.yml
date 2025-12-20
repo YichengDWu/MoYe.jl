@@ -21,6 +21,8 @@ jobs:
       matrix:
         version:
           - '1.10'
+          - '1.11'
+          - '1.12'
         os:
           - ubuntu-latest
         arch:
@@ -60,3 +62,4 @@ jobs:
             using MoYe
             DocMeta.setdocmeta!(MoYe, :DocTestSetup, :(using MoYe); recursive=true)
             doctest(MoYe)'
+
